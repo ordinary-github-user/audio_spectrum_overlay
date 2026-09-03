@@ -1,0 +1,8 @@
+*
+!*.h
+!*.cpp
+!*.md
+!*.bat
+!*.vcxproj
+!*.png
+!.gitignore
