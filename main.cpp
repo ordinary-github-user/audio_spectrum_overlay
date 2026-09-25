@@ -24,7 +24,7 @@
 	#define CLANG_CL 0
 #endif
 STATIC_ASSERT(CLANG + GCC + MSVC == 1);
-#if __cpp_expansion_statements >= 202506L && !GCC//gcc bug: internal compiler error: in write_unqualified_name, at cp/mangle.cc:1535
+#if __cpp_expansion_statements >= 202506L
 	#define TEMPLATE_FOR 1
 #else
 	#define TEMPLATE_FOR 0
@@ -44,58 +44,6 @@ STATIC_ASSERT(CLANG + GCC + MSVC == 1);
 #else
 	#define CONSTEXPR_PLACEMENT_NEW 0
 #endif
-#if defined(__INTELLISENSE__) || GCC//gcc bug
-	#define CONSTEVAL constexpr
-#else
-	#define CONSTEVAL consteval
-#endif
-#include <cstdint>
-#include <utility>
-#if MSVC || CLANG_CL
-	#include <__msvc_int128.hpp>
-	using i128 = std::_Signed128;
-	using u128 = std::_Unsigned128;
-#else
-	using i128 = __int128;
-	using u128 = unsigned __int128;
-#endif
-using i8 = std::int8_t;
-using i16 = std::int16_t;
-using i32 = std::int32_t;
-using i64 = std::int64_t;
-
-using u8 = std::uint8_t;
-using u16 = std::uint16_t;
-using u32 = std::uint32_t;
-using u64 = std::uint64_t;
-
-using usize = std::size_t;
-using isize = std::intptr_t;
-
-using f32 = float;
-using f64 = double;
-using f128 = long double;
-
-using c8 = char;
-#if MSVC || CLANG_CL
-	using c16 = wchar_t;
-#elif GCC || CLANG
-	using c16 = std::conditional_t<sizeof(wchar_t) == 2, wchar_t, char16_t>;
-#endif
-using c32 = char32_t;
-
-CONSTEVAL i8  operator""_i8 (unsigned long long v)noexcept { return static_cast<i8 >(v); }
-CONSTEVAL i16 operator""_i16(unsigned long long v)noexcept { return static_cast<i16>(v); }
-CONSTEVAL i32 operator""_i32(unsigned long long v)noexcept { return static_cast<i32>(v); }
-CONSTEVAL i64 operator""_i64(unsigned long long v)noexcept { return static_cast<i64>(v); }
-CONSTEVAL u8  operator""_u8 (unsigned long long v)noexcept { return static_cast<u8 >(v); }
-CONSTEVAL u16 operator""_u16(unsigned long long v)noexcept { return static_cast<u16>(v); }
-CONSTEVAL u32 operator""_u32(unsigned long long v)noexcept { return static_cast<u32>(v); }
-CONSTEVAL u64 operator""_u64(unsigned long long v)noexcept { return static_cast<u64>(v); }
-#if !defined(NOMINMAX)
-	#define NOMINMAX
-#endif
-#include <WinSock2.h>
 #if MSVC || CLANG_CL
 	#if _WIN64
 		#define BITNESS 64
@@ -156,6 +104,63 @@ static_assert(sizeof(void*) * 8 == BITNESS);
 		#define RDSEED 0
 	#endif
 #endif
+#if defined(__BMI2__) || (MSVC && defined(__AVX2__))//every avx2 cpu has bmi2
+	#define PEXT 1
+#else
+	#define PEXT 0
+#endif
+#if defined(__INTELLISENSE__) || GCC//gcc bug
+	#define CONSTEVAL constexpr
+#else
+	#define CONSTEVAL consteval
+#endif
+#include <cstdint>
+#include <utility>
+#if MSVC || CLANG_CL
+	#include <__msvc_int128.hpp>
+	using i128 = std::_Signed128;
+	using u128 = std::_Unsigned128;
+#else
+	using i128 = __int128;
+	using u128 = unsigned __int128;
+#endif
+using i8 = std::int8_t;
+using i16 = std::int16_t;
+using i32 = std::int32_t;
+using i64 = std::int64_t;
+
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
+
+using usize = std::size_t;
+using isize = std::intptr_t;
+
+using f32 = float;
+using f64 = double;
+using f128 = long double;
+
+using c8 = char;
+#if MSVC || CLANG_CL
+	using c16 = wchar_t;
+#elif GCC || CLANG
+	using c16 = std::conditional_t<sizeof(wchar_t) == 2, wchar_t, char16_t>;
+#endif
+using c32 = char32_t;
+
+CONSTEVAL i8  operator""_i8 (unsigned long long v)noexcept { return static_cast<i8 >(v); }
+CONSTEVAL i16 operator""_i16(unsigned long long v)noexcept { return static_cast<i16>(v); }
+CONSTEVAL i32 operator""_i32(unsigned long long v)noexcept { return static_cast<i32>(v); }
+CONSTEVAL i64 operator""_i64(unsigned long long v)noexcept { return static_cast<i64>(v); }
+CONSTEVAL u8  operator""_u8 (unsigned long long v)noexcept { return static_cast<u8 >(v); }
+CONSTEVAL u16 operator""_u16(unsigned long long v)noexcept { return static_cast<u16>(v); }
+CONSTEVAL u32 operator""_u32(unsigned long long v)noexcept { return static_cast<u32>(v); }
+CONSTEVAL u64 operator""_u64(unsigned long long v)noexcept { return static_cast<u64>(v); }
+#if !defined(NOMINMAX)
+	#define NOMINMAX
+#endif
+#include <WinSock2.h>
 #if !defined(DISABLE_INLINE)
 	#define DISABLE_INLINE 0
 #endif
@@ -363,7 +368,7 @@ namespace details
 	};
 	template<$CArray T>
 	struct ElementOfImpl<T> 
-	{ 
+	{
 		using type = std::remove_cvref_t<decltype(*std::declval<T>())>; 
 	};
 }
@@ -581,6 +586,7 @@ struct IotaUp//[start, finish)
 	const T finish;
 	INLINE constexpr IotaIterator<T, 1> begin()const noexcept { return { start }; }
 	INLINE constexpr IotaIterator<T, 1> end()const noexcept { return { finish }; }
+	INLINE constexpr T size()const noexcept { return static_cast<T>(finish - start); }
 	INLINE friend constexpr IotaDown<T, static_cast<T>(start - 1)> reversed(IotaUp range)noexcept { return { .start{T(range.finish - 1)} }; }
 	INLINE friend constexpr bool operator==(const IotaUp&, const IotaUp&)noexcept = default;
 };
@@ -786,6 +792,8 @@ template<class From, class To>using LikePtr = std::remove_reference_t<Like<From,
 #endif
 template<class T>
 concept $HasBeginEnd = requires(const T container) { container.begin()!=container.end(); };
+template<class T, class U>
+concept $IteratorOf = requires(std::remove_cvref_t<T> iterator) { { *(++iterator) }->$CvrefOf<U>; };
 #if 0
 	template<class, class>
 	constexpr bool SigImpl{};
@@ -875,7 +883,7 @@ concept $Printable = requires(Stream& s, const T x) { s << x; };
 	using TYPE_AT = typename decltype(details::pack_element_test<N>::impl(static_cast<details::pack_element_set<std::make_index_sequence<sizeof...(Ts)>, Ts...>*>(nullptr)))::type;
 #endif
 
-#if defined(__cpp_pack_indexing) && !GCC //gcc bug: "Ts...[N]&&" -> sorry, unimplemented: mangling type pack index
+#if defined(__cpp_pack_indexing)
 	template<usize N, class...Ts>
 	requires(N < sizeof...(Ts))
 	[[nodiscard]] INLINE constexpr Ts...[N]&& element_at(Ts&&...args)noexcept
@@ -959,7 +967,7 @@ STATIC_ASSERT([]
 }(), "const volatile &&");
 template<class T, T...I>constexpr auto inverse(std::integer_sequence<T, I...>)noexcept 
 {
-	return[]<auto...J>(std::index_sequence<J...>)static
+	return[]<usize...J>(std::index_sequence<J...>)static
 	{
 		return std::integer_sequence<T, std::array<T, sizeof...(I)>{ I... }[sizeof...(J) - J - 1]...>{};
 	}(std::make_index_sequence<sizeof...(I)>{});
@@ -1037,11 +1045,11 @@ struct StaticVector<T, N>
 #if __cpp_expansion_statements >= 202506L
 		template for (constexpr auto I : iota<sizeof...(args)>)
 			CTOR_CONST(m_data[I], FWD(args...[I]));
-#elif VARIADIC_STRUCTURED_BINDING
+#elif __cpp_structured_bindings >= 202411L
 		static constexpr auto [...I] { iota<sizeof...(args)> };
 		(..., CTOR_CONST(m_data[constant<I>], FWD(args)));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST(m_data[I], FWD(args)));
 		}(std::make_index_sequence<sizeof...(args)>{});
@@ -1187,8 +1195,8 @@ namespace details::StaticVectorTests
 	{
 		std::unique_ptr<i32> i;
 		constexpr TestStruct(i32 i)noexcept :i{ new i32{i} } {}
-		constexpr TestStruct(const TestStruct& x)noexcept: i{new i32{*x.i}}{}
-		constexpr TestStruct(TestStruct&& x)noexcept: i{MOV(x.i)}{}
+		constexpr TestStruct(const TestStruct& x)noexcept : i{ new i32{*x.i} } {}
+		constexpr TestStruct(TestStruct&& x)noexcept : i{ MOV(x.i) } {}
 		friend constexpr bool operator==(const TestStruct& l, i32 r) noexcept { return *l.i == r; }
 		friend constexpr bool operator==(i32 l, const TestStruct& r) noexcept { return *r.i == l; }
 		friend constexpr bool operator==(const TestStruct& l, const TestStruct& r) noexcept { return *l.i == *r.i; }
@@ -1200,7 +1208,7 @@ namespace details::StaticVectorTests
 		using Element = ElementOf<Container>;
 		static constexpr auto verify{ [](const Container& vector, auto...e)static
 		{
-			return[&]<auto...I, auto...J>(std::index_sequence<I...>, std::index_sequence<J...>)
+			return[&]<usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)
 			{
 				if (vector.size() != sizeof...(e))return false;
 				if constexpr (sizeof...(e))
@@ -1292,42 +1300,85 @@ namespace Algorithm
 		struct Entry { Iter begin, end; };
 		if constexpr ($FixSized<Container>)
 		{
-			StaticVector<Entry, static_size<Container>> stack;
-			stack.emplace_back(container.begin(), container.end());
-			while (!stack.empty())
+			if constexpr (static_size<Container> > 1)
 			{
-				const auto [begin, end] {stack.back()};
-				stack.pop_back();
-				if (end - begin > 1)
+				StaticVector<Entry, static_size<Container>> stack;
+				stack.emplace_back(container.begin(), container.end());
+				while (!stack.empty())
 				{
-					const Iter iPivot{ end - 1 };
-					Iter i{ begin };
-					if constexpr (__is_trivially_copyable(Element) && sizeof(Element) <= sizeof(void*))
+					const auto [begin, end] {stack.back()};
+					stack.pop_back();
+					if (end - begin > 1)
 					{
-						const Element pivot{ *iPivot };
-						for (Iter j{ begin }; j != iPivot; ++j)
-							if (compare(*j, pivot))
-							{
-								std::swap(*i, *j);
-								++i;
-							}
+						const Iter iPivot{ end - 1 };
+						Iter i{ begin };
+						if constexpr (__is_trivially_copyable(Element) && sizeof(Element) <= sizeof(void*))
+						{
+							const Element pivot{ *iPivot };
+							for (Iter j{ begin }; j != iPivot; ++j)
+								if (compare(*j, pivot))
+								{
+									std::swap(*i, *j);
+									++i;
+								}
+						}
+						else
+						{
+							for (Iter j{ begin }; j != iPivot; ++j)
+								if (compare(*j, *iPivot))
+								{
+									std::swap(*i, *j);
+									++i;
+								}
+						}
+						std::swap(*i, *iPivot);
+						stack.emplace_back(begin, i);
+						stack.emplace_back(i + 1, end);
 					}
-					else
-					{
-						for (Iter j{ begin }; j != iPivot; ++j)
-							if (compare(*j, *iPivot))
-							{
-								std::swap(*i, *j);
-								++i;
-							}
-					}
-					std::swap(*i, *iPivot);
-					stack.emplace_back(begin, i);
-					stack.emplace_back(i + 1, end);
 				}
 			}
 		}
 		else STATIC_ERROR(not implemented);
+	}
+
+	template<class Iter>
+	constexpr void quicksort_recursive(Iter begin, Iter end, $Sig<bool(const std::remove_cvref_t<decltype(*std::declval<Iter>())>, const std::remove_cvref_t<decltype(*std::declval<Iter>())>)> auto&& compare)noexcept
+	requires(requires{++begin < end;})
+	{
+		using Element = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
+		if (end - begin > 1)
+		{
+			const Iter iPivot{ end - 1 };
+			Iter i{ begin };
+			if constexpr (__is_trivially_copyable(Element) && sizeof(Element) <= sizeof(void*))
+			{
+				const Element pivot{ *iPivot };
+				for (Iter j{ begin }; j != iPivot; ++j)
+					if (compare(*j, pivot))
+					{
+						std::swap(*i, *j);
+						++i;
+					}
+			}
+			else
+			{
+				for (Iter j{ begin }; j != iPivot; ++j)
+					if (compare(*j, *iPivot))
+					{
+						std::swap(*i, *j);
+						++i;
+					}
+			}
+			std::swap(*i, *iPivot);
+			quicksort_recursive(begin, i, FWD(compare));
+			quicksort_recursive(i + 1, end, FWD(compare));
+		}
+	}
+
+	template<$LinearContainer Container>
+	INLINE constexpr void quicksort_recursive(Container&& container, $Sig<bool(const ElementOf<Container>, const ElementOf<Container>)> auto&& compare)noexcept
+	{
+		quicksort_recursive(container.begin(), container.end(), FWD(compare));
 	}
 
 	template<$HasBeginEnd Container>
@@ -1374,7 +1425,6 @@ namespace Algorithm
 			//put pivot into its final place
 			std::swap(pB[store], pB[r - Index{ 1 }]);
 			std::swap(pA[store], pA[r - Index{ 1 }]);
-			//recurse on the two halves
 			self(l, store);
 			self(store + Index{ 1 }, r);
 		}({}, static_cast<Index>(a.size()));
@@ -1411,21 +1461,6 @@ namespace details::SortTests
 #else
 	#define BITCAST(...) __builtin_bit_cast(__VA_ARGS__)
 #endif
-template<u8>struct SignedBitsImpl;
-template<> struct SignedBitsImpl<8> { using type = i8; };
-template<> struct SignedBitsImpl<16> { using type = i16; };
-template<> struct SignedBitsImpl<32> { using type = i32; };
-template<> struct SignedBitsImpl<64> { using type = i64; };
-template<u8 Bits> using SignedBits = typename SignedBitsImpl<Bits>::type;
-template<u8 Bytes> using SignedBytes = typename SignedBitsImpl<Bytes * 8>::type;
-
-template<u8>struct UnsignedBitsImpl;
-template<> struct UnsignedBitsImpl<8> { using type = u8; };
-template<> struct UnsignedBitsImpl<16> { using type = u16; };
-template<> struct UnsignedBitsImpl<32> { using type = u32; };
-template<> struct UnsignedBitsImpl<64> { using type = u64; };
-template<u8 Bits> using UnsignedBits = typename UnsignedBitsImpl<Bits>::type;
-template<u8 Bytes> using UnsignedBytes = typename UnsignedBitsImpl<Bytes * 8>::type;
 //function return value depends only on parameter, can't access global variable
 #if defined(NDEBUG) && (CLANG || GCC)
 	#define NO_SIDE_EFFECTS [[gnu::const]]
@@ -1488,6 +1523,21 @@ namespace Bits
 #endif
 	}
 }
+template<u8>struct SignedBitsImpl;
+template<u8 Bits> requires(              Bits <= 8 ) struct SignedBitsImpl<Bits> { using type = i8; };
+template<u8 Bits> requires(Bits >= 9  && Bits <= 16) struct SignedBitsImpl<Bits> { using type = i16; };
+template<u8 Bits> requires(Bits >= 17 && Bits <= 32) struct SignedBitsImpl<Bits> { using type = i32; };
+template<u8 Bits> requires(Bits >= 33 && Bits <= 64) struct SignedBitsImpl<Bits> { using type = i64; };
+template<u8 Bits> using SignedBits = typename SignedBitsImpl<Bits>::type;
+template<u8 Bytes> using SignedBytes = typename SignedBitsImpl<Bytes * 8>::type;
+
+template<u8>struct UnsignedBitsImpl;
+template<u8 Bits> requires(              Bits <= 8 ) struct UnsignedBitsImpl<Bits> { using type = u8;  };
+template<u8 Bits> requires(Bits >= 9  && Bits <= 16) struct UnsignedBitsImpl<Bits> { using type = u16; };
+template<u8 Bits> requires(Bits >= 17 && Bits <= 32) struct UnsignedBitsImpl<Bits> { using type = u32; };
+template<u8 Bits> requires(Bits >= 33 && Bits <= 64) struct UnsignedBitsImpl<Bits> { using type = u64; };
+template<u8 Bits> using UnsignedBits = typename UnsignedBitsImpl<Bits>::type;
+template<u8 Bytes> using UnsignedBytes = typename UnsignedBitsImpl<Bytes * 8>::type;
 #include <immintrin.h>
 #include <limits>
 #if MSVC || CLANG_CL
@@ -1496,31 +1546,35 @@ namespace Bits
 
 namespace Bits
 {
-	template<usize Index, $Int T>
-	INLINE constexpr bool at(T value) { return static_cast<bool>(value & (T(1) << Index)); }
+	template<usize Index>
+	NO_SIDE_EFFECTS INLINE constexpr bool at($Int auto x)noexcept 
+	requires (Index < sizeof(x) * 8)
+	{
+		using T = std::remove_cvref_t<decltype(x)>;
+		return static_cast<bool>(x & constant<T{1} << Index>); 
+	}
 
-	template<$Int T>
-	INLINE constexpr u8 count(T x)noexcept
+	NO_SIDE_EFFECTS INLINE constexpr u8 count($Int auto x)noexcept
 	{
 #if MSVC
 		if consteval
 		{
-			return static_cast<u8>(std::popcount(BITCAST(UnsignedBits<sizeof(T) * 8>, x)));
+			return static_cast<u8>(std::popcount(BITCAST(UnsignedBits<sizeof(x) * 8>, x)));//todo
 		}
 		else
 		{
-			if constexpr (sizeof(T) == 1)return static_cast<u8>(__popcnt16(x));
-			if constexpr (sizeof(T) == 2)return static_cast<u8>(__popcnt16(x));
-			if constexpr (sizeof(T) == 4)return static_cast<u8>(__popcnt(x));
-			if constexpr (sizeof(T) == 8)return static_cast<u8>(__popcnt64(x));
+			if constexpr (sizeof(x) == 1)return static_cast<u8>(__popcnt16(BITCAST(UnsignedBits<sizeof(x) * 8>, x)));
+			if constexpr (sizeof(x) == 2)return static_cast<u8>(__popcnt16(BITCAST(UnsignedBits<sizeof(x) * 8>, x)));
+			if constexpr (sizeof(x) == 4)return static_cast<u8>(__popcnt  (BITCAST(UnsignedBits<sizeof(x) * 8>, x)));
+			if constexpr (sizeof(x) == 8)return static_cast<u8>(__popcnt64(BITCAST(UnsignedBits<sizeof(x) * 8>, x)));
 		}
 #else
-		return __builtin_popcountg(BITCAST(UnsignedBits<sizeof(T) * 8>, x));
+		return __builtin_popcountg(BITCAST(UnsignedBits<sizeof(x) * 8>, x));
 #endif
 	}
 
 	template<$UInt T>
-	INLINE constexpr T reverse(T x)noexcept
+	NO_SIDE_EFFECTS INLINE constexpr T reverse(T x)noexcept
 	{
 		if constexpr (sizeof(T) == 1)
 		{
@@ -1574,17 +1628,14 @@ namespace Bits
 		}
 	}
 
-	template<$UInt T>
-	INLINE constexpr u8 leastSignificantBitPosPlus1(T x)noexcept
+	NO_SIDE_EFFECTS INLINE constexpr u8 leastSignificantBitPosPlus1($UInt auto x)noexcept
 	{
+		using T = std::remove_cvref_t<decltype(x)>;
 		if consteval
 		{
 			for (u8 i{}; i != sizeof(T) * 8; ++i)
-			{
-				const T mask{ static_cast<T>(T{1} << i) };
-				if (mask & x)
+				if (const T mask{ static_cast<T>(T{ 1 } << i) }; mask & x)
 					return i + 1;
-			}
 			return 0;
 		}
 		else
@@ -1612,7 +1663,7 @@ namespace Bits
 	}
 
 	//if x==0: return std::numeric_limits<T>::digits
-	INLINE constexpr u8 leadingZeroCount($UInt auto x)noexcept
+	NO_SIDE_EFFECTS INLINE constexpr u8 leftZeroCount($UInt auto x)noexcept
 	{
 		if consteval
 		{
@@ -1641,15 +1692,83 @@ namespace Bits
 			}
 		}
 	}
-	STATIC_ASSERT(leadingZeroCount(u8{}) == std::numeric_limits<u8>::digits);
-	STATIC_ASSERT(leadingZeroCount(u16{}) == std::numeric_limits<u16>::digits);
-	STATIC_ASSERT(leadingZeroCount(u32{}) == std::numeric_limits<u32>::digits);
-	STATIC_ASSERT(leadingZeroCount(u64{}) == std::numeric_limits<u64>::digits);
+	STATIC_ASSERT(leftZeroCount(u8{}) == std::numeric_limits<u8>::digits);
+	STATIC_ASSERT(leftZeroCount(u16{}) == std::numeric_limits<u16>::digits);
+	STATIC_ASSERT(leftZeroCount(u32{}) == std::numeric_limits<u32>::digits);
+	STATIC_ASSERT(leftZeroCount(u64{}) == std::numeric_limits<u64>::digits);
 
-	INLINE constexpr u8 highestOnePosition($UInt auto x)noexcept
+	NO_SIDE_EFFECTS INLINE constexpr u8 leftMost1Position($UInt auto x)noexcept
 	{
-		return static_cast<u8>(sizeof(x) * 8 - leadingZeroCount(x));
+		return static_cast<u8>(sizeof(x) * 8 - leftZeroCount(x));
 	}
+	NO_SIDE_EFFECTS INLINE constexpr u8 rightZeroCount($UInt auto x)noexcept
+	{
+		using T = std::remove_cvref_t<decltype(x)>;
+		if consteval
+		{
+			for (u8 i{}; i != sizeof(T) * 8; ++i)
+				if (x & T(T{ 1 } << i))
+					return i;
+			return sizeof(T) * 8;
+		}
+		else
+		{
+			/* */if constexpr (sizeof(T) == 1)return static_cast<u8>(_tzcnt_u16(static_cast<u16>(x | u16{ 0xFF00 })));
+			else if constexpr (sizeof(T) == 2)return static_cast<u8>(_tzcnt_u16(x));
+			else if constexpr (sizeof(T) == 4)return static_cast<u8>(_tzcnt_u32(x));
+			else if constexpr (sizeof(T) == 8)
+#if BITNESS == 64
+				return static_cast<u8>(_tzcnt_u64(x));
+#else
+				return static_cast<u32>(x) ? static_cast<u8>(_tzcnt_u32(static_cast<u32>(x))) : static_cast<u8>(32 + _tzcnt_u32(static_cast<u32>(x >> 32)));
+#endif
+		}
+	}
+#if PEXT
+	template<$UInt auto mask>
+	requires(sizeof(mask) == 4 || sizeof(mask) == 8)
+	NO_SIDE_EFFECTS INLINE constexpr UnsignedBits<count(mask)> pext(std::remove_cvref_t<decltype(mask)> x) noexcept
+	{
+		using T = std::remove_cvref_t<decltype(mask)>;
+		using Ret = UnsignedBits<count(mask)>;
+		static constexpr T lowBit{ mask & (T{} - mask) };
+		if constexpr (!mask) return {};
+		else if constexpr ((mask & (mask + lowBit)) == 0)
+			return static_cast<Ret>((x & mask) >> constant<rightZeroCount(mask)>);
+		else
+		{
+			if consteval
+			{
+				Ret result{};
+				Ret bit{ 1 };
+				for (T m{ mask }; m; m &= m - 1, bit <<= 1)
+					if (x & m & (T{} - m))
+						result |= bit;
+				return result;
+			}
+			else
+			{
+				if constexpr (mask <= 0xFFFFFFFFu) return static_cast<Ret>(_pext_u32(static_cast<u32>(x), static_cast<u32>(mask)));
+			#if BITNESS == 64
+				else return static_cast<Ret>(_pext_u64(x, mask));
+			#else
+				else
+				{
+					static constexpr u32 maskLo{ static_cast<u32>(mask) };
+					static constexpr u32 maskHi{ static_cast<u32>(mask >> 32) };
+					static constexpr u8  rZeros{ rightZeroCount(mask) };
+					if constexpr (!maskLo)
+						return pext<maskHi>(static_cast<u32>(x >> 32));
+					else if constexpr ((mask >> rZeros) <= 0xFFFFFFFFu)
+						return pext<static_cast<u32>(mask >> rZeros)>(static_cast<u32>(x >> rZeros));
+					else
+						return static_cast<Ret>(Ret{ pext<maskLo>(static_cast<u32>(x)) } | (Ret{ pext<maskHi>(static_cast<u32>(x >> 32)) } << constant<count(maskLo)>));
+				}
+			#endif
+			}
+		}
+	}
+#endif
 }
 namespace Bytes
 {
@@ -2068,8 +2187,6 @@ namespace Bytes
 #undef BYTE_CONCAT_DISABLE_WARNING_ATTRIBUTE
 #undef BYTE_CONCAT_ENABLE_WARNING_ATTRIBUTE
 }
-template<class T, class U>
-concept $IteratorOf = requires(std::remove_cvref_t<T> iterator) { { *(++iterator) }->$CvrefOf<U>; };
 template<class T, usize Size>concept $Size = sizeof(T) == Size;
 template<class T, usize...Size>concept $SizeAnyOf = ((sizeof(T) == Size) || ...);
 #if defined(__cpp_trivial_union)
@@ -4667,7 +4784,7 @@ public:
 	requires(start <= end && end <= N)
 	INLINE constexpr FixedString<T, end - start> substr()const noexcept
 	{
-		return[] <auto...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[] <usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return[](T const* p)STATIC_LAMBDA_INLINE{ return FixedString<T, end - start>{ p[compact<I + start>]... }; };
 		}(std::make_index_sequence<end - start>{})(m_data);
@@ -4685,7 +4802,7 @@ public:
 	requires(width >= N)
 	INLINE constexpr FixedString<T, width> pad_right()const noexcept
 	{
-		return[]<auto...L, auto...R>(std::index_sequence<L...>, std::index_sequence<R...>)static CONSTEVAL
+		return[]<auto...L, auto...R>(std::index_sequence<L...>, std::index_sequence<R...>)static consteval
 		{
 			return[](T const* p)STATIC_LAMBDA_INLINE{ return FixedString<T, width>{ p[L]..., ((void)R, T{ ' ' })... }; };
 		}(std::make_index_sequence<N>{}, std::make_index_sequence<width - N>{})(m_data);
@@ -4693,7 +4810,7 @@ public:
 	template<usize times>
 	INLINE constexpr FixedString<T, N * times> repeat()const noexcept
 	{
-		return[] <auto...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[] <usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return[](T const* p)STATIC_LAMBDA_INLINE{ return FixedString<T, N* times>{ p[I % N]... }; };
 		}(std::make_index_sequence<N* times>{})(m_data);
@@ -4746,7 +4863,7 @@ struct FixedString<T, 0>
 	template<usize width>
 	INLINE constexpr FixedString<T, width> pad_left()const noexcept
 	{
-		return[]<auto...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[]<usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return FixedString<T, width>{ ((void)I, T{' '})... };
 		}(std::make_index_sequence<width>{});
@@ -4754,7 +4871,7 @@ struct FixedString<T, 0>
 	template<usize width>
 	INLINE constexpr FixedString<T, width> pad_right()const noexcept
 	{
-		return[]<auto...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[]<usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return FixedString<T, width>{ ((void)I,T{' '})... };
 		}(std::make_index_sequence<width>{});
@@ -4776,7 +4893,7 @@ struct FixedString<T, 0>
 template<class T>concept $FixedString = $FixSized<T> && $String<T>;
 
 template<$String auto string>
-constexpr FixedString to_fixed_string{ [] <auto...I>(std::index_sequence<I...>)static
+constexpr FixedString to_fixed_string{ [] <usize...I>(std::index_sequence<I...>)static
 {
 	return FixedString<ElementOf<decltype(string)>, string.size()>{string[I]...};
 }(std::make_index_sequence<string.size()>{}) };
@@ -4788,11 +4905,11 @@ INLINE constexpr bool operator==(const L& l, const R& r)noexcept
 	if constexpr (static_size<L> != static_size<R> - 1)return false;
 	else
 	{
-	#if VARIADIC_STRUCTURED_BINDING
+	#if __cpp_structured_bindings >= 202411L
 		static constexpr auto [...I] {iota<static_size<L>>};
 		return (...&&(l[compact<I>] == r[compact<I>]));
 	#else
-		return[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[] <usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return[](const L& l, const R& r)STATIC_LAMBDA_INLINE
 			{
@@ -4810,11 +4927,11 @@ INLINE constexpr bool operator==(const L& l, const R& r)noexcept
 	if constexpr (static_size<L> - 1 != static_size<R>)return false;
 	else
 	{
-	#if VARIADIC_STRUCTURED_BINDING
+	#if __cpp_structured_bindings >= 202411L
 		static constexpr auto [...I] {iota<static_size<R>>};
 		return (...&&(l[compact<I>] == r[compact<I>]));
 	#else
-		return[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[] <usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return[](const L& l, const R& r)STATIC_LAMBDA_INLINE
 			{
@@ -4832,11 +4949,11 @@ INLINE constexpr bool operator==(const L& l, const R& r)noexcept
 	if constexpr (static_size<L> != static_size<R>)return false;
 	else
 	{
-	#if VARIADIC_STRUCTURED_BINDING
+	#if __cpp_structured_bindings >= 202411L
 		static constexpr auto [...I] {iota<static_size<L>>};
 		return (...&&(l[compact<I>] == r[compact<I>]));
 	#else
-		return[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
+		return[] <usize...I>(std::index_sequence<I...>)static consteval
 		{
 			return[](const L& l, const R& r)STATIC_LAMBDA_INLINE
 			{
@@ -4851,12 +4968,12 @@ template<$FixedString L, $CArray R>
 requires($Same<ElementOf<L>, ElementOf<R>>)
 INLINE constexpr FixedString<ElementOf<L>, static_size<L> + static_size<R> - 1> operator+(const L& l, const R& r)noexcept
 {
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L
 	static constexpr auto [...I] {iota<static_size<L>>};
 	static constexpr auto [...J] {iota<static_size<R>-1>};
 	return { l[compact<I>]..., r[compact<J>]... };
 #else
-	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static CONSTEVAL
+	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static consteval
 	{
 		return[](const L& l, const R& r)STATIC_LAMBDA_INLINE->FixedString<ElementOf<L>, static_size<L> +static_size<R>-1>
 		{
@@ -4870,12 +4987,12 @@ template<$CArray L, $FixedString R>
 requires($Same<ElementOf<L>, ElementOf<R>>)
 INLINE constexpr FixedString<ElementOf<L>, static_size<L> + static_size<R> - 1> operator+(const L& l, const R& r)noexcept
 {
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L
 	static constexpr auto [...I] {iota<static_size<L>-1>};
 	static constexpr auto [...J] {iota<static_size<R>>};
 	return { l[compact<I>]..., r[compact<J>]... };
 #else
-	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static CONSTEVAL
+	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static consteval
 	{
 		return[](const L& l, const R& r)STATIC_LAMBDA_INLINE->FixedString<ElementOf<L>, static_size<L> +static_size<R>-1>
 		{
@@ -4889,12 +5006,12 @@ template<$FixedString L, $FixedString R>
 requires($Same<ElementOf<L>, ElementOf<R>>)
 INLINE constexpr FixedString<ElementOf<L>, static_size<L> + static_size<R>> operator+(const L& l, const R& r)noexcept
 {
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L
 	static constexpr auto [...I] {iota<static_size<L>>};
 	static constexpr auto [...J] {iota<static_size<R>>};
 	return { l[compact<I>]..., r[compact<J>]... };
 #else
-	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static CONSTEVAL
+	return[] <usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)static consteval
 	{
 		return[](const L& l, const R& r)STATIC_LAMBDA_INLINE->FixedString<ElementOf<L>, static_size<L> +static_size<R>>
 		{
@@ -4906,11 +5023,11 @@ INLINE constexpr FixedString<ElementOf<L>, static_size<L> + static_size<R>> oper
 template<$FixedString L>
 INLINE constexpr FixedString<ElementOf<L>, static_size<L> + 1> operator+(const L& l, ElementOf<L> r)noexcept
 {
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L
 	static constexpr auto [...I] {iota<static_size<L>>};
 	return { l[compact<I>]..., r };
 #else
-	return[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
+	return[] <usize...I>(std::index_sequence<I...>)static consteval
 	{
 		return[](const L& l, ElementOf<L> r)STATIC_LAMBDA_INLINE->FixedString<ElementOf<L>, static_size<L> +1>
 		{
@@ -4923,11 +5040,11 @@ template<$Char Char, $FixedString R>
 requires($Same<Char, ElementOf<R>>)
 INLINE constexpr FixedString<Char, static_size<R> + 1> operator+(Char l, const R& r)noexcept
 {
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L
 	static constexpr auto [...I] {iota<static_size<R>>};
 	return { l, r[compact<I>]... };
 #else
-	return[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
+	return[] <usize...I>(std::index_sequence<I...>)static consteval
 	{
 		return[](Char l, const R& r)STATIC_LAMBDA_INLINE->FixedString<Char, static_size<R> +1>
 		{
@@ -4943,12 +5060,8 @@ template<class Char, usize N>
 FixedString(const Char(&)[N]) -> FixedString<Char, N - 1>;
 template<class Char, $Same<Char>...Chars>
 FixedString(Char, Chars...) -> FixedString<Char, sizeof...(Chars) + 1>;
-template<bool x, FixedString l, FixedString r>
-constexpr FixedString conditional_fstring{ [] static
-{
-	if constexpr (x)return l;
-	else return r;
-}() };
+template<bool x, FixedString l, FixedString r>constexpr FixedString fstring_if/*         */{ l };
+template</*    */FixedString l, FixedString r>constexpr FixedString fstring_if<false, l, r>{ r };
 STATIC_ASSERT(FixedString{ "" }.starts_with<"">());
 STATIC_ASSERT(FixedString{ "" }.ends_with<"">());
 STATIC_ASSERT(FixedString{ "0" }.starts_with<"">());
@@ -5256,12 +5369,12 @@ STATIC_ASSERT(1==(FixedString{"2"}<FixedString{"7"}));
 STATIC_ASSERT(0==(FixedString{"2"}>FixedString{"7"}));
 namespace Strcmp
 {
-	template<FixedString s, Encoding encoding, bool case_sensitive>using Equal = std::remove_cvref_t<decltype([]<auto...I>(std::index_sequence<I...>)static
+	template<FixedString s, Encoding encoding, bool case_sensitive>using Equal = std::remove_cvref_t<decltype([]<usize...I>(std::index_sequence<I...>)static
 	{
 		return EqualImpl<ElementOf<decltype(s)>, encoding, case_sensitive, s[I]...>{};
 	}(std::make_index_sequence<s.size()>{}))>;
-	template<FixedString s>using Less    = std::remove_cvref_t<decltype([]<auto...I>(std::index_sequence<I...>)static{return LessImpl   <ElementOf<decltype(s)>, s[I]...>{};}(std::make_index_sequence<s.size()>{}))>;
-	template<FixedString s>using Greater = std::remove_cvref_t<decltype([]<auto...I>(std::index_sequence<I...>)static{return GreaterImpl<ElementOf<decltype(s)>, s[I]...>{};}(std::make_index_sequence<s.size()>{}))>;
+	template<FixedString s>using Less    = std::remove_cvref_t<decltype([]<usize...I>(std::index_sequence<I...>)static{return LessImpl   <ElementOf<decltype(s)>, s[I]...>{};}(std::make_index_sequence<s.size()>{}))>;
+	template<FixedString s>using Greater = std::remove_cvref_t<decltype([]<usize...I>(std::index_sequence<I...>)static{return GreaterImpl<ElementOf<decltype(s)>, s[I]...>{};}(std::make_index_sequence<s.size()>{}))>;
 }
 template<FixedString s>INLINE constexpr bool iequal_unsafe($CharOfSize<sizeof(s[0])> auto* x)noexcept{ return Strcmp::Equal<s, Strcmp::Encoding::ascii, 0>::match(x); }
 template<FixedString s>INLINE constexpr bool equal_unsafe ($CharOfSize<sizeof(s[0])> auto* x)noexcept{ return Strcmp::Equal<s, Strcmp::Encoding::ascii, 1>::match(x); }
@@ -6233,7 +6346,7 @@ namespace BytePattern
 
 	template<FixedString str>
 	requires(sizeof(typename decltype(str)::char_type) == 1)
-	constexpr auto string_pattern{ [] <auto...I>(std::index_sequence<I...>)static
+	constexpr auto string_pattern{ [] <usize...I>(std::index_sequence<I...>)static
 	{
 		return std::array<Element, str.size()>{static_cast<u8>(str[I])...};
 	}(std::make_index_sequence<str.size()>{}) };
@@ -6408,6 +6521,7 @@ struct StringImpl
 
 	template<FixedString target, Strcmp::Encoding encoding = Strcmp::Encoding::ascii, bool case_sensitive = true>
 	constexpr auto starts_with(this auto&& self)noexcept
+	requires(sizeof(ElementOf<decltype(self)>) == sizeof(ElementOf<decltype(target)>))
 	{
 		static constexpr auto s{ target.size() };
 		return self.size() >= s && Strcmp::Equal<target, encoding, case_sensitive>::match(self.data());
@@ -6415,6 +6529,7 @@ struct StringImpl
 
 	template<FixedString target, Strcmp::Encoding encoding = Strcmp::Encoding::ascii, bool case_sensitive = true>
 	constexpr auto ends_with(this auto&& self)noexcept
+	requires(sizeof(ElementOf<decltype(self)>) == sizeof(ElementOf<decltype(target)>))
 	{
 		static constexpr auto s{ target.size() };
 		return self.size() >= s && Strcmp::Equal<target, encoding, case_sensitive>::match(self.data() + self.size() - s);
@@ -6444,8 +6559,8 @@ struct StringImpl
 	}
 	//todo: optimize
 	template<FixedString target, Strcmp::Encoding encoding = Strcmp::Encoding::ascii, bool case_sensitive = true>
-	requires(!target.empty())
 	constexpr auto find(this auto&& self) noexcept
+	requires(!target.empty() && sizeof(ElementOf<decltype(self)>) == sizeof(ElementOf<decltype(target)>))
 	{
 		using Iter = std::remove_cvref_t<decltype(self.begin())>;
 		static constexpr auto s{ target.size() };
@@ -6457,8 +6572,8 @@ struct StringImpl
 	}
 	//todo: optimize
 	template<FixedString target, Strcmp::Encoding encoding = Strcmp::Encoding::ascii, bool case_sensitive = true>
-	requires(!target.empty())
 	constexpr auto rfind(this auto&& self) noexcept
+	requires(!target.empty() && sizeof(ElementOf<decltype(self)>) == sizeof(ElementOf<decltype(target)>))
 	{
 		using Iter = std::remove_cvref_t<decltype(self.begin())>;
 		static constexpr auto s{ target.size() };
@@ -6538,6 +6653,8 @@ struct StaticString: StringImpl
 	Index m_size;
 //public:
 
+	INLINE constexpr StaticString(Uninitialized, Index size)noexcept : m_size{ size } {}
+
 	INLINE constexpr StaticString($Constructible<T> auto&& ...args)noexcept
 	requires(sizeof...(args) <= N)
 	:m_size{ sizeof...(args) }
@@ -6546,11 +6663,11 @@ struct StaticString: StringImpl
 #if __cpp_expansion_statements >= 202506L
 		template for (constexpr auto I : iota<sizeof...(args)>)
 			CTOR_CONST_AT(&m_data[I], FWD(args...[I]));
-#elif VARIADIC_STRUCTURED_BINDING
+#elif __cpp_structured_bindings >= 202411L
 		static constexpr auto [...I] { iota<sizeof...(args)> };
 		(..., CTOR_CONST_AT(&m_data[constant<I>], FWD(args)));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(&m_data[I], FWD(args)));
 		}(std::make_index_sequence<sizeof...(args)>{});
@@ -6951,16 +7068,9 @@ struct TString
 	static constexpr auto size{ compact<sizeof...(Cs)> };
 	static constexpr FixedString<T, sizeof...(Cs)> chars{ Cs... };
 };
-
-template<class T>
-struct TString<T>
-{
-	using char_type = T;
-	static constexpr usize size{};
-};
-template<class T, T...l, T...r> CONSTEVAL TString<T, l..., r...> operator+(TString<T, l...>, TString<T, r...>)noexcept { return{}; }
-template<class T, T...l, T...r> CONSTEVAL bool operator==(TString<T, l...>, TString<T, r...>)noexcept { return  $Same<TString<T, l...>, TString<T, r...>>; }
-template<class T, T...l, T...r> CONSTEVAL bool operator!=(TString<T, l...>, TString<T, r...>)noexcept { return !$Same<TString<T, l...>, TString<T, r...>>; }
+template<class T, T...l, T...r> consteval TString<T, l..., r...> operator+(TString<T, l...>, TString<T, r...>)noexcept { return{}; }
+template<class T, T...l, T...r> consteval bool operator==(TString<T, l...>, TString<T, r...>)noexcept { return  $Same<TString<T, l...>, TString<T, r...>>; }
+template<class T, T...l, T...r> consteval bool operator!=(TString<T, l...>, TString<T, r...>)noexcept { return !$Same<TString<T, l...>, TString<T, r...>>; }
 template<class T, T...cs>FLATTEN INLINE constexpr bool operator==(TString<T, cs...> l, $String auto&& r)noexcept{ return  equal  <encode<l.chars, ElementOf<decltype(r)>>>(r);}
 template<class T, T...cs>FLATTEN INLINE constexpr bool operator==($String auto&& l, TString<T, cs...> r)noexcept{ return  equal  <encode<r.chars, ElementOf<decltype(l)>>>(l);}
 template<class T, T...cs>FLATTEN INLINE constexpr bool operator!=(TString<T, cs...> l, $String auto&& r)noexcept{ return !equal  <encode<l.chars, ElementOf<decltype(r)>>>(r);}
@@ -6985,38 +7095,16 @@ constexpr auto tstring{ [] <class T, T...I>(std::integer_sequence<T, I...>)stati
 	return {};
 }(std::make_integer_sequence<Compact<s.size()>, s.size()>{})};
 
-template<$TString auto s>
-constexpr auto fstring{ s.chars };
+template<bool b, FixedString t, FixedString f>constexpr auto tstring_if/*         */{ tstring<t> };
+template</*    */FixedString t, FixedString f>constexpr auto tstring_if<false, t, f>{ tstring<f> };
 
 #if CLANG || GCC
-	template<class T, T...Cs>CONSTEVAL TString<c8, Cs...> operator""_tstring8()noexcept { return {}; }
-	template<class T, T...Cs>CONSTEVAL TString<c16, Cs...> operator""_tstring16()noexcept { return {}; }
-	template<class T, T...Cs>CONSTEVAL TString<c32, Cs...> operator""_tstring32()noexcept { return {}; }
-
-	#define TS8(s) s ## _tstring8
-	#define TS16(s) s ## _tstring16
-	#define TS32(s) s ## _tstring32
+	template<class T, T...Cs>consteval TString<T, Cs...> operator""_tstring()noexcept { return {}; }
+	#define TS(s) s ## _tstring
 #else
-	namespace details
-	{
-		template<class Char, FixedString s, usize...I>
-		requires(sizeof(Char) == sizeof(typename decltype(s)::char_type))
-		CONSTEVAL TString<Char, s[I]...> make_string(std::index_sequence<I...>)noexcept{return {};}
-	}
-	#define TS8(s) (::details::make_string<c8,s>(std::make_index_sequence<sizeof(s)/1 - 1>{}))
-	#define TS16(s) (::details::make_string<c16,s>(std::make_index_sequence<sizeof(s)/2 - 1>{}))
-	#define TS32(s) (::details::make_string<c32,s>(std::make_index_sequence<sizeof(s)/4 - 1>{}))
-	//namespace details
-	//{
-	//	template<FixedString s, usize...I>
-	//	constexpr TString<typename decltype(s)::char_type, s[I]...> make_string(std::index_sequence<I...>)noexcept { return {}; }
-	//}
-	//template<FixedString s>requires(std::is_same<typename decltype(s)::char_type, c8>::value)constexpr auto operator""_tstring8()noexcept{ return details::make_string<s>(std::make_index_sequence<s.size()>{}); }
-	//template<FixedString s>requires(std::is_same<typename decltype(s)::char_type, c16>::value)constexpr auto operator""_tstring16()noexcept{ return details::make_string<s>(std::make_index_sequence<s.size()>{}); }
-	//template<FixedString s>requires(std::is_same<typename decltype(s)::char_type, c32>::value)constexpr auto operator""_tstring32()noexcept{ return details::make_string<s>(std::make_index_sequence<s.size()>{}); }
-	//#define TS8(s) s ## _tstring8
-	//#define TS16(s) s ## _tstring16
-	//#define TS32(s) s ## _tstring32
+	template<FixedString s, usize...I>
+	consteval TString<typename decltype(s)::char_type, s[I]...> tstring_impl(std::index_sequence<I...>)noexcept { return {}; }
+	#define TS(s) tstring_impl<s>(std::make_index_sequence<sizeof(s)/sizeof(s[0]) - 1>{})
 #endif
 template<$SizeAnyOf<1, 2, 4> Char, Char...Cs>
 struct RdataString
@@ -7082,8 +7170,8 @@ INLINE Stream& operator<<(Stream& os, const RdataString<Char, Cs...>& str)noexce
 #define S8 RS8
 #define S16 RS16
 template<class Stream, class T, T...Cs>
-INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 requires(sizeof(typename Stream::char_type) == sizeof(T))
+INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 {
 	static constexpr auto length{ compact<sizeof...(Cs)> };
 	/* */if constexpr (length == 1)os.put(constant<TString<T, Cs...>::chars[0]>);
@@ -7104,8 +7192,8 @@ requires(sizeof(typename Stream::char_type) == sizeof(T))
 }
 
 template<class Stream, class T, T...Cs>
-INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 requires(sizeof(typename Stream::char_type) == 2 && sizeof(T) == 1)
+INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 {
 	if constexpr (sizeof...(Cs))
 		os << tstring<encode<FixedString{Cs...}, c16>>;
@@ -7113,30 +7201,13 @@ requires(sizeof(typename Stream::char_type) == 2 && sizeof(T) == 1)
 }
 
 template<class Stream, class T, T...Cs>
-INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 requires(sizeof(typename Stream::char_type) == 1 && sizeof(T) == 2)
+INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 {
 	if constexpr (sizeof...(Cs))
 		os << tstring<encode<FixedString{Cs...}, c8>>;
 	return os;
 }
-constexpr TString<c8, '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|', '-', '=', '\\', '[', ']', '{', '}', ';', '\'', ':', '"', ',', '.', '/', '<', '>', '?'> ts8_symbols [[maybe_unused]] {};
-constexpr TString<c16, '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '|', '-', '=', '\\', '[', ']', '{', '}', ';', '\'', ':', '"', ',', '.', '/', '<', '>', '?'> ts16_symbols [[maybe_unused]] {};
-
-constexpr TString<c8, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'> ts8_numbers [[maybe_unused]] {};
-constexpr TString<c16, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'> ts16_numbers [[maybe_unused]] {};
-
-constexpr TString<c8, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'>ts8_letters_lower [[maybe_unused]] {};
-constexpr TString<c16, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'>ts16_letters_lower [[maybe_unused]] {};
-
-constexpr TString<c8, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'>ts8_letters_upper [[maybe_unused]] {};
-constexpr TString<c16, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'>ts16_letters_upper [[maybe_unused]] {};
-
-constexpr auto ts8_all_chars [[maybe_unused]] { ts8_letters_lower + ts8_letters_upper + ts8_numbers + ts8_symbols };
-constexpr auto ts16_all_chars [[maybe_unused]] { ts16_letters_lower + ts16_letters_upper + ts16_numbers + ts16_symbols };
-
-constexpr auto ts8_letters [[maybe_unused]] { ts8_letters_lower + ts8_letters_upper };
-constexpr auto ts16_letters [[maybe_unused]] { ts16_letters_lower + ts16_letters_upper };
 namespace Algorithm
 {
 	template<class Container>
@@ -7182,7 +7253,7 @@ template<class T>concept $Enum = __is_enum(T) && requires{is_enum(T{}); };
 template<class T>concept $Flag = __is_enum(T) && requires{is_flag(T{}); };
 #define DECL_ENUM_ENTRY_VALUE(name,...)name __VA_OPT__(= __VA_ARGS__)
 #define DECL_ENUM_ENTRY(ns,name,...)ns::name
-#define ENUM_PRINT_CASE(ns,name,...)case ns::name:os<<TS8(#name);break;
+#define ENUM_PRINT_CASE(ns,name,...)case ns::name:os<<TS(#name);break;
 
 #define DEFINE_ENUM_IMPL(friend,name,T,...)enum class name:T{FOR_EACH_DEPAREN_COMMA(DECL_ENUM_ENTRY_VALUE, __VA_ARGS__)};CONSTEVAL friend auto enum_entries(name)noexcept{return std::array{FOR_EACH_DEPAREN_COMMA_EX(DECL_ENUM_ENTRY,name, __VA_ARGS__)};}CONSTEVAL friend void is_enum(name)noexcept;
 #define DEFINE_ENUM(...) DEFINE_ENUM_IMPL(,__VA_ARGS__)
@@ -7191,12 +7262,12 @@ template<class T>concept $Flag = __is_enum(T) && requires{is_flag(T{}); };
 #define DEFINE_ENUM_PRINTABLE_IMPL(friend,name,T,...) DEFINE_ENUM_IMPL(friend,name,T,__VA_ARGS__)\
 template<class Stream>friend constexpr Stream& operator<<(Stream&os, name e)noexcept             \
 {                                                                                                \
-	switch(e)                                                                                    \
-	{                                                                                            \
-		FOR_EACH_DEPAREN_EX(ENUM_PRINT_CASE,name,__VA_ARGS__)                                    \
-		default:os<<UNDERLYING(e);                                                               \
-	}                                                                                            \
-	return os;                                                                                   \
+    switch(e)                                                                                    \
+    {                                                                                            \
+        FOR_EACH_DEPAREN_EX(ENUM_PRINT_CASE,name,__VA_ARGS__)                                    \
+        default:os<<UNDERLYING(e);                                                               \
+    }                                                                                            \
+    return os;                                                                                   \
 }
 
 #define DEFINE_ENUM_PRINTABLE(...) DEFINE_ENUM_PRINTABLE_IMPL(,__VA_ARGS__)
@@ -7329,6 +7400,187 @@ namespace Fold
 	template</*        */auto End>requires(/*          */End >= 0)/*            */INLINE constexpr auto sum/*       */(auto&& action)noexcept { return sum_impl/*       */(FWD(action), std::make_integer_sequence<Compact<End>, End>{}); }
 }
 INLINE constexpr bool isDigit($Char auto x)noexcept { return x >= '0' && x <= '9'; }
+template<$UInt T, T FnvPrime, T OffsetBasis, bool A>
+struct FNV
+{
+	T result{ OffsetBasis };
+
+	template<$SizeAnyOf<1, 2, 4, 8> Entry>
+	requires(!$ForEach<Entry>)
+	INLINE constexpr T operator()(const Entry& x)noexcept
+	{
+		if constexpr (A)
+		{
+			result ^= __builtin_bit_cast(UnsignedBits<sizeof(Entry) * 8>,x);
+			result *= FnvPrime;
+		}
+		else
+		{
+			result *= FnvPrime;
+			result ^= __builtin_bit_cast(UnsignedBits<sizeof(Entry) * 8>,x);
+		}
+		return result;
+	}
+
+	INLINE constexpr T operator()($ForEach auto const& input) noexcept
+	{
+		for (const auto& x : input)
+			operator()(x);
+		return result;
+	}
+
+	INLINE static constexpr T hash($ForEach auto const& input)noexcept
+	{
+		return FNV{}(input);
+	}
+
+	template<$SizeAnyOf<1, 2, 4, 8> Entry>
+	requires(!$ForEach<Entry>)
+	INLINE static constexpr T hash(const Entry& input)noexcept
+	{
+		return FNV{}(input);
+	}
+};
+
+using Fnv32 = FNV<u32, 16777619_u32, 2166136261_u32, false>;
+using Fnv32a = FNV<u32, 16777619_u32, 2166136261_u32, true>;
+
+using Fnv64 = FNV<u64, 1099511628211_u64, 14695981039346656037_u64, false>;
+using Fnv64a = FNV<u64, 1099511628211_u64, 14695981039346656037_u64, true>;
+#define STR(x) STR_IMPL(x)
+#define STR_IMPL(x) #x
+#define LINE_STRING STR(__LINE__)
+#define FILE_STRING STR(__FILE__)
+#define SOURCE_LOCATION FILE_STRING ## LINE_STRING
+#if defined(CONSTANT_BUILD_SEED)
+	#define BUILDTIME_HASH_VALUE32 u32{0x87654321}
+	#define BUILDTIME_HASH_VALUE64 u64{0x8765432187654321}
+#else
+	#define BUILDTIME_HASH_VALUE32 Fnv32::hash(__DATE__ __TIME__)
+	#define BUILDTIME_HASH_VALUE64 Fnv64::hash(__DATE__ __TIME__)
+#endif
+
+#define FUNCTION_NAME_HASH_VALUE32 Fnv32::hash(FUNCTION_NAME)
+#define FUNCTION_NAME_HASH_VALUE64 Fnv64::hash(FUNCTION_NAME)
+
+#define LINE_NUMBER_HASH_VALUE32 Fnv32::hash(LINE_STRING)
+#define LINE_NUMBER_HASH_VALUE64 Fnv64::hash(LINE_STRING)
+namespace Math
+{
+	NO_SIDE_EFFECTS INLINE constexpr bool isPowerOf2($UInt auto x)noexcept
+	{
+		return Bits::count(x) == u8{ 1 };
+	}
+
+	NO_SIDE_EFFECTS INLINE constexpr auto sqr(auto x)noexcept
+	requires(IF(GCC, std::is_trivially_copyable_v<decltype(x)>, __is_trivially_copyable(decltype(x))) && sizeof(x) <= sizeof(u64))
+	{
+		return x * x;
+	}
+}
+template<usize align, $UInt T>
+requires(align == T(align) && align != 0)
+NO_SIDE_EFFECTS INLINE constexpr T next_aligned_greater_equal(T x)noexcept
+{
+#if !CLANG//gcc and msvc cant optimize: https://godbolt.org/z/6cPa3jo9M
+	if constexpr (Math::isPowerOf2(align))
+	{
+		static constexpr T mask{ static_cast<T>(align - 1) };
+		static constexpr T mask_inv{ static_cast<T>(~mask) };
+		return static_cast<T>(static_cast<T>(x + mask) & mask_inv);
+	}
+	else
+#endif
+	{
+		const T offset{ static_cast<T>(x % compact<align>) };
+		return offset ? x - offset + compact<align> : x;
+	}
+}
+
+template<usize align, $UInt T>
+requires(align == T(align) && align != 0)
+NO_SIDE_EFFECTS INLINE constexpr T next_aligned_greater(T x)noexcept
+{
+	return static_cast<T>(static_cast<T>(static_cast<T>(x / compact<align>) + T{ 1 })* compact<align>);
+}
+template<usize align, $UInt T>
+requires(align == T(align) && align != 0)
+NO_SIDE_EFFECTS INLINE constexpr T prev_aligned_less_equal(T x) noexcept
+{
+	const T offset{ static_cast<T>(x % compact<align>) };
+	return static_cast<T>(x - offset);
+}
+
+template<usize align, $UInt T>
+requires(align == T(align) && align != 0)
+NO_SIDE_EFFECTS INLINE constexpr T prev_aligned_less(T x) noexcept
+{
+	ASSERT(x != 0);
+	return prev_aligned_less_equal<align>(static_cast<T>(x - T{ 1 }));
+}
+
+template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* next_aligned_greater_equal(T* x)noexcept { return __builtin_bit_cast(T*, next_aligned_greater_equal<align>(std::bit_cast<usize>(x))); }
+template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* next_aligned_greater      (T* x)noexcept { return __builtin_bit_cast(T*, next_aligned_greater      <align>(std::bit_cast<usize>(x))); }
+template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* prev_aligned_less_equal   (T* x)noexcept { return __builtin_bit_cast(T*, prev_aligned_less_equal   <align>(std::bit_cast<usize>(x))); }
+template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* prev_aligned_less         (T* x)noexcept { return __builtin_bit_cast(T*, prev_aligned_less         <align>(std::bit_cast<usize>(x))); }
+template<$UInt T>
+constexpr T max_power2{ static_cast<T>(~static_cast<T>(static_cast<T>(~T{ 0 }) >> 1)) };
+template<$UInt T>
+NO_SIDE_EFFECTS INLINE constexpr T next_power2_greater(T x)noexcept
+{
+	ASSERT(x < max_power2<T>);
+	return static_cast<T>(T{ 1 } << u8(8 * sizeof(T) - Bits::leftZeroCount(x)));
+}
+template<$UInt T>
+NO_SIDE_EFFECTS INLINE constexpr T next_power2_greater_equal(T x)noexcept
+{
+	ASSERT(x <= max_power2<T>);
+	return next_power2_greater<T>(static_cast<T>(x - T(x != T{ 0 })));
+}
+template<$UInt T>
+NO_SIDE_EFFECTS INLINE constexpr T prev_power2_less_equal(T x)noexcept
+{
+	ASSERT(x != T{ 0 });
+	return static_cast<T>(T{ 1 } << u8(8 * sizeof(T) - Bits::leftZeroCount(x) - 1));
+}
+template<$UInt T>
+NO_SIDE_EFFECTS INLINE constexpr T prev_power2_less(T x)noexcept
+{
+	ASSERT(x > T{ 1 });
+	return prev_power2_less_equal<T>(static_cast<T>(x - T{ 1 }));
+}
+template<$UInt T>
+constexpr T splitmix(T& x) noexcept
+{
+	if constexpr (sizeof(T) == 8)
+	{
+		u64 z{ x += 0x9E3779B97F4A7C15uLL };
+		z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9uLL;
+		z = (z ^ (z >> 27)) * 0x94D049BB133111EBuLL;
+		return z ^ (z >> 31);
+	}
+	else if constexpr (sizeof(T) == 4)// mixer [16 21f0aaad 15 735a2d97 15] (hash-prospector); same integers as bryc's JS splitmix32
+	{
+		u32 z{ x += 0x9E3779B9u };
+		z = (z ^ (z >> 16)) * 0x21F0AAADu;
+		z = (z ^ (z >> 15)) * 0x735A2D97u;
+		return z ^ (z >> 15);
+	}
+	else if constexpr (sizeof(T) == 2)// mixer [8 a3d3 7 4b2d 9]: exact avalanche bias 0.0073 (hash16_xm2's is 0.0086)
+	{
+		u16 z{ x = static_cast<u16>(x + 0x9E37u) };
+		z = static_cast<u16>((z ^ (z >> 8)) * 0xA3D3u);
+		z = static_cast<u16>((z ^ (z >> 7)) * 0x4B2Du);
+		return static_cast<u16>(z ^ (z >> 9));
+	}
+	else if constexpr (sizeof(T) == 1)// mixer [1 0f 3 dd 4]: lowest exact avalanche bias of all 5.6M possible 2-round 8-bit mixers
+	{
+		u8 z{ x = static_cast<u8>(x + 0x9Fu) };
+		z = static_cast<u8>((z ^ (z >> 1)) * 0x0Fu);
+		z = static_cast<u8>((z ^ (z >> 3)) * 0xDDu);
+		return static_cast<u8>(z ^ (z >> 4));
+	}
+}
 template<$Char T>
 struct BasicStringView: StringImpl
 {
@@ -7460,12 +7712,12 @@ private:
 	}() };
 #else
 	template<usize I>
-	static constexpr bool is_duplicate_at{ [] <auto...J>(std::index_sequence<J...>) static
+	static constexpr bool is_duplicate_at{ [] <usize...J>(std::index_sequence<J...>) static
 	{
 		return (... || $Same<TYPE_AT<I, Ts...>, TYPE_AT<J, Ts...>>);
 	}(std::make_index_sequence<I>{}) };
 
-	static constexpr std::array<bool, sizeof...(Ts)> is_duplicate{ []<auto...I>(std::index_sequence<I...>) static
+	static constexpr std::array<bool, sizeof...(Ts)> is_duplicate{ []<usize...I>(std::index_sequence<I...>) static
 	{
 		return std::array<bool, sizeof...(Ts)>{is_duplicate_at<I>...};
 	}(std::make_index_sequence<sizeof...(Ts)>{}) };
@@ -7489,13 +7741,13 @@ private:
 	}() };
 public:
 	static constexpr bool contains_duplicates{ unique_size != size };
-	using unique = decltype([]<auto...I>(std::index_sequence<I...>)static ->TypeList<TYPE_AT<indexes_of_uniques[I], Ts...>...>
+	using unique = decltype([]<usize...I>(std::index_sequence<I...>)static ->TypeList<TYPE_AT<indexes_of_uniques[I], Ts...>...>
 	{
 		return {};
 	}(std::make_index_sequence<unique_size>{}));
 	template<Index I>requires(I<sizeof...(Ts))using type_at = TYPE_AT<I, Ts...>;
 private:
-#if VARIADIC_STRUCTURED_BINDING
+#if __cpp_structured_bindings >= 202411L && !GCC//gcc bug: internal compiler error: tree check: expected tree_vec, have array_ref in tsubst_pack_expansion, at cp/pt.cc:13999
 	template<class condition, bool accept>
 	static constexpr std::array<bool, sizeof...(Ts)> keep{ [] static->std::array<bool, sizeof...(Ts)>
 	{
@@ -7505,7 +7757,7 @@ private:
 #else//clang bug: error: constexpr variable 'keep' must be initialized by a constant expression
 	PRAGMA_MSVC(warning(push)); PRAGMA_MSVC(warning(disable : 4268));//msvc bug: warning C4268: 'private: static std::array<bool,6> const TypeList<unsigned char,unsigned short,float,__int64,unsigned char,unsigned __int64>::keep<<lambda_100>,1>': 'const' static/global data initialized with compiler generated default constructor fills the object with zeros
 	template<class condition, bool accept>
-	static constexpr std::array<bool, sizeof...(Ts)> keep{ [] <auto...I>(std::index_sequence<I...>) static->std::array<bool, sizeof...(Ts)>
+	static constexpr std::array<bool, sizeof...(Ts)> keep{ [] <usize...I>(std::index_sequence<I...>) static->std::array<bool, sizeof...(Ts)>
 	{
 		return { (accept == requires{ condition{}.template operator()<TYPE_AT<I, Ts...>>(); })...};
 	}(std::make_index_sequence<sizeof...(Ts)>{}) };
@@ -7538,7 +7790,7 @@ private:
 	}() };
 	PRAGMA_MSVC(warning(pop));
 	template<class condition, bool accept>
-	using filter_impl = decltype([]<auto...I>(std::index_sequence<I...>)static
+	using filter_impl = decltype([]<usize...I>(std::index_sequence<I...>)static
 	{
 		return TypeList<TYPE_AT<indexes_of_valid_ts<condition, accept>[I], Ts...>...>{};
 	}(std::make_index_sequence<filtered_size<condition, accept>>{}));
@@ -7591,43 +7843,113 @@ STATIC_ASSERT(TypeList<u8, u16, f32, i64, u8, u64>{} - TypeList<>{} == TypeList<
 STATIC_ASSERT(TypeList<>{} - TypeList<>{} == TypeList<>{});
 template<class T>struct TypeTag {};
 template<class T>constexpr TypeTag<T> tTag{};
-#include <bitset>
+#if !defined(PERFECT_HASH_PEXT)
+	#define PERFECT_HASH_PEXT (PEXT&&!MSVC)
+#endif
 namespace PerfectHashImpl
 {
 	using Cost = u64;
 	static constexpr Cost shiftor_cost{ 50 };
 	static constexpr Cost xor_cost{ 5 };
-	static constexpr Cost mod_cost{ 800 };
+	static constexpr Cost clamp_cost{ 30 };//Front/Back past the shortest key: s[min(i, size - 1)] costs a compare + cmov on the address, not a divide
+	static constexpr Cost size_cost{ 20 };//s.size() is already in a register
+	//Extra cost the minimal stage adds when the raw hash is wider than 1 byte: a 1-byte hash indexes a 256-entry table directly,
+	//a wider one needs pext or a multiply + shift first (+2..3 cycles measured). On 32-bit targets a hash wider than 4 bytes
+	//also turns that multiply into a 3-multiply sequence.
+	static constexpr Cost stage_cost{ 60 };
+	static constexpr Cost wide_stage_cost{ sizeof(void*) < 8 ? 150 : 0 };
+	template<class T>constexpr Cost minimal_stage_cost(u8 count)noexcept { return count * sizeof(T) <= 1 ? 0 : stage_cost + (count * sizeof(T) > 4 ? wide_stage_cost : 0); }
+#if CLANG
+	template<usize>struct DiffMatrix;
+	PRAGMA_CLANG(clang diagnostic push); PRAGMA_CLANG(clang diagnostic ignored "-Wbit-int-extension");
 	template<usize N>
-	struct DiffMatrix
+	requires(N * (N - 1) / 2 <= __BITINT_MAXWIDTH__)
+	struct DiffMatrix<N>
 	{
-		using DiffIndex = Compact<N>;
-		using Score = Compact<N* (N - 1) / 2>;
-		std::bitset<N* (N - 1) / 2> bits;
-		constexpr bool operator[](DiffIndex x, DiffIndex y)const noexcept { return bits[x * (2 * N - 1 - x) / 2 + (y - x - 1)]; }
-		constexpr void set(DiffIndex x, DiffIndex y, bool value) noexcept { bits.set(x * (2 * N - 1 - x) / 2 + (y - x - 1), value); }
-		constexpr Score score()const noexcept { return static_cast<Score>(bits.count()); }
-		constexpr bool empty()const noexcept { return !bits.count(); }
-		constexpr bool perfect()const noexcept { return bits.count() == bits.size(); }
-		constexpr friend DiffMatrix operator|(const DiffMatrix& l, const DiffMatrix& r)noexcept { return { .bits{l.bits | r.bits} }; }
-		constexpr DiffMatrix& operator|=(const DiffMatrix& r)noexcept { bits |= r.bits; return *this; }
-		constexpr friend bool operator==(const DiffMatrix& l, const DiffMatrix& r)noexcept { return l.bits == r.bits; }
-		constexpr friend bool operator!=(const DiffMatrix& l, const DiffMatrix& r)noexcept { return l.bits != r.bits; }
+		using Index = Compact<N>;
+	private:
+		static constexpr usize nBits{ N * (N - 1) / 2 };
+		using Bits = unsigned _BitInt(nBits < 1 ? 1 : nBits);
+	public:
+		Bits bits{};
+		//constexpr bool operator[](Index x, Index y)const noexcept { return static_cast<bool>((bits >> (x * (2 * N - 1 - x) / 2 + (y - x - 1))) & 1u); }
+		constexpr void set(Index x, Index y, bool value) noexcept
+		{
+			if (x >= y)UNREACHABLE;
+			const Bits m{ Bits{ 1 } << (x * (2 * N - 1 - x) / 2 + (y - x - 1)) };
+			if (value) bits |= m; else bits &= ~m;
+		}
+		constexpr void fill()noexcept { bits = static_cast<Bits>(~Bits{}); }
+		constexpr bool empty()const noexcept { return bits == 0; }
+		constexpr bool perfect()const noexcept { return bits == static_cast<Bits>(~Bits{}); }
+		constexpr friend DiffMatrix operator|(const DiffMatrix& l, const DiffMatrix& r)noexcept { DiffMatrix d; d.bits = l.bits | r.bits; return d; }
+		constexpr friend bool operator==(const DiffMatrix&, const DiffMatrix&)noexcept = default;
+		constexpr friend bool operator!=(const DiffMatrix&, const DiffMatrix&)noexcept = default;
+	};
+	PRAGMA_CLANG(clang diagnostic pop);
+#endif
+	template<usize N>
+	IF(CLANG, requires(N * (N - 1) / 2 > __BITINT_MAXWIDTH__)struct DiffMatrix<N>, struct DiffMatrix)
+	{
+		using Index = Compact<N>;
+	private:
+		using Chunk = u64;
+		static constexpr auto nBits{ compact<N * (N - 1) / 2> };
+		static constexpr u8 chunkSize{ sizeof(Chunk) * 8 };
+		static constexpr auto nChunks{ compact<next_aligned_greater_equal<chunkSize>(usize{ nBits }) / chunkSize> };
+		using ChunkIndex = Compact<nChunks>;
+	public:
+		Chunk chunks[nChunks]{};
+		//constexpr bool operator[](Index x, Index y)const noexcept
+		//{
+		//	const auto index{ x * (2 * N - 1 - x) / 2 + (y - x - 1) };
+		//	return static_cast<bool>(chunks[index / chunkSize] & (Chunk{ 1 } << (index % chunkSize)));
+		//}
+		constexpr void set(Index x, Index y, bool value) noexcept
+		{
+			if (x >= y)UNREACHABLE;
+			const auto index{ x * (2 * N - 1 - x) / 2 + (y - x - 1) };
+			if(value)chunks[index / chunkSize] |= Chunk(Chunk{ 1 } << (index % chunkSize));
+			else chunks[index / chunkSize] &= Chunk(~Chunk(Chunk{ 1 } << (index % chunkSize)));
+		}
+		constexpr void fill()noexcept
+		{
+			for (ChunkIndex i{}; i != nChunks; ++i) chunks[i] = Chunk(-1);
+			if constexpr (nBits % chunkSize) chunks[nChunks - 1] = Chunk(Chunk{ 1 } << (nBits % chunkSize)) - 1;
+		}
+		constexpr bool empty()const noexcept { for (auto x : chunks)if (x)return false; return true; }
+		constexpr bool perfect()const noexcept
+		{
+			static constexpr Chunk lastMask{ nBits % chunkSize ? Chunk(Chunk{ 1 } << (nBits % chunkSize)) - 1 : Chunk(-1) };
+			for (ChunkIndex i{}; i != nChunks - 1; ++i)
+				if (chunks[i] != Chunk(-1))
+					return false;
+			return chunks[nChunks - 1] == lastMask;
+		}
+		constexpr friend DiffMatrix operator|(const DiffMatrix& l, const DiffMatrix& r)noexcept
+		{
+			DiffMatrix result;
+			for (ChunkIndex i{ nChunks }; i--;)
+				result.chunks[i] = l.chunks[i] | r.chunks[i];
+			return result;
+		}
+		constexpr friend bool operator==(const DiffMatrix&, const DiffMatrix&)noexcept = default;
+		constexpr friend bool operator!=(const DiffMatrix&, const DiffMatrix&)noexcept = default;
 	};
 	template<$Char T>
 	struct Size
 	{
 		static constexpr bool valid{ true };
 		static constexpr u8 count{ 1 };
-		static constexpr Cost cost{ 99 };
+		static constexpr Cost cost{ size_cost };
 		INLINE static constexpr UnsignedBytes<sizeof(T)> apply(auto&& s)noexcept { return static_cast<UnsignedBytes<sizeof(T)>>(s.size()); }
 	};
 	template<$Char T, usize index, u8 Count, usize InputMinLen>//Count: number of T
-	struct ForwardChars
+	struct Front
 	{
 		static constexpr bool valid{ sizeof(T) * Count <= sizeof(u64) && ((InputMinLen >= index + Count) || Count == 1) };
 		static constexpr u8 count{ Count };
-		static constexpr Cost cost{ 100 + (index != 0) + Count + ((InputMinLen >= index + Count) ? 0 : mod_cost) };//x86 % is so expensive, clang compile it into conditional jmp
+		static constexpr Cost cost{ 100 + (index != 0) + Count + ((InputMinLen >= index + Count) ? 0 : clamp_cost) };
 		INLINE static constexpr UnsignedBytes<sizeof(T)* Count> apply(auto&& s)noexcept
 		requires(valid)
 		{
@@ -7644,15 +7966,20 @@ namespace PerfectHashImpl
 				}
 				else { return *reinterpret_cast<const R*>(&s[index]); }
 			}
-			else if constexpr (Count == 1)return static_cast<UnsignedBytes<sizeof(T)>>(s[compact<index> % s.size()]);
+			else if constexpr (Count == 1)
+			{
+				const auto size{ s.size() };
+				using Index = std::remove_cvref_t<decltype(size)>;
+				return static_cast<U>(s[size > index ? Index{ index } : Index(size - 1)]);
+			}
 		}
 	};
 	template<$Char T, usize index, u8 Count, usize InputMinLen>//Count: number of T
-	struct BackwardChars
+	struct Back
 	{
 		static constexpr bool valid{ sizeof(T) * Count <= sizeof(u64) && ((InputMinLen >= index + Count) || Count == 1) };
 		static constexpr u8 count{ Count };
-		static constexpr Cost cost{ 110 + Count + ((InputMinLen >= index + Count) ? 0 : mod_cost) };//x86 % is so expensive, clang compile it into conditional jmp
+		static constexpr Cost cost{ 110 + Count + ((InputMinLen >= index + Count) ? 0 : clamp_cost) };
 		INLINE static constexpr UnsignedBytes<sizeof(T)* Count> apply(auto&& s)noexcept
 		requires(valid)
 		{
@@ -7674,34 +8001,12 @@ namespace PerfectHashImpl
 			{
 				const auto size{ s.size() };
 				using Index = std::remove_cvref_t<decltype(size)>;
-				return static_cast<UnsignedBytes<sizeof(T)>>(s[Index(size - compact<1 + index>) % size]);
+				return static_cast<U>(s[size > index ? Index(size - compact<1 + index>) : Index{}]);
 			}
 		}
 	};
 	template<$Char T, u8 Count, usize InputMinLen>//Count: number of T
-	struct FirstXorLastChars
-	{
-		static constexpr bool valid{ sizeof(T) * Count <= sizeof(u64) && InputMinLen >= Count };
-		static constexpr u8 count{ Count };
-		static constexpr Cost cost{ ForwardChars<T, 0, Count, InputMinLen>::cost + BackwardChars<T, 0, Count, InputMinLen>::cost + xor_cost };
-		INLINE static constexpr UnsignedBytes<sizeof(T)* Count> apply(auto&& s)noexcept
-		requires(valid)
-		{
-			using R = UnsignedBytes<sizeof(T)* Count>;
-			using U = UnsignedBytes<sizeof(T)>;
-			const auto start{ static_cast<std::remove_cvref_t<decltype(s.size())>>(s.size() - Count) };
-			if consteval
-			{
-				/* */if constexpr (Count == 1) return static_cast<R>(Bytes::concat<R>((U)s[0]) ^ Bytes::concat<R>((U)s[start]));
-				else if constexpr (Count == 2) return static_cast<R>(Bytes::concat<R>((U)s[0], (U)s[1]) ^ Bytes::concat<R>((U)s[start], (U)s[start + 1]));
-				else if constexpr (Count == 4) return static_cast<R>(Bytes::concat<R>((U)s[0], (U)s[1], (U)s[2], (U)s[3]) ^ Bytes::concat<R>((U)s[start], (U)s[start + 1], (U)s[start + 2], (U)s[start + 3]));
-				else if constexpr (Count == 8) return static_cast<R>(Bytes::concat<R>((U)s[0], (U)s[1], (U)s[2], (U)s[3], (U)s[4], (U)s[5], (U)s[6], (U)s[7]) ^ Bytes::concat<R>((U)s[start], (U)s[start + 1], (U)s[start + 2], (U)s[start + 3], (U)s[start + 4], (U)s[start + 5], (U)s[start + 6], (U)s[start + 7]));
-			}
-			else { return static_cast<R>(*reinterpret_cast<const R*>(&s[0]) ^ *reinterpret_cast<const R*>(&s[start])); }
-		}
-	};
-	template<$Char T, u8 Count, usize InputMinLen>//Count: number of T
-	struct MiddleChars
+	struct Mid
 	{
 		static constexpr bool valid{ sizeof(T) * Count <= sizeof(u64) && InputMinLen / 2 + Count <= InputMinLen };
 		static constexpr u8 count{ Count };
@@ -7711,40 +8016,59 @@ namespace PerfectHashImpl
 		{
 			using R = UnsignedBytes<sizeof(T)* Count>;
 			using U = UnsignedBytes<sizeof(T)>;
-			const auto start{ static_cast<std::remove_cvref_t<decltype(s.size())>>(s.size() / 2) };
+			const auto mid{ static_cast<std::remove_cvref_t<decltype(s.size())>>(s.size() / 2) };
 			if consteval
 			{
-				/* */if constexpr (Count == 1) return Bytes::concat<R>((U)s[start]);
-				else if constexpr (Count == 2) return Bytes::concat<R>((U)s[start], (U)s[start + 1]);
-				else if constexpr (Count == 4) return Bytes::concat<R>((U)s[start], (U)s[start + 1], (U)s[start + 2], (U)s[start + 3]);
-				else if constexpr (Count == 8) return Bytes::concat<R>((U)s[start], (U)s[start + 1], (U)s[start + 2], (U)s[start + 3], (U)s[start + 4], (U)s[start + 5], (U)s[start + 6], (U)s[start + 7]);
+				/* */if constexpr (Count == 1) return Bytes::concat<R>((U)s[mid]);
+				else if constexpr (Count == 2) return Bytes::concat<R>((U)s[mid], (U)s[mid + 1]);
+				else if constexpr (Count == 4) return Bytes::concat<R>((U)s[mid], (U)s[mid + 1], (U)s[mid + 2], (U)s[mid + 3]);
+				else if constexpr (Count == 8) return Bytes::concat<R>((U)s[mid], (U)s[mid + 1], (U)s[mid + 2], (U)s[mid + 3], (U)s[mid + 4], (U)s[mid + 5], (U)s[mid + 6], (U)s[mid + 7]);
 			}
-			else { return *reinterpret_cast<const R*>(&s[start]); }
+			else { return *reinterpret_cast<const R*>(&s[mid]); }
 		}
 	};
+	template<class...Ts>
+	struct Xor
+	{
+		static constexpr bool valid{ (...&&Ts::valid) };
+		static constexpr u8 count{ Algorithm::max(Ts::count...) };
+		static constexpr Cost cost{ ((xor_cost * (sizeof...(Ts) - 1)) + ... + Ts::cost) };
+		INLINE static constexpr auto apply(auto&& s)noexcept
+		requires(valid)
+		{
+			using Ret = UnsignedBytes<Algorithm::max(sizeof(Ts::apply(FWD(s)))...)>;
+			return static_cast<Ret>((...^Ret{ Ts::apply(FWD(s)) }));
+		}
+	};
+	template<$Char T, u8 Count, usize InputMinLen>using XorFB    = Xor<Front<T, 0, Count, InputMinLen>, Back<T, 0, Count, InputMinLen>                                     >;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFS    = Xor<Front<T, 0, Count, InputMinLen>,                                 Size<T>                            >;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFM    = Xor<Front<T, 0, Count, InputMinLen>,                                          Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorBS    = Xor<                                 Back<T, 0, Count, InputMinLen>, Size<T>                            >;
+	template<$Char T, u8 Count, usize InputMinLen>using XorBM    = Xor<                                 Back<T, 0, Count, InputMinLen>,          Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorSM    = Xor<                                                                 Size<T>, Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFBS   = Xor<Front<T, 0, Count, InputMinLen>, Back<T, 0, Count, InputMinLen>, Size<T>                            >;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFBM   = Xor<Front<T, 0, Count, InputMinLen>, Back<T, 0, Count, InputMinLen>         , Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFSM   = Xor<Front<T, 0, Count, InputMinLen>,                                 Size<T>, Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorBSM   = Xor<                                 Back<T, 0, Count, InputMinLen>, Size<T>, Mid<T, Count, InputMinLen>>;
+	template<$Char T, u8 Count, usize InputMinLen>using XorFBSM  = Xor<Front<T, 0, Count, InputMinLen>, Back<T, 0, Count, InputMinLen>, Size<T>, Mid<T, Count, InputMinLen>>;
+
 	template<class...>struct HasherImpl;
 	template<$Char T, class...Feature, usize...I>
 	struct HasherImpl<T, std::index_sequence<I...>, Feature...>
 	{
 		static constexpr Cost cost{ (Feature::cost + ...) + (sizeof...(Feature) - 1) * shiftor_cost };
-#if defined(__cpp_pack_indexing)
-		using Result = UnsignedBytes<std::array<u8, 9>{0, 1, 2, 4, 4, 8, 8, 8, 8}[(Feature...[I]::count + ...)]>;
-#else
-		using Result = UnsignedBytes<std::array<u8, 9>{0, 1, 2, 4, 4, 8, 8, 8, 8}[(std::array{ Feature::count... }[I] + ...)]>;
-#endif
+		static constexpr auto bytes{ compact<(... + usize{ Feature::count }) * sizeof(T)>};
+		using Result = UnsignedBytes<next_power2_greater_equal(bytes)>;
 		INLINE static constexpr Result operator()(IF(MSVC, BasicStringView<const T>, $StringOfCharSize<sizeof(T)> auto&&) input)noexcept//msvc bug: if input is auto&&, HasherImpl{}(s) always return 0, only HasherImpl::operator()(s) works
 		{
 			static constexpr std::array<u8, sizeof...(Feature)> offsets{ [] static//in bytes
 			{
 				std::array<u8, sizeof...(Feature)> result;//uninitialized
-#if defined(__cpp_pack_indexing)
-				((result[I] = I ? (u8(result[I - 1] + Feature...[I - bool(I)]::count)) : u8{}), ...);
-#else
-				((result[I] = I ? (u8(result[I - 1] + std::array{ Feature::count... }[I - 1])) : u8{}), ...);
-#endif
+				u8 acc{};
+				(..., ((result[I] = acc), (acc += sizeof(T) * Feature::count)));
 				return result;
 			}() };
-			return (static_cast<Result>((static_cast<Result>(Feature::apply(FWD(input))) << constant<offsets[I] * 8>)) | ...);
+			return (... | static_cast<Result>((static_cast<Result>(Feature::apply(FWD(input))) << constant<offsets[I] * 8>)));
 		}
 	};
 	template<$Char T, class...Feature>
@@ -7756,7 +8080,6 @@ namespace PerfectHashImpl
 	{
 		using String = BasicStringView<const T>;
 		using Index = Compact<Strings.size()...>;
-		using Score = Compact<sizeof...(Strings)* (sizeof...(Strings) - 1) / 2>;
 		static constexpr auto N{ compact<sizeof...(Strings)> };
 		static constexpr std::array<String, N> strings{ Strings... };
 		template<class Feature>
@@ -7766,22 +8089,36 @@ namespace PerfectHashImpl
 			using Internal = Feature;
 			static constexpr DiffMatrix<N> diff{ [] static
 			{
+				using StringId = Compact<N>;
+				decltype(Feature::apply(strings[0])) v[N];
+				for (const StringId i: iota<N>)
+					v[i] = Feature::apply(strings[i]);
+				StringId order[N];
+				for (const StringId i : iota<N>) order[i] = i;
+				std::sort(order + 0, order + N, [&v](StringId l, StringId r) { return v[l] < v[r]; });
 				DiffMatrix<N> result;
-				for (const auto i : iota<N - 1>)
+				result.fill();
+				for (StringId b{}; b != N;)
 				{
-					const auto x{ Feature::apply(strings[i]) };
-					for (const auto j : iota_up<Compact<N>>(i + 1, N))
-						result.set(i, j, x != Feature::apply(strings[j]));
+					StringId e{ static_cast<StringId>(b + 1) };
+					while (e != N && v[order[e]] == v[order[b]]) ++e;//[b,e) has same value
+					for (StringId x{ b }; x != e; ++x)
+						for (StringId y{ static_cast<StringId>(x + 1) }; y != e; ++y)
+							result.set(
+								order[x] < order[y] ? order[x] : order[y],
+								order[x] < order[y] ? order[y] : order[x],
+								false
+							);
+					b = e;
 				}
 				return result;
 			}() };
-			static constexpr Score score{ diff.score() };
 		};
 		template<class...Fs>
 		struct ValidFeaturesImpl
 		{
 			static constexpr usize count{ (Fs::valid + ...) };
-			static constexpr std::array indexes{ [] static
+			static constexpr std::array<usize, count> indexes{ [] static
 			{
 				std::array<usize, count> result;
 				usize* p{result.data()};
@@ -7801,45 +8138,84 @@ namespace PerfectHashImpl
 		using Features = typename ValidFeaturesImpl
 		<
 			Size<T>,
-			MiddleChars<T, 1, InputMinLen>,
-			MiddleChars<T, 2, InputMinLen>,
-			MiddleChars<T, 4, InputMinLen>,
-			MiddleChars<T, 8, InputMinLen>,
-			FirstXorLastChars<T, 1, InputMinLen>,
-			FirstXorLastChars<T, 2, InputMinLen>,
-			FirstXorLastChars<T, 4, InputMinLen>,
-			FirstXorLastChars<T, 8, InputMinLen>,
-			ForwardChars<T, L, 1, InputMinLen>...,
-			ForwardChars<T, L, 2, InputMinLen>...,
-			ForwardChars<T, L, 4, InputMinLen>...,
-			ForwardChars<T, L, 8, InputMinLen>...,
-			BackwardChars<T, L, 1, InputMinLen>...,
-			BackwardChars<T, L, 2, InputMinLen>...,
-			BackwardChars<T, L, 4, InputMinLen>...,
-			BackwardChars<T, L, 8, InputMinLen>...
+			XorFB<T, 1, InputMinLen>,
+			XorFB<T, 2, InputMinLen>,
+			XorFB<T, 4, InputMinLen>,
+			XorFB<T, 8, InputMinLen>,
+			XorFS<T, 1, InputMinLen>,
+			XorFS<T, 2, InputMinLen>,
+			XorFS<T, 4, InputMinLen>,
+			XorFS<T, 8, InputMinLen>,
+			XorFM<T, 1, InputMinLen>,
+			XorFM<T, 2, InputMinLen>,
+			XorFM<T, 4, InputMinLen>,
+			XorFM<T, 8, InputMinLen>,
+			XorBS<T, 1, InputMinLen>,
+			XorBS<T, 2, InputMinLen>,
+			XorBS<T, 4, InputMinLen>,
+			XorBS<T, 8, InputMinLen>,
+			XorBM<T, 1, InputMinLen>,
+			XorBM<T, 2, InputMinLen>,
+			XorBM<T, 4, InputMinLen>,
+			XorBM<T, 8, InputMinLen>,
+			XorSM<T, 1, InputMinLen>,
+			XorSM<T, 2, InputMinLen>,
+			XorSM<T, 4, InputMinLen>,
+			XorSM<T, 8, InputMinLen>,
+			XorFBS<T, 1, InputMinLen>,
+			XorFBS<T, 2, InputMinLen>,
+			XorFBS<T, 4, InputMinLen>,
+			XorFBS<T, 8, InputMinLen>,
+			XorFBM<T, 1, InputMinLen>,
+			XorFBM<T, 2, InputMinLen>,
+			XorFBM<T, 4, InputMinLen>,
+			XorFBM<T, 8, InputMinLen>,
+			XorFSM<T, 1, InputMinLen>,
+			XorFSM<T, 2, InputMinLen>,
+			XorFSM<T, 4, InputMinLen>,
+			XorFSM<T, 8, InputMinLen>,
+			XorBSM<T, 1, InputMinLen>,
+			XorBSM<T, 2, InputMinLen>,
+			XorBSM<T, 4, InputMinLen>,
+			XorBSM<T, 8, InputMinLen>,
+			XorFBSM<T, 1, InputMinLen>,
+			XorFBSM<T, 2, InputMinLen>,
+			XorFBSM<T, 4, InputMinLen>,
+			XorFBSM<T, 8, InputMinLen>,
+			Mid<T, 1, InputMinLen>,
+			Mid<T, 2, InputMinLen>,
+			Mid<T, 4, InputMinLen>,
+			Mid<T, 8, InputMinLen>,
+			Front<T, L, 1, InputMinLen>...,
+			Front<T, L, 2, InputMinLen>...,
+			Front<T, L, 4, InputMinLen>...,
+			Front<T, L, 8, InputMinLen>...,
+			Back<T, L, 1, InputMinLen>...,
+			Back<T, L, 2, InputMinLen>...,
+			Back<T, L, 4, InputMinLen>...,
+			Back<T, L, 8, InputMinLen>...
 		>::type;
 		using FeatureIndex = Compact<Features::size>;//of Features
 		struct UFeature//type erased
 		{
 			DiffMatrix<N> diff;
 			Cost cost;
-			Score score;
 			FeatureIndex index;//of Features
 			u8 count;
 			IF(MSVC, constexpr, CONSTEVAL) UFeature()noexcept :UFeature{ tTag<DiffedFeature<Size<T>>> } {}//else compiler complain about no default ctor
-			template<class U>IF(MSVC, constexpr, CONSTEVAL) UFeature(TypeTag<U>)noexcept :diff{ U::diff }, cost{ U::cost }, score{ U::score }, index{ Features::template index_of<U> }, count{ U::count } {}
+			template<class U>IF(MSVC, constexpr, CONSTEVAL) UFeature(TypeTag<U>)noexcept :diff{ U::diff }, cost{ U::cost }, index{ Features::template index_of<U> }, count{ U::count } {}
 		};
 		static constexpr auto features{ [] static
 		{
 			static constexpr auto arr{ [] <class...DiffedFeatures>(TypeList<DiffedFeatures...>) static
 			{
 				ConstVector<UFeature, sizeof...(DiffedFeatures)> result;
-				((DiffedFeatures::diff.empty() ? 0 : (void(result.emplace_back(tTag<DiffedFeatures>)), 0)),...);
+				(...,(DiffedFeatures::diff.empty() ? 0 : (void(result.emplace_back(tTag<DiffedFeatures>)), 0)));
 				for (UFeature* a{ result.begin() }; a != result.end(); ++a)
 					for (UFeature* b{ result.begin() }; b != result.end();)
 					{
 						if (a == b) { ++b; continue; }
-						if (a->cost <= b->cost && (a->diff | b->diff) == a->diff)//a is superior/equal to b
+						if (a->cost <= b->cost && a->count <= b->count && (a->diff | b->diff) == a->diff)//a is superior/equal to b
 						{
 							result.erase(b);
 							if (b < a)
@@ -7856,71 +8232,278 @@ namespace PerfectHashImpl
 		}() };
 		static CONSTEVAL auto operator()()noexcept
 		{
-			static constexpr auto F{ compact<features.size()> };
-			using Result = ConstVector<UFeature, F>;
+			using FeatureId = Compact<features.size()>;
+			using Result = ConstVector<FeatureId, features.size()>;
+			static constexpr Result featureIds{ [] static
+			{
+				Result result;
+				for (FeatureId i{}; i != features.size(); ++i)result.push_back(i);
+				return result;
+			}()};
 			static constexpr Result arr{ [] static
 			{
 				Result bestResult;
 				Result result;
-				Cost minCost{ Cost(-1) };
-				[&] (this auto&& self, Result choices, DiffMatrix<N> totalDiff, u8 totalCount, Cost totalCost)
+				Cost bestCost{ Cost(-1) };
+				u8 bestCount{ u8(-1) };
+				[&] (this auto&& self, Result choices, DiffMatrix<N> totalDiff, u8 totalCount, Cost totalCost)//clang bug: do not add "->void"
 				{
-					if (totalDiff.perfect())
+					if(false)return;//clang bug: not an integral constant expression
+					for (const FeatureId& id : choices)
 					{
-						bestResult = result;
-						minCost = totalCost;
-						return;
-					}
-					ConstVector<Score, F> scores;
-					for (const UFeature& feature : choices)scores.push_back((feature.diff | totalDiff).score());
-					Algorithm::sortAByB(choices, scores,[](Score l, Score r)static{ return l > r; });
-					for (const UFeature& feature : choices)
-					{
-						const Cost newCost{ Cost(totalCost + feature.cost + (!result.empty() * shiftor_cost)) };
-						if (newCost >= minCost)continue;					//minCost might get modified at last loop iteration, so need to be checked again
-						const u8 newCount{ u8(totalCount + feature.count) };//no need to check if newCount exceed limit, because choices are pre-filtered
-						result.push_back(feature);
+						const UFeature&     feature{ features[id] };
+						const u8            newCount{ u8(totalCount + feature.count) };//no need to check if newCount exceed limit, because choices are pre-filtered
+						const Cost          newCost{ Cost(totalCost + feature.cost + (!result.empty() * shiftor_cost) + minimal_stage_cost<T>(newCount) - minimal_stage_cost<T>(totalCount)) };
+						const DiffMatrix<N> newDiff{ totalDiff | feature.diff };
+						if (newDiff == totalDiff || newCost > bestCost || (newCost == bestCost && (!newDiff.perfect() || newCount > bestCount)))continue;
+						if (newDiff.perfect())
+						{
+							bestResult = result;
+							bestResult.push_back(id);
+							bestCost = newCost;
+							bestCount = newCount;
+							continue;
+						}
+						result.push_back(id);
 						Result newChoices;
-						for (const UFeature& f : choices)
-							if (&f != &feature && (u8(newCount + f.count) <= sizeof(u64) / sizeof(T)) && (Cost(newCost + f.cost + shiftor_cost) < minCost))//pre-filter future choices
-								newChoices.push_back(f);
-						self(newChoices, totalDiff | feature.diff, newCount, newCost);
+						for (const FeatureId* p{ &id + 1 };p != choices.end(); ++p)
+						{
+							const u8 futureCount{ u8(newCount + features[*p].count) };
+							const Cost futureCost{ Cost(newCost + features[*p].cost + shiftor_cost + minimal_stage_cost<T>(futureCount) - minimal_stage_cost<T>(newCount)) };
+							if (futureCount <= sizeof(u64) / sizeof(T) && (futureCost < bestCost || (futureCost == bestCost && (newDiff | features[*p].diff).perfect() && futureCount < bestCount)))//pre-filter future choices
+								newChoices.push_back(*p);
+						}
+						self(newChoices, newDiff, newCount, newCost);
 						result.pop_back();
 					}
-				}(features, {}, {}, {});
+				}(featureIds, {}, {}, {});
 				return bestResult;
 			}() };
 			STATIC_ASSERT([]static
 			{
 				DiffMatrix<N> diff{};
-				for (const UFeature& feature : arr)
-					diff = diff | feature.diff;
+				for (const FeatureId id : arr)
+					diff = diff | features[id].diff;
 				return diff.perfect();
 			}());
-#if defined(__cpp_pack_indexing)
-			return[] <usize...I, class...DiffedFeatures>(std::index_sequence<I...>, TypeList<DiffedFeatures...>)static
-			{
-				return HasherImpl<T, std::index_sequence<I...>, typename DiffedFeatures...[arr[I].index]::Internal...>{};
-			}(std::make_index_sequence<arr.size()>{}, Features{});
-#else
 			return[] <usize...I>(std::index_sequence<I...>)static
 			{
-				return HasherImpl<T, std::index_sequence<I...>, typename Features::template type_at<arr[I].index>::Internal...>{};
+				return HasherImpl<T, std::index_sequence<I...>, typename Features::template type_at<features[arr[I]].index>::Internal...>{};
 			}(std::make_index_sequence<arr.size()>{});
-#endif
 		}
+	};
+	template<class, class, FixedString...>struct MinimalImpl;
+#if PERFECT_HASH_PEXT
+	template<class Hasher, FixedString...Strings>
+	constexpr u64 pext8_mask{ [] static -> u64
+	{
+		static constexpr usize N{ sizeof...(Strings) };
+		if constexpr (N > 0x100)
+			return 0;
+		else
+		{
+			static constexpr u64 raw[N]{ Hasher::operator()(Strings)... };
+			static constexpr usize P{ N * (N - 1) / 2 };
+			u64 pairs[P];//raw[i] ^ raw[j] = the bits separating keys i and j, fewest bits first
+			{
+				usize start[66]{};
+				for (usize i{}; i != N; ++i)
+					for (usize j{ i + 1 }; j != N; ++j)
+						++start[Bits::count(raw[i] ^ raw[j]) + 1];
+				for (usize k{}; k != 65; ++k)
+					start[k + 1] += start[k];
+				for (usize i{}; i != N; ++i)
+					for (usize j{ i + 1 }; j != N; ++j)
+						pairs[start[Bits::count(raw[i] ^ raw[j])]++] = raw[i] ^ raw[j];
+			}
+			const u8 none[N]{};
+			return [&](this auto&& self, u64 mask, u64 excluded, u8 depth, usize pos, const u8* cls)//clang bug: no "-> u64", the body must be instantiated to deduce it
+			{
+				while (pos != P && (pairs[pos] & mask)) ++pos;
+				if (pos == P) return mask;//every pair is separated
+				if (depth == 8) return u64{};
+				u16 count[0x100];//cls[i] is pext(raw[i], mask) up to bit order
+				for (usize c{}; c != usize{ 1 } << depth; ++c) count[c] = 0;
+				for (usize i{}; i != N; ++i)
+					if (++count[cls[i]] > (1u << (8 - depth))) return u64{};//too many keys agree on every chosen bit
+				u64 tried{};
+				for (u64 bits{ pairs[pos] & ~mask & ~excluded }; bits; bits &= bits - 1)
+				{
+					const u64 bit{ bits & (~bits + 1) };
+					u8 next[N];
+					for (usize i{}; i != N; ++i)
+						next[i] = static_cast<u8>(cls[i] << 1 | ((raw[i] & bit) != 0));
+					if (const u64 found{ self(mask | bit, excluded | tried, static_cast<u8>(depth + 1), pos + 1, next) }) return found;
+					tried |= bit;//masks containing it were all covered by this branch
+				}
+				return u64{};
+			}(u64{}, u64{}, u8{}, usize{}, none);
+		}
+	}() };
+	template<class Hasher, class T, FixedString...Strings>
+	requires(sizeof(typename Hasher::Result) > 1 && pext8_mask<Hasher, Strings...> != 0)
+	struct MinimalImpl<Hasher, T, Strings...>
+	{
+		static constexpr auto N{ compact<sizeof...(Strings)> };
+		using Result = Compact<N - 1>;
+		static constexpr u64 mask{ pext8_mask<Hasher, Strings...> };
+		static constexpr std::array<u8, u64{ 1 } << Bits::count(mask)> table{[] <usize...I>(std::index_sequence<I...>)static
+		{
+			std::array<u8, u64{ 1 } << Bits::count(mask)> result{};
+			(..., (result[Bits::pext<mask>(Hasher::operator()(Strings))] = I));
+			return result;
+		}(std::make_index_sequence<N>{}) };
+		INLINE static constexpr Result operator()(IF(MSVC, BasicStringView<const T>, $StringOfCharSize<sizeof(T)> auto&&) input)noexcept
+		{
+			return table[Bits::pext<mask>(Hasher::operator()(FWD(input)))];
+		}
+		STATIC_ASSERT([]<usize...I>(std::index_sequence<I...>)static
+		{
+			return (... && (operator()(Strings) == I));
+		}(std::make_index_sequence<N>{}));
+	};
+#endif
+	//Minimal perfect hash: the i-th of Strings... maps to exactly i, and every input maps into [0, N).
+	//CHM construction (Czech, Havas, Majewski 1992): key i is an edge (a(raw), b(raw)) of a random bipartite graph;
+	//if that graph is a forest, g can be filled so that g[a] + g[b] == i (mod N).
+	//Runtime: 2 multiplies, 2 independent byte loads from a 2 * bit_ceil(N) table, add, cmov.
+	template<class Hasher, class T, FixedString...Strings>
+#if PERFECT_HASH_PEXT
+	requires(sizeof(typename Hasher::Result) > 1 && pext8_mask<Hasher, Strings...> == 0)
+#else
+	requires(sizeof(typename Hasher::Result) > 1)
+#endif
+	struct MinimalImpl<Hasher, T, Strings...>
+	{
+		static constexpr auto N{ compact<sizeof...(Strings)> };
+		using Result = Compact<N - 1>;
+		INLINE static constexpr usize mix(u64 raw, u64 mul, u8 bits)noexcept
+		{
+			if constexpr (sizeof(typename Hasher::Result) > sizeof(u32)) return usize((raw * mul) >> (64 - bits));
+			else return usize{ u32(u32(raw) * u32(mul)) >> (32 - bits) };
+		}
+		static constexpr usize maxSide{ std::bit_ceil(usize{ N }) * 2 };
+		struct Params { u64 mulA, mulB; u8 bits; std::array<Result, 2 * maxSide> g; };
+		static constexpr Params params{ [] static
+		{
+			static constexpr u64 raw[N]{ Hasher::operator()(Strings)... };
+			u64 rng{ BUILDTIME_HASH_VALUE64 | 1 };
+			for (u8 bits{ u8(std::bit_width(usize{ N } - 1)) }; (usize{ 1 } << bits) <= maxSide; ++bits)//side >= N
+			{
+				const usize side{ usize{1} << bits };
+				for (u32 trial{}; trial != 64; ++trial)
+				{
+					const u64 mulA{ splitmix(rng) }, mulB{ splitmix(rng) };
+					std::array<usize, N> ea, eb;
+					std::array<usize, 2 * maxSide> parent;
+					for (usize v{}; v != 2 * side; ++v) parent[v] = v;
+					const auto find{ [&parent](usize v) { while (parent[v] != v) v = parent[v] = parent[parent[v]]; return v; } };
+					bool forest{ true };
+					for (usize i{}; forest && i != N; ++i)
+					{
+						ea[i] = mix(raw[i], mulA, bits);
+						eb[i] = side + mix(raw[i], mulB, bits);
+						const usize ra{ find(ea[i]) }, rb{ find(eb[i]) };
+						forest = ra != rb;//already connected: this edge would close a cycle
+						parent[ra] = rb;
+					}
+					if (!forest) continue;
+					std::array<usize, 2 * maxSide + 1> start{};//adjacency lists (CSR)
+					for (usize i{}; i != N; ++i) { ++start[ea[i] + 1]; ++start[eb[i] + 1]; }
+					for (usize v{}; v != 2 * side; ++v) start[v + 1] += start[v];
+					std::array<usize, 2 * N> adj;
+					std::array<usize, 2 * maxSide> used{};
+					for (usize i{}; i != N; ++i) { adj[start[ea[i]] + used[ea[i]]++] = i; adj[start[eb[i]] + used[eb[i]]++] = i; }
+					Params out{ mulA, mulB, bits,{} };
+					std::array<bool, 2 * maxSide> seen{};
+					std::array<usize, 2 * maxSide> stack;
+					for (usize root{}; root != 2 * side; ++root)//walk each tree from a root with g = 0
+					{
+						if (seen[root]) continue;
+						seen[root] = true;
+						usize top{};
+						stack[top++] = root;
+						while (top)
+						{
+							const usize u{ stack[--top] };
+							for (usize k{ start[u] }; k != start[u + 1]; ++k)
+							{
+								const usize i{ adj[k] }, w{ ea[i] == u ? eb[i] : ea[i] };
+								if (seen[w]) continue;//the parent
+								seen[w] = true;
+								out.g[w] = static_cast<Result>((i + N - out.g[u]) % N);//g[u] + g[w] == i (mod N)
+								stack[top++] = w;
+							}
+						}
+					}
+					return out;
+				}
+			}
+			UNREACHABLE;//no acyclic graph found
+		}() };
+		INLINE static constexpr Result operator()(IF(MSVC, BasicStringView<const T>, $StringOfCharSize<sizeof(T)> auto&&) input)noexcept
+		{
+			static constexpr usize side{ usize{ 1 } << params.bits };
+			static constexpr std::array<Result, 2 * side> g{ [] static
+			{
+				std::array<Result, 2 * side> t;
+				for (usize v{}; v != 2 * side; ++v) t[v] = params.g[v];
+				return t;
+			}() };
+			const auto raw{ Hasher::operator()(FWD(input)) };
+			const usize sum{ usize{ g[mix(raw, params.mulA, params.bits)] } + usize{ g[side + mix(raw, params.mulB, params.bits)] } };
+			return static_cast<Result>(sum >= N ? sum - N : sum);
+		}
+		STATIC_ASSERT([]<usize...I>(std::index_sequence<I...>)static
+		{
+			return (... && (operator()(Strings) == I));
+		}(std::make_index_sequence<N>{}));
+	};
+	template<class Hasher, class T, FixedString...Strings>
+	requires(sizeof(typename Hasher::Result) == 1)
+	struct MinimalImpl<Hasher, T, Strings...>
+	{
+		static constexpr auto N{ compact<sizeof...(Strings)> };
+		using Result = Compact<N - 1>;
+		static constexpr std::array<u8, 0x100> table{ [] <usize...I>(std::index_sequence<I...>)static
+		{
+			std::array<u8, 0x100> result{};
+			(..., (result[Hasher::operator()(Strings)] = I));
+			return result;
+		}(std::make_index_sequence<N>{}) };
+		INLINE static constexpr Result operator()(IF(MSVC, BasicStringView<const T>, $StringOfCharSize<sizeof(T)> auto&&) input)noexcept
+		{
+			return table[Hasher::operator()(input)];
+		}
+		STATIC_ASSERT([]<usize...I>(std::index_sequence<I...>)static
+		{
+			return (... && (operator()(Strings) == I));
+		}(std::make_index_sequence<N>{}));
 	};
 }
 template<usize InputMinLen, FixedString...Strings>
 #if !MSVC
-	requires(sizeof...(Strings) != 0 && InputMinLen != 0 && ((Strings.size() >= InputMinLen)&&...))//msvc bug: error C1001: Internal compiler error
+	requires(sizeof...(Strings) != 0 && InputMinLen != 0 && (...&&(Strings.size() >= InputMinLen)))//msvc bug: error C1001: Internal compiler error
 #endif
 using PerfectHashEx = std::remove_const_t<decltype(PerfectHashImpl::Finder<typename std::remove_cvref_t<decltype(element_at<0>(Strings...))>::char_type, InputMinLen, std::make_index_sequence<Algorithm::max(Strings.size()...)>, Strings...>::operator()())>;
 template<bool AssumeMinLen, FixedString...Strings>
 #if !MSVC
-	requires(sizeof...(Strings) != 0 && (!Strings.empty()&&...))//msvc bug: error C1001: Internal compiler error
+	requires(sizeof...(Strings) != 0 && (...&&!Strings.empty()))//msvc bug: error C1001: Internal compiler error
 #endif
 using PerfectHash = std::remove_const_t<decltype(PerfectHashImpl::Finder<typename std::remove_cvref_t<decltype(element_at<0>(Strings...))>::char_type, AssumeMinLen ? Algorithm::min(usize{ Strings.size() }...) : usize{ 1 }, std::make_index_sequence<Algorithm::max(Strings.size()...)>, Strings...>::operator()())>;
+template<bool AssumeMinLen, FixedString...Strings>
+#if !MSVC
+	requires(sizeof...(Strings) != 0 && (...&&!Strings.empty()))
+#endif
+using MinHash = PerfectHashImpl::MinimalImpl<PerfectHash<AssumeMinLen, Strings...>, typename std::remove_cvref_t<decltype(element_at<0>(Strings...))>::char_type, Strings...>;
+STATIC_ASSERT([]static
+{
+	using Hasher = MinHash<true, "apple", "banana", "bananana", "cherry", "date", "elderberry", "fig", "grape", "honeydew">;
+	if constexpr (Hasher{}(BasicStringView{ "apple" }) != 0)return false;
+	if constexpr (Hasher{}(BasicStringView{ "banana" }) != 1)return false;
+	if constexpr (Hasher{}(BasicStringView{ "honeydew" }) != 8)return false;
+	return true;
+}());
 STATIC_ASSERT([]static
 {
 	using Hasher = PerfectHash<
@@ -7941,15 +8524,15 @@ STATIC_ASSERT([]static
 STATIC_ASSERT([]static
 {
 	using namespace PerfectHashImpl;
-	if constexpr (Hasher<c8, ForwardChars<c8, 0, 1, 999>>::cost + Hasher<c8, BackwardChars<c8, 0, 1, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 1, 999>, BackwardChars<c8, 0, 1, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
-	if constexpr (Hasher<c8, ForwardChars<c8, 0, 2, 999>>::cost + Hasher<c8, BackwardChars<c8, 0, 2, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 2, 999>, BackwardChars<c8, 0, 2, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
-	if constexpr (Hasher<c8, ForwardChars<c8, 0, 4, 999>>::cost + Hasher<c8, BackwardChars<c8, 0, 4, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 4, 999>, BackwardChars<c8, 0, 4, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
-	if constexpr (Hasher<c8, FirstXorLastChars<c8, 1, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 1, 999>, BackwardChars<c8, 0, 1, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
-	if constexpr (Hasher<c8, FirstXorLastChars<c8, 2, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 2, 999>, BackwardChars<c8, 0, 2, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
-	if constexpr (Hasher<c8, FirstXorLastChars<c8, 4, 999>>::cost >= Hasher<c8, ForwardChars<c8, 0, 4, 999>, BackwardChars<c8, 0, 4, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
+	if constexpr (Hasher<c8, Front<c8, 0, 1, 999>>::cost + Hasher<c8, Back<c8, 0, 1, 999>>::cost >= Hasher<c8, Front<c8, 0, 1, 999>, Back<c8, 0, 1, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
+	if constexpr (Hasher<c8, Front<c8, 0, 2, 999>>::cost + Hasher<c8, Back<c8, 0, 2, 999>>::cost >= Hasher<c8, Front<c8, 0, 2, 999>, Back<c8, 0, 2, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
+	if constexpr (Hasher<c8, Front<c8, 0, 4, 999>>::cost + Hasher<c8, Back<c8, 0, 4, 999>>::cost >= Hasher<c8, Front<c8, 0, 4, 999>, Back<c8, 0, 4, 999>>::cost)return false;//sum of individual cost is smaller than merged cost, because additional bit_or + bit_shift
+	if constexpr (Hasher<c8, XorFB<c8, 1, 999>>::cost >= Hasher<c8, Front<c8, 0, 1, 999>, Back<c8, 0, 1, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
+	if constexpr (Hasher<c8, XorFB<c8, 2, 999>>::cost >= Hasher<c8, Front<c8, 0, 2, 999>, Back<c8, 0, 2, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
+	if constexpr (Hasher<c8, XorFB<c8, 4, 999>>::cost >= Hasher<c8, Front<c8, 0, 4, 999>, Back<c8, 0, 4, 999>>::cost)return false;//xor is cheaper than bit_or + bit_shift
 	if constexpr (Hasher<c8, Size<c8>>::cost < PerfectHash<true, "enable", "vertical", "horizontal">::cost)return false;
-	if constexpr (Hasher<c8, ForwardChars<c8, 0, 2, 2>, BackwardChars<c8, 0, 2, 2>>::cost < PerfectHash<true, "abstract", "any", "as", "assert", "asserts", "async", "await", "bigint", "boolean", "break", "case", "catch", "class", "const", "constructor", "continue", "debugger", "declare", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "from", "function", "get", "global", "if", "implements", "import", "in", "infer", "instanceof", "interface", "intrinsic", "is", "keyof", "let", "module", "namespace", "never", "new", "null", "number", "object", "of", "out", "override", "package", "private", "protected", "public", "readonly", "require", "return", "set", "static", "string", "super", "switch", "symbol", "this", "throw", "true", "try", "type", "typeof", "undefined", "unique", "unknown", "var", "void", "while", "with", "yield">::cost)return false;
-	if constexpr (Hasher<c8, FirstXorLastChars<c8, 4, 8>>::cost < PerfectHash<true, "swapHandAsDoubleSwap", "onReload", "onSilencerInstall", "onSniperShot", "onHealthShot", "onGrenade", "doubleSwapWait", "doubleSwapRepeat", "reloadWait0", "reloadWait1", "reloadRepeat", "silencerWait0", "silencerWait1", "silencerRepeat", "sniperWait0", "sniperWait1", "sniperRepeat", "commandMinInterval">::cost)return false;
+	if constexpr (Hasher<c8, Front<c8, 0, 2, 2>, Back<c8, 0, 2, 2>>::cost < PerfectHash<true, "abstract", "any", "as", "assert", "asserts", "async", "await", "bigint", "boolean", "break", "case", "catch", "class", "const", "constructor", "continue", "debugger", "declare", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "from", "function", "get", "global", "if", "implements", "import", "in", "infer", "instanceof", "interface", "intrinsic", "is", "keyof", "let", "module", "namespace", "never", "new", "null", "number", "object", "of", "out", "override", "package", "private", "protected", "public", "readonly", "require", "return", "set", "static", "string", "super", "switch", "symbol", "this", "throw", "true", "try", "type", "typeof", "undefined", "unique", "unknown", "var", "void", "while", "with", "yield">::cost)return false;
+	if constexpr (Hasher<c8, XorFB<c8, 4, 8>>::cost < PerfectHash<true, "swapHandAsDoubleSwap", "onReload", "onSilencerInstall", "onSniperShot", "onHealthShot", "onGrenade", "doubleSwapWait", "doubleSwapRepeat", "reloadWait0", "reloadWait1", "reloadRepeat", "silencerWait0", "silencerWait1", "silencerRepeat", "sniperWait0", "sniperWait1", "sniperRepeat", "commandMinInterval">::cost)return false;
 	return true;
 }());
 template<auto C>requires(C.size()==1)INLINE constexpr decltype(auto)Switch(auto x,auto&&a)noexcept{switch(x){case C[0]:return a(IV<C[0]>);}UNREACHABLE;}
@@ -8545,7 +9128,7 @@ constexpr bool parse_enum_impl($StringOfCharSize<1> auto&& input, T& result, std
 		if constexpr (!AssumeMinLen)
 			if (input.size() < AssumeMinLen)
 				return false;
-		using Hasher = PerfectHash<true, enum_name_fixed_string<Enum<T>::entries[I], Char>...>;
+		using Hasher = MinHash<true, enum_name_fixed_string<Enum<T>::entries[I], Char>...>;
 		using Hash = Hasher::Result;
 		static constexpr std::array<Hash, Enum<T>::count> hashes{ Hasher::operator()(enum_name_fixed_string<Enum<T>::entries[I], Char>)... };
 		return Switch<hashes>(
@@ -8592,7 +9175,7 @@ public:
 	//include T{} if T{} is named
 	static constexpr std::array named_entries{ [] static
 	{
-		static constexpr ConstVector<T, maxBits> arr{ [] <auto...I>(std::index_sequence<I...>)static
+		static constexpr ConstVector<T, maxBits> arr{ [] <usize...I>(std::index_sequence<I...>)static
 		{
 			ConstVector<T, maxBits> result;
 			if constexpr (is_valid_enum<T{}>)
@@ -8694,7 +9277,7 @@ constexpr Stream& operator<<(Stream& os, const Opt<T, default_value...>& v)noexc
 	if (v.has_value())
 		os << v.value();
 	else
-		os << TS8("null");
+		os << TS("null");
 	return os;
 }
 template<class T, bool C>
@@ -8719,7 +9302,7 @@ NO_SIDE_EFFECTS INLINE constexpr u8 count_digits10_no_zero($UInt auto x) noexcep
 		return  1 + (x >= 10) + (x >= 100);
 	else
 	{
-		const u8 bits{ static_cast<u8>(std::numeric_limits<T>::digits - Bits::leadingZeroCount(x)) };
+		const u8 bits{ static_cast<u8>(std::numeric_limits<T>::digits - Bits::leftZeroCount(x)) };
 		const u8 guess{ static_cast<u8>(((u32)bits * (u32)1233) >> 12) };
 		return x >= pow10_table<T, std::numeric_limits<T>::digits10 + 1>[guess] ? u8(guess + 1) : guess;
 	}
@@ -9256,7 +9839,7 @@ INLINE constexpr auto* ubin2chars_fixed($UInt auto u, $Char auto* p) noexcept
 	{
 		ubin2chars_fixed<'0'>(u, p);
 		u |= 1;
-		const u8 lz{ Bits::leadingZeroCount(u) };
+		const u8 lz{ Bits::leftZeroCount(u) };
 		for (auto* pPad{ p }, * pEndPad{ p + lz }; pPad != pEndPad; ++pPad)
 			*pPad = pad;
 	}
@@ -9280,7 +9863,7 @@ INLINE constexpr auto* ubin2chars($UInt auto u, $Char auto* p) noexcept
 		*p = '0';
 		return p + 1;
 	}
-	auto* const pEnd{ p + static_cast<u8>(std::numeric_limits<decltype(u)>::digits - Bits::leadingZeroCount(u)) };
+	auto* const pEnd{ p + static_cast<u8>(std::numeric_limits<decltype(u)>::digits - Bits::leftZeroCount(u)) };
 	for (auto* pDst{ pEnd }; pDst != p; u >>= 1)
 		*--pDst = static_cast<c8>('0' + (u & 1));
 	return pEnd;
@@ -9369,7 +9952,7 @@ INLINE constexpr auto* uhex2chars_fixed($UInt auto u, $Char auto* p) noexcept
 		{
 			uhex2chars_fixed<'0', cap>(u, p);
 			u |= 1;
-			const u8 lz{ Bits::leadingZeroCount(u) };
+			const u8 lz{ Bits::leftZeroCount(u) };
 			const u8 significant_bits{ static_cast<u8>(std::numeric_limits<decltype(u)>::digits - lz) };
 			const u8 num_digits{ static_cast<u8>((significant_bits + 3) / 4) };
 			const u8 padding_count{ static_cast<u8>(buffer_size - num_digits) };
@@ -9399,7 +9982,7 @@ INLINE constexpr auto* uhex2chars($UInt auto u, $Char auto* p)noexcept//todo: u8
 			*p = '0';
 			return p + 1;
 		}
-		const u8 lz{ Bits::leadingZeroCount(u) };
+		const u8 lz{ Bits::leftZeroCount(u) };
 		const u8 significant_bits{ static_cast<u8>(std::numeric_limits<decltype(u)>::digits - lz) };
 		const u8 num_digits{ static_cast<u8>((significant_bits + 3) / 4) };
 		auto* ptr{ p + num_digits };
@@ -9739,6 +10322,7 @@ template<$NotReference T, usize Size>
 struct Span<T, Size>
 {
 private:
+	using Index = Compact<Size>;
 	T* m_pBegin;
 public:
 	INLINE constexpr Span()noexcept :m_pBegin{ nullptr } {}
@@ -9749,8 +10333,8 @@ public:
 	INLINE constexpr Span(T* pBegin)noexcept :m_pBegin{ pBegin } {}
 	INLINE constexpr Span($LinearContainerOf<T> auto&& container)noexcept /*requires(!std::is_rvalue_reference_v<decltype(container)>)*/ : m_pBegin{container.data()} {}
 	INLINE constexpr T& operator[](usize index)const noexcept { return m_pBegin[index]; }
-	static CONSTEVAL usize size() noexcept { return Size; }
-	static CONSTEVAL isize ssize() noexcept { return Size; }
+	static CONSTEVAL Index size() noexcept { return Size; }
+	static CONSTEVAL isize ssize() noexcept { return Size; }//todo
 	INLINE constexpr T& front()const noexcept { return *m_pBegin; }
 	INLINE constexpr T& back()const noexcept { return m_pBegin[Size - 1]; }
 	INLINE constexpr T* begin()const noexcept { return m_pBegin; }
@@ -9761,6 +10345,20 @@ template<class T>Span(T*, $UInt auto)->Span<T>;
 template<class T>Span(T*, T*)->Span<T>;
 template<$LinearContainer T>requires(!$FixSized<T>)Span(T&&)->Span<std::remove_reference_t<decltype(*std::declval<T>().data())>>;
 template<$LinearContainer T>requires( $FixSized<T>)Span(T&&)->Span<std::remove_reference_t<decltype(*std::declval<T>().data())>, static_size<T>>;
+
+template<class L, auto...sizeL, class R, auto...sizeR>
+constexpr bool operator==(Span<L, sizeL...> l, Span<R, sizeR...> r)noexcept
+{
+	if (l.size() != r.size())return false;
+	auto pL{ l.begin() };
+	auto pR{ r.begin() };
+	auto pLEnd{ l.end()};
+	for (;pL!=pLEnd;++pL, ++pR)
+		if (*pL != *pR)
+			return false;
+	return true;
+}
+
 template<class Stream, $Printable<Stream> T, auto...Size>
 constexpr Stream& operator<<(Stream& os, const Span<T, Size...>& span)noexcept
 {
@@ -9820,29 +10418,29 @@ namespace Windows
 		template<class Stream, class...Base>
 		void toStream(Stream& os, Base&&...pBase)const noexcept
 		{
-			os << TS8("Value = ") << hex(Value);
-			os << TS8(", SectionNumber = ") << hex(SectionNumber);
-			os << TS8(", Type = ") << hex(Type);
-			os << TS8(", StorageClass = ") << hex(StorageClass);
-			os << TS8(", NumberOfAuxSymbols = ") << hex(NumberOfAuxSymbols);
+			os << TS("Value = ") << hex(Value);
+			os << TS(", SectionNumber = ") << hex(SectionNumber);
+			os << TS(", Type = ") << hex(Type);
+			os << TS(", StorageClass = ") << hex(StorageClass);
+			os << TS(", NumberOfAuxSymbols = ") << hex(NumberOfAuxSymbols);
 			if (isLong())
 			{
 				const u32 offset{ N.Name.Long };
 				if constexpr (sizeof...(pBase))
 				{
 					const StringView8 name{ reinterpret_cast<const char*>(&(pBase,...)[offset]) };
-					os << TS8(", Name = ") << name;
+					os << TS(", Name = ") << name;
 				}
 				else
-					os << TS8(", Offset = ") << hex(offset);
+					os << TS(", Offset = ") << hex(offset);
 			}
 			else
 			{
-				const FixedString<c8, 8> nameBuffer{[&] <auto...I>(std::index_sequence<I...>) 
+				const FixedString<c8, 8> nameBuffer{[&] <usize...I>(std::index_sequence<I...>) 
 				{
 					return FixedString<c8, 8>{(N.ShortName[I] ? N.ShortName[I] : ' ')...};
 				}(std::make_index_sequence<8>{})};
-				os << TS8(", Name = ");
+				os << TS(", Name = ");
 				if constexpr (sizeof(typename Stream::char_type) == 1)
 					os << nameBuffer;
 				else if constexpr (sizeof(typename Stream::char_type) == 2)
@@ -10567,16 +11165,16 @@ namespace Windows::ApiSetMap
 			template<class Stream>
 			friend Stream& operator<<(Stream& os, const Namespace& nameSpace)noexcept
 			{
-				os << TS8("Version = ") << nameSpace.Version;
-				os << TS8("\nCount = ") << nameSpace.Count;
-				os << TS8("\nEntries: ");
+				os << TS("Version = ") << nameSpace.Version;
+				os << TS("\nCount = ") << nameSpace.Count;
+				os << TS("\nEntries: ");
 				for (const NamespaceEntry& namespaceEntry : nameSpace.entries())
 				{
-					os << TS8("\n\tName = ") << namespaceEntry.name(nameSpace);
+					os << TS("\n\tName = ") << namespaceEntry.name(nameSpace);
 					const ValueEntry& valueEntry{ namespaceEntry.entry(nameSpace) };
 					for (const ValueEntryRedirection& redirection : valueEntry.redirections())
 					{
-						os << TS8("\n\t\tName = ") << redirection.name(nameSpace);
+						os << TS("\n\t\tName = ") << redirection.name(nameSpace);
 						if (const StringView16 alias{ redirection.alias(nameSpace) }; alias.size())os << '(' << alias << ')';
 					}
 				}
@@ -10651,20 +11249,20 @@ namespace Windows::ApiSetMap
 			template<class Stream>
 			friend Stream& operator<<(Stream& os, const Namespace& nameSpace)noexcept
 			{
-				os << TS8("Version = ") << nameSpace.Version;
-				os << TS8("\nSize = ") << nameSpace.Size;
-				os << TS8("\nFlags = ") << nameSpace.Flags;
-				os << TS8("\nCount = ") << nameSpace.Count;
-				os << TS8("\nEntries: ");
+				os << TS("Version = ") << nameSpace.Version;
+				os << TS("\nSize = ") << nameSpace.Size;
+				os << TS("\nFlags = ") << nameSpace.Flags;
+				os << TS("\nCount = ") << nameSpace.Count;
+				os << TS("\nEntries: ");
 				for (const NamespaceEntry& namespaceEntry : nameSpace.entries())
 				{
-					os << TS8("\n\tName = ") << namespaceEntry.name(nameSpace);
-					os << TS8("\n\tAlias = ") << namespaceEntry.alias(nameSpace);
+					os << TS("\n\tName = ") << namespaceEntry.name(nameSpace);
+					os << TS("\n\tAlias = ") << namespaceEntry.alias(nameSpace);
 					const ValueEntry& valueEntry{ namespaceEntry.entry(nameSpace) };
 					for (const ValueEntryRedirection& redirection : valueEntry.redirections())
 					{
-						os << TS8("\n\t\tFlag = ") << Hex{ redirection.Flags };
-						if (const StringView16 name{ redirection.name(nameSpace) }; name.size())os << TS8(", Name = ") << name;
+						os << TS("\n\t\tFlag = ") << Hex{ redirection.Flags };
+						if (const StringView16 name{ redirection.name(nameSpace) }; name.size())os << TS(", Name = ") << name;
 						if (const StringView16 alias{ redirection.alias(nameSpace) }; alias.size())os << '(' << alias << ')';
 					}
 				}
@@ -10739,21 +11337,21 @@ namespace Windows::ApiSetMap
 			template<class Stream>
 			friend Stream& operator<<(Stream& os, const Namespace& nameSpace)noexcept
 			{
-				os << TS8("Version = ") << nameSpace.Version;
-				os << TS8("\nSize = ") << nameSpace.Size;
-				os << TS8("\nFlags = ") << nameSpace.Flags;
-				os << TS8("\nCount = ") << nameSpace.Count;
-				os << TS8("\nEntryOffset = ") << nameSpace.EntryOffset;
-				os << TS8("\nHashOffset = ") << nameSpace.HashOffset;
-				os << TS8("\nHashFactor = ") << nameSpace.HashFactor;
-				os << TS8("\nEntries: ");
+				os << TS("Version = ") << nameSpace.Version;
+				os << TS("\nSize = ") << nameSpace.Size;
+				os << TS("\nFlags = ") << nameSpace.Flags;
+				os << TS("\nCount = ") << nameSpace.Count;
+				os << TS("\nEntryOffset = ") << nameSpace.EntryOffset;
+				os << TS("\nHashOffset = ") << nameSpace.HashOffset;
+				os << TS("\nHashFactor = ") << nameSpace.HashFactor;
+				os << TS("\nEntries: ");
 				for (const NamespaceEntry& namespaceEntry : nameSpace.entries())
 				{
-					os << TS8("\n\tName = ") << namespaceEntry.name(nameSpace);
+					os << TS("\n\tName = ") << namespaceEntry.name(nameSpace);
 					for (const ValueEntry& valueEntry : namespaceEntry.entries(nameSpace))
 					{
-						os << TS8("\n\t\tFlag = ") << Hex{ valueEntry.Flags };
-						if (const StringView16 name{ valueEntry.name(nameSpace) }; name.size())os << TS8(", Name = ") << name;
+						os << TS("\n\t\tFlag = ") << Hex{ valueEntry.Flags };
+						if (const StringView16 name{ valueEntry.name(nameSpace) }; name.size())os << TS(", Name = ") << name;
 						if (const StringView16 alias{ valueEntry.alias(nameSpace) }; alias.size())os << '(' << alias << ')';
 					}
 				}
@@ -11066,63 +11664,6 @@ STATIC_ASSERT(PARENTHESIZED(()) == 1);
 STATIC_ASSERT(PARENTHESIZED((a)) == 1);
 STATIC_ASSERT(PARENTHESIZED((a, a)) == 1);
 STATIC_ASSERT(PARENTHESIZED((a, a, a)) == 1);
-namespace Math
-{
-	NO_SIDE_EFFECTS INLINE constexpr bool isPowerOf2($UInt auto n)noexcept
-	{
-		return Bits::count(n) == u8{ 1 };
-	}
-
-	NO_SIDE_EFFECTS INLINE constexpr auto pow2(auto value)noexcept
-	{
-		return value * value;
-	}
-}
-template<usize align, $UInt T>
-requires(align == T(align) && align != 0)
-NO_SIDE_EFFECTS INLINE constexpr T next_aligned_greater_equal(T x)noexcept
-{
-#if !CLANG//gcc and msvc cant optimize: https://godbolt.org/z/6cPa3jo9M
-	if constexpr (Math::isPowerOf2(align))
-	{
-		static constexpr T mask{ static_cast<T>(align - 1) };
-		static constexpr T mask_inv{ static_cast<T>(~mask) };
-		return static_cast<T>(static_cast<T>(x + mask) & mask_inv);
-	}
-	else
-#endif
-	{
-		const T offset{ static_cast<T>(x % compact<align>) };
-		return offset ? x - offset + compact<align> : x;
-	}
-}
-
-template<usize align, $UInt T>
-requires(align == T(align) && align != 0)
-NO_SIDE_EFFECTS INLINE constexpr T next_aligned_greater(T x)noexcept
-{
-	return static_cast<T>(static_cast<T>(static_cast<T>(x / compact<align>) + T{ 1 })* compact<align>);
-}
-template<usize align, $UInt T>
-requires(align == T(align) && align != 0)
-NO_SIDE_EFFECTS INLINE constexpr T prev_aligned_less_equal(T x) noexcept
-{
-	const T offset{ static_cast<T>(x % compact<align>) };
-	return static_cast<T>(x - offset);
-}
-
-template<usize align, $UInt T>
-requires(align == T(align) && align != 0)
-NO_SIDE_EFFECTS INLINE constexpr T prev_aligned_less(T x) noexcept
-{
-	ASSERT(x != 0);
-	return prev_aligned_less_equal<align>(static_cast<T>(x - T{ 1 }));
-}
-
-template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* next_aligned_greater_equal(T* x)noexcept { return __builtin_bit_cast(T*, next_aligned_greater_equal<align>(std::bit_cast<usize>(x))); }
-template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* next_aligned_greater      (T* x)noexcept { return __builtin_bit_cast(T*, next_aligned_greater      <align>(std::bit_cast<usize>(x))); }
-template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* prev_aligned_less_equal   (T* x)noexcept { return __builtin_bit_cast(T*, prev_aligned_less_equal   <align>(std::bit_cast<usize>(x))); }
-template<usize align, class T>requires(align != 0)NO_SIDE_EFFECTS INLINE constexpr T* prev_aligned_less         (T* x)noexcept { return __builtin_bit_cast(T*, prev_aligned_less         <align>(std::bit_cast<usize>(x))); }
 #if MSVC
 	#define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
 #else
@@ -11248,7 +11789,7 @@ static_assert(__builtin_offsetof(ClassInfo, pFields) == 0x28);
 static_assert(sizeof(ClassInfo) == 0x30);
 #endif
 template<auto...X>
-constexpr bool all_unique{ [] <auto...I>(std::index_sequence<I...>)static
+constexpr bool all_unique{ [] <usize...I>(std::index_sequence<I...>)static
 {
 	return(...&&[]static -> bool
 	{
@@ -11797,7 +12338,7 @@ constexpr bool all_unique{ [] <auto...I>(std::index_sequence<I...>)static
 	template<usize index, class T>
 	constexpr std::meta::info field_at{ std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked())[index] };
 #endif
-#if TEMPLATE_FOR
+#if TEMPLATE_FOR && META
 	#define DEFINE_LEXI(...)\
 	INLINE constexpr bool operator<(this auto&&l, auto&&r)noexcept requires($Same<std::remove_cvref_t<decltype(l)>,std::remove_cvref_t<decltype(r)>> && []static\
 	{\
@@ -13077,12 +13618,12 @@ namespace Windows
 		template<class Stream>
 		friend Stream& operator<<(Stream& os, const LdrDataTableEntry& e)noexcept
 		{
-			os << TS8("Base = ") << hex(e.DllBase);
-			os << TS8(", Size = ") << hex(e.SizeOfImage);
-			os << TS8(", Entry = ") << hex(e.EntryPoint);
-			os << TS8(", Reason = ") << e.LoadReason;
-			//os << TS8(", Name = ") << e.name();
-			os << TS8(", Path = ") << e.path();
+			os << TS("Base = ") << hex(e.DllBase);
+			os << TS(", Size = ") << hex(e.SizeOfImage);
+			os << TS(", Entry = ") << hex(e.EntryPoint);
+			os << TS(", Reason = ") << e.LoadReason;
+			//os << TS(", Name = ") << e.name();
+			os << TS(", Path = ") << e.path();
 			return os;
 		}
 	};
@@ -13768,9 +14309,9 @@ namespace Windows
 	requires($Same<c16, typename Stream::char_type>)
 	Stream& operator<<(Stream& os, const KeyValueBasicInformation<Size>& info)noexcept
 	{
-		os << TS8("TitleIndex = ") << info.TitleIndex;
-		os << TS8(", Type = ") << info.Type;
-		os << TS8(", Name = ") << info.name();
+		os << TS("TitleIndex = ") << info.TitleIndex;
+		os << TS(", Type = ") << info.Type;
+		os << TS(", Name = ") << info.name();
 		return os;
 	}
 
@@ -13789,11 +14330,11 @@ namespace Windows
 	requires($Same<c16, typename Stream::char_type>)
 	Stream& operator<<(Stream& os, const KEY_VALUE_FULL_INFORMATION& info)noexcept
 	{
-		os << TS8("TitleIndex = ") << info.TitleIndex;
-		os << TS8(", Type = ") << info.Type;
-		os << TS8(", DataOffset = ") << info.DataOffset;
-		os << TS8(", DataLength = ") << info.DataLength;
-		os << TS8(", Name = ") << info.name();
+		os << TS("TitleIndex = ") << info.TitleIndex;
+		os << TS(", Type = ") << info.Type;
+		os << TS(", DataOffset = ") << info.DataOffset;
+		os << TS(", DataLength = ") << info.DataLength;
+		os << TS(", Name = ") << info.name();
 		return os;
 	}
 
@@ -13822,9 +14363,9 @@ namespace Windows
 	requires($Same<c16, typename Stream::char_type>)
 	Stream& operator<<(Stream& os, const KeyValuePartialInformation<Size>& info)noexcept
 	{
-		os << TS8("TitleIndex = ") << info.TitleIndex;
-		os << TS8(", Type = ") << info.Type;
-		os << TS8(", Data = ");
+		os << TS("TitleIndex = ") << info.TitleIndex;
+		os << TS(", Type = ") << info.Type;
+		os << TS(", Data = ");
 		switch (info.Type)
 		{
 			case RegType::sz:
@@ -14273,14 +14814,14 @@ namespace Windows
 			template<class Stream>
 			friend Stream& operator<<(Stream& os, const ExportFunction& func)noexcept
 			{
-				os << TS8("Ordinal = ") << Hex{ func.ordinal };
-				os << TS8(", Address = ") << func.localAddress;
-				os << TS8(", ForwardAddress = ");
+				os << TS("Ordinal = ") << Hex{ func.ordinal };
+				os << TS(", Address = ") << func.localAddress;
+				os << TS(", ForwardAddress = ");
 				if (func.localAddress != func.forwardedAddress)
 					os << hex(func.forwardedAddress);
 				else
 					for (u8 i{}; i != sizeof(void*) * 2; ++i)os << ' ';
-				os << TS8(", Name = ") << func.name;
+				os << TS(", Name = ") << func.name;
 				if (func.forwardInfo && func.forwardInfo->valid())
 				{
 					os << "\t, Forward DLL = " << &func.forwardInfo->dllName[0];
@@ -14328,10 +14869,10 @@ namespace Windows
 			friend Stream& operator<<(Stream& os, const ImportFunction& func)noexcept
 			{
 				os << func.moduleName;
-				os << TS8(": addr = ") << hex(func.address);
-				if (func.ordinal)os << TS8(", ordinal = ") << Hex{ *func.ordinal };
-				if (func.hint)os << TS8(", hint = ") << hex(*func.hint);
-				if (func.name)os << TS8(", name = ") << *func.name;
+				os << TS(": addr = ") << hex(func.address);
+				if (func.ordinal)os << TS(", ordinal = ") << Hex{ *func.ordinal };
+				if (func.hint)os << TS(", hint = ") << hex(*func.hint);
+				if (func.name)os << TS(", name = ") << *func.name;
 				return os;
 			}
 		};
@@ -14381,9 +14922,9 @@ namespace Windows
 		//			u8 i{};
 		//			for (c8 c : section.name)
 		//				buffer[i++] = c;
-		//			os << TS8("Name = ") << Span{ buffer };
+		//			os << TS("Name = ") << Span{ buffer };
 		//		}
-		//		os << TS8(", Begin = ") << section.span.begin() << TS8(", End = ") << section.span.end() << TS8(", Size = ") << hex(section.span.size()) << TS8(", Flags = ") << section.characteristics;
+		//		os << TS(", Begin = ") << section.span.begin() << TS(", End = ") << section.span.end() << TS(", Size = ") << hex(section.span.size()) << TS(", Flags = ") << section.characteristics;
 		//		return os;
 		//	}
 		//};
@@ -14408,16 +14949,16 @@ namespace Windows
 		//{
 		//	if (mod.isDLL())
 		//	{
-		//		os << TS8("Base = ") << mod.pBase() << '\n';
-		//		os << TS8("DLL Name = ") << mod.dllName() << '\n';
-		//		os << TS8("Export Functions:\n");
+		//		os << TS("Base = ") << mod.pBase() << '\n';
+		//		os << TS("DLL Name = ") << mod.dllName() << '\n';
+		//		os << TS("Export Functions:\n");
 		//		for (const ExportFunction& f : mod.exports<1>())
 		//			os << f << '\n';
-		//		os << TS8("Import Functions:\n");
+		//		os << TS("Import Functions:\n");
 		//		for (const ImportFunction& f : mod.imports())
 		//			os << f << '\n';
 		//	}
-		//	os << TS8("Sections:\n");
+		//	os << TS("Sections:\n");
 		//	for (const Section& sec : mod.sections())
 		//		os << sec << '\n';
 		//	return os;
@@ -14425,11 +14966,10 @@ namespace Windows
 	};
 }
 
-#define IMPORT_FUNCTION_WITH_TYPE_EX(var,name,type)auto var { []static{auto result { pe.getFunctionTrueAddressByName<type>(TS8(#name))};if(!result)CRASH();return result;}() };
+#define IMPORT_FUNCTION_WITH_TYPE_EX(var,name,type)auto var { []static{auto result { pe.getFunctionTrueAddressByName<type>(TS(#name))};if(!result)CRASH();return result;}() };
 #define IMPORT_FUNCTION_WITH_TYPE(var,type)IMPORT_FUNCTION_WITH_TYPE_EX(var,var,type)
 #define IMPORT_FUNCTION_EX(var,name) IMPORT_FUNCTION_WITH_TYPE_EX(var,name,decltype(&::name))
 #define IMPORT_FUNCTION(name) IMPORT_FUNCTION_EX(name,name)
-
 #if 0
 	#define GLOBAL inline
 #else
@@ -14443,7 +14983,7 @@ namespace details
 		for (const Windows::LdrDataTableEntry* pModuleEntry{ reinterpret_cast<Windows::LdrDataTableEntry*>(Windows::thisPeb().pLdr->InLoadOrderModuleList.Flink) };; pModuleEntry = pModuleEntry->pNext())//search until crash
 		{
 			const Windows::MappedPeView pe{ pModuleEntry->DllBase };
-			void* const pFunc{ pe.getFunctionLocalAddressByNameEx<void*>([](StringView8 name)STATIC_LAMBDA_INLINE{return name == tstring<FunctionName>; }) };
+			void* const pFunc{ pe.getFunctionLocalAddressByNameEx<void*>([](StringView8 name)STATIC_LAMBDA_INLINE{return equal<FunctionName>(name); }) };
 			if (pFunc && !pe.isFunctionAddressForwarded(pFunc))
 				return pFunc;
 		}
@@ -14465,6 +15005,7 @@ public:																																																\
 	INLINE function_name ## Caller(void* ptr = DLLCALL_GET_ADDRESS(function_name))noexcept :m_ptr{ __builtin_bit_cast(ret(convention*)(FOR_EACH_TUPLE_COMMA(DLLCALL_TYPE, __VA_ARGS__)),ptr) } {}	\
 	INLINE ret operator()(FOR_EACH_TUPLE_COMMA(DLLCALL_TYPE_ARG, __VA_ARGS__))const noexcept { return m_ptr(FOR_EACH_TUPLE_COMMA(DLLCALL_ARG,__VA_ARGS__)); }										\
 	template<class R = ret, class...Ts>INLINE R overload(Ts...args)const noexcept { return __builtin_bit_cast(R(convention*)(Ts...),m_ptr)(args...); }												\
+	INLINE ret(convention*address()const noexcept)(FOR_EACH_TUPLE_COMMA(DLLCALL_TYPE, __VA_ARGS__)){return m_ptr;}																					\
 }GLOBAL function_name
 
 #define DLLCALL_CALLER(function_name,convention,ret,...)																																												\
@@ -15080,9 +15621,9 @@ template<class T>concept $Floating = std::is_floating_point_v<std::remove_cvref_
 #endif
 namespace Math
 {
-	template<$AnyOf<f32, f64> T>
-	NO_SIDE_EFFECTS INLINE constexpr bool signbit(const T x) noexcept
+	NO_SIDE_EFFECTS INLINE constexpr bool signbit($AnyOf<f32, f64> auto x) noexcept
 	{
+		using T = std::remove_cvref_t<decltype(x)>;
 		if !consteval
 		{
 #if CLANG || GCC
@@ -15111,7 +15652,7 @@ namespace Math
 		{
 			if consteval
 			{
-				return signbit<T>(x) ? -x : x;
+				return signbit(x) ? -x : x;
 			}
 			else
 			{
@@ -15264,7 +15805,7 @@ STATIC_ASSERT(Math::uabs(std::numeric_limits<i64>::min() + 1) == u64{ 9223372036
 #define SYSCALL_COMMA_ARG(type,name) ,name
 #define SYSCALL_TYPE_ARG(type,name) type name
 
-#if (BITNESS==64)
+#if BITNESS==64
 	namespace details
 	{
 		template<FixedString funcName, FixedString dll>
@@ -18180,2848 +18721,2848 @@ constexpr Stream& operator<<(Stream& os, NtStatus status)noexcept
 {
 	switch (status)
 	{
-		break; case NtStatus::success: os << TS8("success"); //0x00000000,
-		//break; case NtStatus::severity_success: os << TS8("severity_success"); //0x00000000,
-		break; case NtStatus::severity_informational: os << TS8("severity_informational"); //0x00000001,
-		break; case NtStatus::severity_warning: os << TS8("severity_warning"); //0x00000002,
-		break; case NtStatus::severity_error: os << TS8("severity_error"); //0x00000003,
-		//break; case NtStatus::wait_0: os << TS8("wait_0"); //0x00000000,
-		//break; case NtStatus::wait_1: os << TS8("wait_1"); //0x00000001,
-		//break; case NtStatus::wait_2: os << TS8("wait_2"); //0x00000002,
-		//break; case NtStatus::wait_3: os << TS8("wait_3"); //0x00000003,
-		break; case NtStatus::wait_63: os << TS8("wait_63"); //0x0000003f,
-		break; case NtStatus::abandoned: os << TS8("abandoned"); //0x00000080,
-		//break; case NtStatus::abandoned_wait_0: os << TS8("abandoned_wait_0"); //0x00000080,
-		break; case NtStatus::abandoned_wait_63: os << TS8("abandoned_wait_63"); //0x000000bf,
-		break; case NtStatus::user_apc: os << TS8("user_apc"); //0x000000c0,
-		break; case NtStatus::already_complete: os << TS8("already_complete"); //0x000000ff,
-		break; case NtStatus::kernel_apc: os << TS8("kernel_apc"); //0x00000100,
-		break; case NtStatus::alerted: os << TS8("alerted"); //0x00000101,
-		break; case NtStatus::timeout: os << TS8("timeout"); //0x00000102,
-		break; case NtStatus::pending: os << TS8("pending"); //0x00000103,
-		break; case NtStatus::reparse: os << TS8("reparse"); //0x00000104,
-		break; case NtStatus::more_entries: os << TS8("more_entries"); //0x00000105,
-		break; case NtStatus::not_all_assigned: os << TS8("not_all_assigned"); //0x00000106,
-		break; case NtStatus::some_not_mapped: os << TS8("some_not_mapped"); //0x00000107,
-		break; case NtStatus::oplock_break_in_progress: os << TS8("oplock_break_in_progress"); //0x00000108,
-		break; case NtStatus::volume_mounted: os << TS8("volume_mounted"); //0x00000109,
-		break; case NtStatus::rxact_committed: os << TS8("rxact_committed"); //0x0000010a,
-		break; case NtStatus::notify_cleanup: os << TS8("notify_cleanup"); //0x0000010b,
-		break; case NtStatus::notify_enum_dir: os << TS8("notify_enum_dir"); //0x0000010c,
-		break; case NtStatus::no_quotas_for_account: os << TS8("no_quotas_for_account"); //0x0000010d,
-		break; case NtStatus::primary_transport_connect_failed: os << TS8("primary_transport_connect_failed"); //0x0000010e,
-		break; case NtStatus::page_fault_transition: os << TS8("page_fault_transition"); //0x00000110,
-		break; case NtStatus::page_fault_demand_zero: os << TS8("page_fault_demand_zero"); //0x00000111,
-		break; case NtStatus::page_fault_copy_on_write: os << TS8("page_fault_copy_on_write"); //0x00000112,
-		break; case NtStatus::page_fault_guard_page: os << TS8("page_fault_guard_page"); //0x00000113,
-		break; case NtStatus::page_fault_paging_file: os << TS8("page_fault_paging_file"); //0x00000114,
-		break; case NtStatus::cache_page_locked: os << TS8("cache_page_locked"); //0x00000115,
-		break; case NtStatus::crash_dump: os << TS8("crash_dump"); //0x00000116,
-		break; case NtStatus::buffer_all_zeros: os << TS8("buffer_all_zeros"); //0x00000117,
-		break; case NtStatus::reparse_object: os << TS8("reparse_object"); //0x00000118,
-		break; case NtStatus::resource_requirements_changed: os << TS8("resource_requirements_changed"); //0x00000119,
-		break; case NtStatus::translation_complete: os << TS8("translation_complete"); //0x00000120,
-		break; case NtStatus::ds_membership_evaluated_locally: os << TS8("ds_membership_evaluated_locally"); //0x00000121,
-		break; case NtStatus::nothing_to_terminate: os << TS8("nothing_to_terminate"); //0x00000122,
-		break; case NtStatus::process_not_in_job: os << TS8("process_not_in_job"); //0x00000123,
-		break; case NtStatus::process_in_job: os << TS8("process_in_job"); //0x00000124,
-		break; case NtStatus::volsnap_hibernate_ready: os << TS8("volsnap_hibernate_ready"); //0x00000125,
-		break; case NtStatus::fsfilter_op_completed_successfully: os << TS8("fsfilter_op_completed_successfully"); //0x00000126,
-		break; case NtStatus::interrupt_vector_already_connected: os << TS8("interrupt_vector_already_connected"); //0x00000127,
-		break; case NtStatus::interrupt_still_connected: os << TS8("interrupt_still_connected"); //0x00000128,
-		break; case NtStatus::process_cloned: os << TS8("process_cloned"); //0x00000129,
-		break; case NtStatus::file_locked_with_only_readers: os << TS8("file_locked_with_only_readers"); //0x0000012a,
-		break; case NtStatus::file_locked_with_writers: os << TS8("file_locked_with_writers"); //0x0000012b,
-		break; case NtStatus::valid_image_hash: os << TS8("valid_image_hash"); //0x0000012c,
-		break; case NtStatus::valid_catalog_hash: os << TS8("valid_catalog_hash"); //0x0000012d,
-		break; case NtStatus::valid_strong_code_hash: os << TS8("valid_strong_code_hash"); //0x0000012e,
-		break; case NtStatus::ghosted: os << TS8("ghosted"); //0x0000012f,
-		break; case NtStatus::data_overwritten: os << TS8("data_overwritten"); //0x00000130,
-		break; case NtStatus::resourcemanager_read_only: os << TS8("resourcemanager_read_only"); //0x00000202,
-		break; case NtStatus::ring_previously_empty: os << TS8("ring_previously_empty"); //0x00000210,
-		break; case NtStatus::ring_previously_full: os << TS8("ring_previously_full"); //0x00000211,
-		break; case NtStatus::ring_previously_above_quota: os << TS8("ring_previously_above_quota"); //0x00000212,
-		break; case NtStatus::ring_newly_empty: os << TS8("ring_newly_empty"); //0x00000213,
-		break; case NtStatus::ring_signal_opposite_endpoint: os << TS8("ring_signal_opposite_endpoint"); //0x00000214,
-		break; case NtStatus::oplock_switched_to_new_handle: os << TS8("oplock_switched_to_new_handle"); //0x00000215,
-		break; case NtStatus::oplock_handle_closed: os << TS8("oplock_handle_closed"); //0x00000216,
-		break; case NtStatus::wait_for_oplock: os << TS8("wait_for_oplock"); //0x00000367,
-		break; case NtStatus::reparse_global: os << TS8("reparse_global"); //0x00000368,
-		break; case NtStatus::page_fault_retry: os << TS8("page_fault_retry"); //0x00000369,
-		break; case NtStatus::object_name_exists: os << TS8("object_name_exists"); //0x40000000,
-		break; case NtStatus::thread_was_suspended: os << TS8("thread_was_suspended"); //0x40000001,
-		break; case NtStatus::working_set_limit_range: os << TS8("working_set_limit_range"); //0x40000002,
-		break; case NtStatus::image_not_at_base: os << TS8("image_not_at_base"); //0x40000003,
-		break; case NtStatus::rxact_state_created: os << TS8("rxact_state_created"); //0x40000004,
-		break; case NtStatus::segment_notification: os << TS8("segment_notification"); //0x40000005,
-		break; case NtStatus::local_user_session_key: os << TS8("local_user_session_key"); //0x40000006,
-		break; case NtStatus::bad_current_directory: os << TS8("bad_current_directory"); //0x40000007,
-		break; case NtStatus::serial_more_writes: os << TS8("serial_more_writes"); //0x40000008,
-		break; case NtStatus::registry_recovered: os << TS8("registry_recovered"); //0x40000009,
-		break; case NtStatus::ft_read_recovery_from_backup: os << TS8("ft_read_recovery_from_backup"); //0x4000000a,
-		break; case NtStatus::ft_write_recovery: os << TS8("ft_write_recovery"); //0x4000000b,
-		break; case NtStatus::serial_counter_timeout: os << TS8("serial_counter_timeout"); //0x4000000c,
-		break; case NtStatus::null_lm_password: os << TS8("null_lm_password"); //0x4000000d,
-		break; case NtStatus::image_machine_type_mismatch: os << TS8("image_machine_type_mismatch"); //0x4000000e,
-		break; case NtStatus::receive_partial: os << TS8("receive_partial"); //0x4000000f,
-		break; case NtStatus::receive_expedited: os << TS8("receive_expedited"); //0x40000010,
-		break; case NtStatus::receive_partial_expedited: os << TS8("receive_partial_expedited"); //0x40000011,
-		break; case NtStatus::event_done: os << TS8("event_done"); //0x40000012,
-		break; case NtStatus::event_pending: os << TS8("event_pending"); //0x40000013,
-		break; case NtStatus::checking_file_system: os << TS8("checking_file_system"); //0x40000014,
-		break; case NtStatus::fatal_app_exit: os << TS8("fatal_app_exit"); //0x40000015,
-		break; case NtStatus::predefined_handle: os << TS8("predefined_handle"); //0x40000016,
-		break; case NtStatus::was_unlocked: os << TS8("was_unlocked"); //0x40000017,
-		break; case NtStatus::service_notification: os << TS8("service_notification"); //0x40000018,
-		break; case NtStatus::was_locked: os << TS8("was_locked"); //0x40000019,
-		break; case NtStatus::log_hard_error: os << TS8("log_hard_error"); //0x4000001a,
-		break; case NtStatus::already_win32: os << TS8("already_win32"); //0x4000001b,
-		break; case NtStatus::wx86_unsimulate: os << TS8("wx86_unsimulate"); //0x4000001c,
-		break; case NtStatus::wx86_continue: os << TS8("wx86_continue"); //0x4000001d,
-		break; case NtStatus::wx86_single_step: os << TS8("wx86_single_step"); //0x4000001e,
-		break; case NtStatus::wx86_breakpoint: os << TS8("wx86_breakpoint"); //0x4000001f,
-		break; case NtStatus::wx86_exception_continue: os << TS8("wx86_exception_continue"); //0x40000020,
-		break; case NtStatus::wx86_exception_lastchance: os << TS8("wx86_exception_lastchance"); //0x40000021,
-		break; case NtStatus::wx86_exception_chain: os << TS8("wx86_exception_chain"); //0x40000022,
-		break; case NtStatus::image_machine_type_mismatch_exe: os << TS8("image_machine_type_mismatch_exe"); //0x40000023,
-		break; case NtStatus::no_yield_performed: os << TS8("no_yield_performed"); //0x40000024,
-		break; case NtStatus::timer_resume_ignored: os << TS8("timer_resume_ignored"); //0x40000025,
-		break; case NtStatus::arbitration_unhandled: os << TS8("arbitration_unhandled"); //0x40000026,
-		break; case NtStatus::cardbus_not_supported: os << TS8("cardbus_not_supported"); //0x40000027,
-		break; case NtStatus::wx86_createwx86tib: os << TS8("wx86_createwx86tib"); //0x40000028,
-		break; case NtStatus::mp_processor_mismatch: os << TS8("mp_processor_mismatch"); //0x40000029,
-		break; case NtStatus::hibernated: os << TS8("hibernated"); //0x4000002a,
-		break; case NtStatus::resume_hibernation: os << TS8("resume_hibernation"); //0x4000002b,
-		break; case NtStatus::firmware_updated: os << TS8("firmware_updated"); //0x4000002c,
-		break; case NtStatus::drivers_leaking_locked_pages: os << TS8("drivers_leaking_locked_pages"); //0x4000002d,
-		break; case NtStatus::message_retrieved: os << TS8("message_retrieved"); //0x4000002e,
-		break; case NtStatus::system_powerstate_transition: os << TS8("system_powerstate_transition"); //0x4000002f,
-		break; case NtStatus::alpc_check_completion_list: os << TS8("alpc_check_completion_list"); //0x40000030,
-		break; case NtStatus::system_powerstate_complex_transition: os << TS8("system_powerstate_complex_transition"); //0x40000031,
-		break; case NtStatus::access_audit_by_policy: os << TS8("access_audit_by_policy"); //0x40000032,
-		break; case NtStatus::abandon_hiberfile: os << TS8("abandon_hiberfile"); //0x40000033,
-		break; case NtStatus::bizrules_not_enabled: os << TS8("bizrules_not_enabled"); //0x40000034,
-		break; case NtStatus::ft_read_from_copy: os << TS8("ft_read_from_copy"); //0x40000035,
-		break; case NtStatus::image_at_different_base: os << TS8("image_at_different_base"); //0x40000036,
-		break; case NtStatus::patch_deferred: os << TS8("patch_deferred"); //0x40000037,
-		break; case NtStatus::emulation_breakpoint: os << TS8("emulation_breakpoint"); //0x40000038,
-		break; case NtStatus::emulation_syscall: os << TS8("emulation_syscall"); //0x40000039,
-		break; case NtStatus::wake_system: os << TS8("wake_system"); //0x40000294,
-		break; case NtStatus::ds_shutting_down: os << TS8("ds_shutting_down"); //0x40000370,
-		break; case NtStatus::disk_repair_redirected: os << TS8("disk_repair_redirected"); //0x40000807,
-		break; case NtStatus::services_failed_autostart: os << TS8("services_failed_autostart"); //0x4000a144,
-		break; case NtStatus::guard_page_violation: os << TS8("guard_page_violation"); //0x80000001,
-		break; case NtStatus::datatype_misalignment: os << TS8("datatype_misalignment"); //0x80000002,
-		break; case NtStatus::breakpoint: os << TS8("breakpoint"); //0x80000003,
-		break; case NtStatus::single_step: os << TS8("single_step"); //0x80000004,
-		break; case NtStatus::buffer_overflow: os << TS8("buffer_overflow"); //0x80000005,
-		break; case NtStatus::no_more_files: os << TS8("no_more_files"); //0x80000006,
-		break; case NtStatus::wake_system_debugger: os << TS8("wake_system_debugger"); //0x80000007,
-		break; case NtStatus::handles_closed: os << TS8("handles_closed"); //0x8000000a,
-		break; case NtStatus::no_inheritance: os << TS8("no_inheritance"); //0x8000000b,
-		break; case NtStatus::guid_substitution_made: os << TS8("guid_substitution_made"); //0x8000000c,
-		break; case NtStatus::partial_copy: os << TS8("partial_copy"); //0x8000000d,
-		break; case NtStatus::device_paper_empty: os << TS8("device_paper_empty"); //0x8000000e,
-		break; case NtStatus::device_powered_off: os << TS8("device_powered_off"); //0x8000000f,
-		break; case NtStatus::device_off_line: os << TS8("device_off_line"); //0x80000010,
-		break; case NtStatus::device_busy: os << TS8("device_busy"); //0x80000011,
-		break; case NtStatus::no_more_eas: os << TS8("no_more_eas"); //0x80000012,
-		break; case NtStatus::invalid_ea_name: os << TS8("invalid_ea_name"); //0x80000013,
-		break; case NtStatus::ea_list_inconsistent: os << TS8("ea_list_inconsistent"); //0x80000014,
-		break; case NtStatus::invalid_ea_flag: os << TS8("invalid_ea_flag"); //0x80000015,
-		break; case NtStatus::verify_required: os << TS8("verify_required"); //0x80000016,
-		break; case NtStatus::extraneous_information: os << TS8("extraneous_information"); //0x80000017,
-		break; case NtStatus::rxact_commit_necessary: os << TS8("rxact_commit_necessary"); //0x80000018,
-		break; case NtStatus::no_more_entries: os << TS8("no_more_entries"); //0x8000001a,
-		break; case NtStatus::filemark_detected: os << TS8("filemark_detected"); //0x8000001b,
-		break; case NtStatus::media_changed: os << TS8("media_changed"); //0x8000001c,
-		break; case NtStatus::bus_reset: os << TS8("bus_reset"); //0x8000001d,
-		break; case NtStatus::end_of_media: os << TS8("end_of_media"); //0x8000001e,
-		break; case NtStatus::beginning_of_media: os << TS8("beginning_of_media"); //0x8000001f,
-		break; case NtStatus::media_check: os << TS8("media_check"); //0x80000020,
-		break; case NtStatus::setmark_detected: os << TS8("setmark_detected"); //0x80000021,
-		break; case NtStatus::no_data_detected: os << TS8("no_data_detected"); //0x80000022,
-		break; case NtStatus::redirector_has_open_handles: os << TS8("redirector_has_open_handles"); //0x80000023,
-		break; case NtStatus::server_has_open_handles: os << TS8("server_has_open_handles"); //0x80000024,
-		break; case NtStatus::already_disconnected: os << TS8("already_disconnected"); //0x80000025,
-		break; case NtStatus::longjump: os << TS8("longjump"); //0x80000026,
-		break; case NtStatus::cleaner_cartridge_installed: os << TS8("cleaner_cartridge_installed"); //0x80000027,
-		break; case NtStatus::plugplay_query_vetoed: os << TS8("plugplay_query_vetoed"); //0x80000028,
-		break; case NtStatus::unwind_consolidate: os << TS8("unwind_consolidate"); //0x80000029,
-		break; case NtStatus::registry_hive_recovered: os << TS8("registry_hive_recovered"); //0x8000002a,
-		break; case NtStatus::dll_might_be_insecure: os << TS8("dll_might_be_insecure"); //0x8000002b,
-		break; case NtStatus::dll_might_be_incompatible: os << TS8("dll_might_be_incompatible"); //0x8000002c,
-		break; case NtStatus::stopped_on_symlink: os << TS8("stopped_on_symlink"); //0x8000002d,
-		break; case NtStatus::cannot_grant_requested_oplock: os << TS8("cannot_grant_requested_oplock"); //0x8000002e,
-		break; case NtStatus::no_ace_condition: os << TS8("no_ace_condition"); //0x8000002f,
-		break; case NtStatus::device_support_in_progress: os << TS8("device_support_in_progress"); //0x80000030,
-		break; case NtStatus::device_power_cycle_required: os << TS8("device_power_cycle_required"); //0x80000031,
-		break; case NtStatus::no_work_done: os << TS8("no_work_done"); //0x80000032,
-		break; case NtStatus::return_address_hijack_attempt: os << TS8("return_address_hijack_attempt"); //0x80000033,
-		break; case NtStatus::recoverable_bugcheck: os << TS8("recoverable_bugcheck"); //0x80000034,
-		break; case NtStatus::device_reset_required: os << TS8("device_reset_required"); //0x800001b6,
-		break; case NtStatus::device_requires_cleaning: os << TS8("device_requires_cleaning"); //0x80000288,
-		break; case NtStatus::device_door_open: os << TS8("device_door_open"); //0x80000289,
-		break; case NtStatus::data_lost_repair: os << TS8("data_lost_repair"); //0x80000803,
-		break; case NtStatus::gpio_interrupt_already_unmasked: os << TS8("gpio_interrupt_already_unmasked"); //0x8000a127,
-		break; case NtStatus::cloud_file_property_blob_checksum_mismatch: os << TS8("cloud_file_property_blob_checksum_mismatch"); //0x8000cf00,
-		break; case NtStatus::cloud_file_property_blob_too_large: os << TS8("cloud_file_property_blob_too_large"); //0x8000cf04,
-		break; case NtStatus::cloud_file_too_many_property_blobs: os << TS8("cloud_file_too_many_property_blobs"); //0x8000cf05,
-		break; case NtStatus::unsuccessful: os << TS8("unsuccessful"); //0xc0000001,
-		break; case NtStatus::not_implemented: os << TS8("not_implemented"); //0xc0000002,
-		break; case NtStatus::invalid_info_class: os << TS8("invalid_info_class"); //0xc0000003,
-		break; case NtStatus::info_length_mismatch: os << TS8("info_length_mismatch"); //0xc0000004,
-		break; case NtStatus::access_violation: os << TS8("access_violation"); //0xc0000005,
-		break; case NtStatus::in_page_error: os << TS8("in_page_error"); //0xc0000006,
-		break; case NtStatus::pagefile_quota: os << TS8("pagefile_quota"); //0xc0000007,
-		break; case NtStatus::invalid_handle: os << TS8("invalid_handle"); //0xc0000008,
-		break; case NtStatus::bad_initial_stack: os << TS8("bad_initial_stack"); //0xc0000009,
-		break; case NtStatus::bad_initial_pc: os << TS8("bad_initial_pc"); //0xc000000a,
-		break; case NtStatus::invalid_cid: os << TS8("invalid_cid"); //0xc000000b,
-		break; case NtStatus::timer_not_canceled: os << TS8("timer_not_canceled"); //0xc000000c,
-		break; case NtStatus::invalid_parameter: os << TS8("invalid_parameter"); //0xc000000d,
-		break; case NtStatus::no_such_device: os << TS8("no_such_device"); //0xc000000e,
-		break; case NtStatus::no_such_file: os << TS8("no_such_file"); //0xc000000f,
-		break; case NtStatus::invalid_device_request: os << TS8("invalid_device_request"); //0xc0000010,
-		break; case NtStatus::end_of_file: os << TS8("end_of_file"); //0xc0000011,
-		break; case NtStatus::wrong_volume: os << TS8("wrong_volume"); //0xc0000012,
-		break; case NtStatus::no_media_in_device: os << TS8("no_media_in_device"); //0xc0000013,
-		break; case NtStatus::unrecognized_media: os << TS8("unrecognized_media"); //0xc0000014,
-		break; case NtStatus::nonexistent_sector: os << TS8("nonexistent_sector"); //0xc0000015,
-		break; case NtStatus::more_processing_required: os << TS8("more_processing_required"); //0xc0000016,
-		break; case NtStatus::no_memory: os << TS8("no_memory"); //0xc0000017,
-		break; case NtStatus::conflicting_addresses: os << TS8("conflicting_addresses"); //0xc0000018,
-		break; case NtStatus::not_mapped_view: os << TS8("not_mapped_view"); //0xc0000019,
-		break; case NtStatus::unable_to_free_vm: os << TS8("unable_to_free_vm"); //0xc000001a,
-		break; case NtStatus::unable_to_delete_section: os << TS8("unable_to_delete_section"); //0xc000001b,
-		break; case NtStatus::invalid_system_service: os << TS8("invalid_system_service"); //0xc000001c,
-		break; case NtStatus::illegal_instruction: os << TS8("illegal_instruction"); //0xc000001d,
-		break; case NtStatus::invalid_lock_sequence: os << TS8("invalid_lock_sequence"); //0xc000001e,
-		break; case NtStatus::invalid_view_size: os << TS8("invalid_view_size"); //0xc000001f,
-		break; case NtStatus::invalid_file_for_section: os << TS8("invalid_file_for_section"); //0xc0000020,
-		break; case NtStatus::already_committed: os << TS8("already_committed"); //0xc0000021,
-		break; case NtStatus::access_denied: os << TS8("access_denied"); //0xc0000022,
-		break; case NtStatus::buffer_too_small: os << TS8("buffer_too_small"); //0xc0000023,
-		break; case NtStatus::object_type_mismatch: os << TS8("object_type_mismatch"); //0xc0000024,
-		break; case NtStatus::noncontinuable_exception: os << TS8("noncontinuable_exception"); //0xc0000025,
-		break; case NtStatus::invalid_disposition: os << TS8("invalid_disposition"); //0xc0000026,
-		break; case NtStatus::unwind: os << TS8("unwind"); //0xc0000027,
-		break; case NtStatus::bad_stack: os << TS8("bad_stack"); //0xc0000028,
-		break; case NtStatus::invalid_unwind_target: os << TS8("invalid_unwind_target"); //0xc0000029,
-		break; case NtStatus::not_locked: os << TS8("not_locked"); //0xc000002a,
-		break; case NtStatus::parity_error: os << TS8("parity_error"); //0xc000002b,
-		break; case NtStatus::unable_to_decommit_vm: os << TS8("unable_to_decommit_vm"); //0xc000002c,
-		break; case NtStatus::not_committed: os << TS8("not_committed"); //0xc000002d,
-		break; case NtStatus::invalid_port_attributes: os << TS8("invalid_port_attributes"); //0xc000002e,
-		break; case NtStatus::port_message_too_long: os << TS8("port_message_too_long"); //0xc000002f,
-		break; case NtStatus::invalid_parameter_mix: os << TS8("invalid_parameter_mix"); //0xc0000030,
-		break; case NtStatus::invalid_quota_lower: os << TS8("invalid_quota_lower"); //0xc0000031,
-		break; case NtStatus::disk_corrupt_error: os << TS8("disk_corrupt_error"); //0xc0000032,
-		break; case NtStatus::object_name_invalid: os << TS8("object_name_invalid"); //0xc0000033,
-		break; case NtStatus::object_name_not_found: os << TS8("object_name_not_found"); //0xc0000034,
-		break; case NtStatus::object_name_collision: os << TS8("object_name_collision"); //0xc0000035,
-		break; case NtStatus::port_do_not_disturb: os << TS8("port_do_not_disturb"); //0xc0000036,
-		break; case NtStatus::port_disconnected: os << TS8("port_disconnected"); //0xc0000037,
-		break; case NtStatus::device_already_attached: os << TS8("device_already_attached"); //0xc0000038,
-		break; case NtStatus::object_path_invalid: os << TS8("object_path_invalid"); //0xc0000039,
-		break; case NtStatus::object_path_not_found: os << TS8("object_path_not_found"); //0xc000003a,
-		break; case NtStatus::object_path_syntax_bad: os << TS8("object_path_syntax_bad"); //0xc000003b,
-		break; case NtStatus::data_overrun: os << TS8("data_overrun"); //0xc000003c,
-		break; case NtStatus::data_late_error: os << TS8("data_late_error"); //0xc000003d,
-		break; case NtStatus::data_error: os << TS8("data_error"); //0xc000003e,
-		break; case NtStatus::crc_error: os << TS8("crc_error"); //0xc000003f,
-		break; case NtStatus::section_too_big: os << TS8("section_too_big"); //0xc0000040,
-		break; case NtStatus::port_connection_refused: os << TS8("port_connection_refused"); //0xc0000041,
-		break; case NtStatus::invalid_port_handle: os << TS8("invalid_port_handle"); //0xc0000042,
-		break; case NtStatus::sharing_violation: os << TS8("sharing_violation"); //0xc0000043,
-		break; case NtStatus::quota_exceeded: os << TS8("quota_exceeded"); //0xc0000044,
-		break; case NtStatus::invalid_page_protection: os << TS8("invalid_page_protection"); //0xc0000045,
-		break; case NtStatus::mutant_not_owned: os << TS8("mutant_not_owned"); //0xc0000046,
-		break; case NtStatus::semaphore_limit_exceeded: os << TS8("semaphore_limit_exceeded"); //0xc0000047,
-		break; case NtStatus::port_already_set: os << TS8("port_already_set"); //0xc0000048,
-		break; case NtStatus::section_not_image: os << TS8("section_not_image"); //0xc0000049,
-		break; case NtStatus::suspend_count_exceeded: os << TS8("suspend_count_exceeded"); //0xc000004a,
-		break; case NtStatus::thread_is_terminating: os << TS8("thread_is_terminating"); //0xc000004b,
-		break; case NtStatus::bad_working_set_limit: os << TS8("bad_working_set_limit"); //0xc000004c,
-		break; case NtStatus::incompatible_file_map: os << TS8("incompatible_file_map"); //0xc000004d,
-		break; case NtStatus::section_protection: os << TS8("section_protection"); //0xc000004e,
-		break; case NtStatus::eas_not_supported: os << TS8("eas_not_supported"); //0xc000004f,
-		break; case NtStatus::ea_too_large: os << TS8("ea_too_large"); //0xc0000050,
-		break; case NtStatus::nonexistent_ea_entry: os << TS8("nonexistent_ea_entry"); //0xc0000051,
-		break; case NtStatus::no_eas_on_file: os << TS8("no_eas_on_file"); //0xc0000052,
-		break; case NtStatus::ea_corrupt_error: os << TS8("ea_corrupt_error"); //0xc0000053,
-		break; case NtStatus::file_lock_conflict: os << TS8("file_lock_conflict"); //0xc0000054,
-		break; case NtStatus::lock_not_granted: os << TS8("lock_not_granted"); //0xc0000055,
-		break; case NtStatus::delete_pending: os << TS8("delete_pending"); //0xc0000056,
-		break; case NtStatus::ctl_file_not_supported: os << TS8("ctl_file_not_supported"); //0xc0000057,
-		break; case NtStatus::unknown_revision: os << TS8("unknown_revision"); //0xc0000058,
-		break; case NtStatus::revision_mismatch: os << TS8("revision_mismatch"); //0xc0000059,
-		break; case NtStatus::invalid_owner: os << TS8("invalid_owner"); //0xc000005a,
-		break; case NtStatus::invalid_primary_group: os << TS8("invalid_primary_group"); //0xc000005b,
-		break; case NtStatus::no_impersonation_token: os << TS8("no_impersonation_token"); //0xc000005c,
-		break; case NtStatus::cant_disable_mandatory: os << TS8("cant_disable_mandatory"); //0xc000005d,
-		break; case NtStatus::no_logon_servers: os << TS8("no_logon_servers"); //0xc000005e,
-		break; case NtStatus::no_such_logon_session: os << TS8("no_such_logon_session"); //0xc000005f,
-		break; case NtStatus::no_such_privilege: os << TS8("no_such_privilege"); //0xc0000060,
-		break; case NtStatus::privilege_not_held: os << TS8("privilege_not_held"); //0xc0000061,
-		break; case NtStatus::invalid_account_name: os << TS8("invalid_account_name"); //0xc0000062,
-		break; case NtStatus::user_exists: os << TS8("user_exists"); //0xc0000063,
-		break; case NtStatus::no_such_user: os << TS8("no_such_user"); //0xc0000064,
-		break; case NtStatus::group_exists: os << TS8("group_exists"); //0xc0000065,
-		break; case NtStatus::no_such_group: os << TS8("no_such_group"); //0xc0000066,
-		break; case NtStatus::member_in_group: os << TS8("member_in_group"); //0xc0000067,
-		break; case NtStatus::member_not_in_group: os << TS8("member_not_in_group"); //0xc0000068,
-		break; case NtStatus::last_admin: os << TS8("last_admin"); //0xc0000069,
-		break; case NtStatus::wrong_password: os << TS8("wrong_password"); //0xc000006a,
-		break; case NtStatus::ill_formed_password: os << TS8("ill_formed_password"); //0xc000006b,
-		break; case NtStatus::password_restriction: os << TS8("password_restriction"); //0xc000006c,
-		break; case NtStatus::logon_failure: os << TS8("logon_failure"); //0xc000006d,
-		break; case NtStatus::account_restriction: os << TS8("account_restriction"); //0xc000006e,
-		break; case NtStatus::invalid_logon_hours: os << TS8("invalid_logon_hours"); //0xc000006f,
-		break; case NtStatus::invalid_workstation: os << TS8("invalid_workstation"); //0xc0000070,
-		break; case NtStatus::password_expired: os << TS8("password_expired"); //0xc0000071,
-		break; case NtStatus::account_disabled: os << TS8("account_disabled"); //0xc0000072,
-		break; case NtStatus::none_mapped: os << TS8("none_mapped"); //0xc0000073,
-		break; case NtStatus::too_many_luids_requested: os << TS8("too_many_luids_requested"); //0xc0000074,
-		break; case NtStatus::luids_exhausted: os << TS8("luids_exhausted"); //0xc0000075,
-		break; case NtStatus::invalid_sub_authority: os << TS8("invalid_sub_authority"); //0xc0000076,
-		break; case NtStatus::invalid_acl: os << TS8("invalid_acl"); //0xc0000077,
-		break; case NtStatus::invalid_sid: os << TS8("invalid_sid"); //0xc0000078,
-		break; case NtStatus::invalid_security_descr: os << TS8("invalid_security_descr"); //0xc0000079,
-		break; case NtStatus::procedure_not_found: os << TS8("procedure_not_found"); //0xc000007a,
-		break; case NtStatus::invalid_image_format: os << TS8("invalid_image_format"); //0xc000007b,
-		break; case NtStatus::no_token: os << TS8("no_token"); //0xc000007c,
-		break; case NtStatus::bad_inheritance_acl: os << TS8("bad_inheritance_acl"); //0xc000007d,
-		break; case NtStatus::range_not_locked: os << TS8("range_not_locked"); //0xc000007e,
-		break; case NtStatus::disk_full: os << TS8("disk_full"); //0xc000007f,
-		break; case NtStatus::server_disabled: os << TS8("server_disabled"); //0xc0000080,
-		break; case NtStatus::server_not_disabled: os << TS8("server_not_disabled"); //0xc0000081,
-		break; case NtStatus::too_many_guids_requested: os << TS8("too_many_guids_requested"); //0xc0000082,
-		break; case NtStatus::guids_exhausted: os << TS8("guids_exhausted"); //0xc0000083,
-		break; case NtStatus::invalid_id_authority: os << TS8("invalid_id_authority"); //0xc0000084,
-		break; case NtStatus::agents_exhausted: os << TS8("agents_exhausted"); //0xc0000085,
-		break; case NtStatus::invalid_volume_label: os << TS8("invalid_volume_label"); //0xc0000086,
-		break; case NtStatus::section_not_extended: os << TS8("section_not_extended"); //0xc0000087,
-		break; case NtStatus::not_mapped_data: os << TS8("not_mapped_data"); //0xc0000088,
-		break; case NtStatus::resource_data_not_found: os << TS8("resource_data_not_found"); //0xc0000089,
-		break; case NtStatus::resource_type_not_found: os << TS8("resource_type_not_found"); //0xc000008a,
-		break; case NtStatus::resource_name_not_found: os << TS8("resource_name_not_found"); //0xc000008b,
-		break; case NtStatus::array_bounds_exceeded: os << TS8("array_bounds_exceeded"); //0xc000008c,
-		break; case NtStatus::float_denormal_operand: os << TS8("float_denormal_operand"); //0xc000008d,
-		break; case NtStatus::float_divide_by_zero: os << TS8("float_divide_by_zero"); //0xc000008e,
-		break; case NtStatus::float_inexact_result: os << TS8("float_inexact_result"); //0xc000008f,
-		break; case NtStatus::float_invalid_operation: os << TS8("float_invalid_operation"); //0xc0000090,
-		break; case NtStatus::float_overflow: os << TS8("float_overflow"); //0xc0000091,
-		break; case NtStatus::float_stack_check: os << TS8("float_stack_check"); //0xc0000092,
-		break; case NtStatus::float_underflow: os << TS8("float_underflow"); //0xc0000093,
-		break; case NtStatus::integer_divide_by_zero: os << TS8("integer_divide_by_zero"); //0xc0000094,
-		break; case NtStatus::integer_overflow: os << TS8("integer_overflow"); //0xc0000095,
-		break; case NtStatus::privileged_instruction: os << TS8("privileged_instruction"); //0xc0000096,
-		break; case NtStatus::too_many_paging_files: os << TS8("too_many_paging_files"); //0xc0000097,
-		break; case NtStatus::file_invalid: os << TS8("file_invalid"); //0xc0000098,
-		break; case NtStatus::allotted_space_exceeded: os << TS8("allotted_space_exceeded"); //0xc0000099,
-		break; case NtStatus::insufficient_resources: os << TS8("insufficient_resources"); //0xc000009a,
-		break; case NtStatus::dfs_exit_path_found: os << TS8("dfs_exit_path_found"); //0xc000009b,
-		break; case NtStatus::device_data_error: os << TS8("device_data_error"); //0xc000009c,
-		break; case NtStatus::device_not_connected: os << TS8("device_not_connected"); //0xc000009d,
-		break; case NtStatus::device_power_failure: os << TS8("device_power_failure"); //0xc000009e,
-		break; case NtStatus::free_vm_not_at_base: os << TS8("free_vm_not_at_base"); //0xc000009f,
-		break; case NtStatus::memory_not_allocated: os << TS8("memory_not_allocated"); //0xc00000a0,
-		break; case NtStatus::working_set_quota: os << TS8("working_set_quota"); //0xc00000a1,
-		break; case NtStatus::media_write_protected: os << TS8("media_write_protected"); //0xc00000a2,
-		break; case NtStatus::device_not_ready: os << TS8("device_not_ready"); //0xc00000a3,
-		break; case NtStatus::invalid_group_attributes: os << TS8("invalid_group_attributes"); //0xc00000a4,
-		break; case NtStatus::bad_impersonation_level: os << TS8("bad_impersonation_level"); //0xc00000a5,
-		break; case NtStatus::cant_open_anonymous: os << TS8("cant_open_anonymous"); //0xc00000a6,
-		break; case NtStatus::bad_validation_class: os << TS8("bad_validation_class"); //0xc00000a7,
-		break; case NtStatus::bad_token_type: os << TS8("bad_token_type"); //0xc00000a8,
-		break; case NtStatus::bad_master_boot_record: os << TS8("bad_master_boot_record"); //0xc00000a9,
-		break; case NtStatus::instruction_misalignment: os << TS8("instruction_misalignment"); //0xc00000aa,
-		break; case NtStatus::instance_not_available: os << TS8("instance_not_available"); //0xc00000ab,
-		break; case NtStatus::pipe_not_available: os << TS8("pipe_not_available"); //0xc00000ac,
-		break; case NtStatus::invalid_pipe_state: os << TS8("invalid_pipe_state"); //0xc00000ad,
-		break; case NtStatus::pipe_busy: os << TS8("pipe_busy"); //0xc00000ae,
-		break; case NtStatus::illegal_function: os << TS8("illegal_function"); //0xc00000af,
-		break; case NtStatus::pipe_disconnected: os << TS8("pipe_disconnected"); //0xc00000b0,
-		break; case NtStatus::pipe_closing: os << TS8("pipe_closing"); //0xc00000b1,
-		break; case NtStatus::pipe_connected: os << TS8("pipe_connected"); //0xc00000b2,
-		break; case NtStatus::pipe_listening: os << TS8("pipe_listening"); //0xc00000b3,
-		break; case NtStatus::invalid_read_mode: os << TS8("invalid_read_mode"); //0xc00000b4,
-		break; case NtStatus::io_timeout: os << TS8("io_timeout"); //0xc00000b5,
-		break; case NtStatus::file_forced_closed: os << TS8("file_forced_closed"); //0xc00000b6,
-		break; case NtStatus::profiling_not_started: os << TS8("profiling_not_started"); //0xc00000b7,
-		break; case NtStatus::profiling_not_stopped: os << TS8("profiling_not_stopped"); //0xc00000b8,
-		break; case NtStatus::could_not_interpret: os << TS8("could_not_interpret"); //0xc00000b9,
-		break; case NtStatus::file_is_a_directory: os << TS8("file_is_a_directory"); //0xc00000ba,
-		break; case NtStatus::not_supported: os << TS8("not_supported"); //0xc00000bb,
-		break; case NtStatus::remote_not_listening: os << TS8("remote_not_listening"); //0xc00000bc,
-		break; case NtStatus::duplicate_name: os << TS8("duplicate_name"); //0xc00000bd,
-		break; case NtStatus::bad_network_path: os << TS8("bad_network_path"); //0xc00000be,
-		break; case NtStatus::network_busy: os << TS8("network_busy"); //0xc00000bf,
-		break; case NtStatus::device_does_not_exist: os << TS8("device_does_not_exist"); //0xc00000c0,
-		break; case NtStatus::too_many_commands: os << TS8("too_many_commands"); //0xc00000c1,
-		break; case NtStatus::adapter_hardware_error: os << TS8("adapter_hardware_error"); //0xc00000c2,
-		break; case NtStatus::invalid_network_response: os << TS8("invalid_network_response"); //0xc00000c3,
-		break; case NtStatus::unexpected_network_error: os << TS8("unexpected_network_error"); //0xc00000c4,
-		break; case NtStatus::bad_remote_adapter: os << TS8("bad_remote_adapter"); //0xc00000c5,
-		break; case NtStatus::print_queue_full: os << TS8("print_queue_full"); //0xc00000c6,
-		break; case NtStatus::no_spool_space: os << TS8("no_spool_space"); //0xc00000c7,
-		break; case NtStatus::print_cancelled: os << TS8("print_cancelled"); //0xc00000c8,
-		break; case NtStatus::network_name_deleted: os << TS8("network_name_deleted"); //0xc00000c9,
-		break; case NtStatus::network_access_denied: os << TS8("network_access_denied"); //0xc00000ca,
-		break; case NtStatus::bad_device_type: os << TS8("bad_device_type"); //0xc00000cb,
-		break; case NtStatus::bad_network_name: os << TS8("bad_network_name"); //0xc00000cc,
-		break; case NtStatus::too_many_names: os << TS8("too_many_names"); //0xc00000cd,
-		break; case NtStatus::too_many_sessions: os << TS8("too_many_sessions"); //0xc00000ce,
-		break; case NtStatus::sharing_paused: os << TS8("sharing_paused"); //0xc00000cf,
-		break; case NtStatus::request_not_accepted: os << TS8("request_not_accepted"); //0xc00000d0,
-		break; case NtStatus::redirector_paused: os << TS8("redirector_paused"); //0xc00000d1,
-		break; case NtStatus::net_write_fault: os << TS8("net_write_fault"); //0xc00000d2,
-		break; case NtStatus::profiling_at_limit: os << TS8("profiling_at_limit"); //0xc00000d3,
-		break; case NtStatus::not_same_device: os << TS8("not_same_device"); //0xc00000d4,
-		break; case NtStatus::file_renamed: os << TS8("file_renamed"); //0xc00000d5,
-		break; case NtStatus::virtual_circuit_closed: os << TS8("virtual_circuit_closed"); //0xc00000d6,
-		break; case NtStatus::no_security_on_object: os << TS8("no_security_on_object"); //0xc00000d7,
-		break; case NtStatus::cant_wait: os << TS8("cant_wait"); //0xc00000d8,
-		break; case NtStatus::pipe_empty: os << TS8("pipe_empty"); //0xc00000d9,
-		break; case NtStatus::cant_access_domain_info: os << TS8("cant_access_domain_info"); //0xc00000da,
-		break; case NtStatus::cant_terminate_self: os << TS8("cant_terminate_self"); //0xc00000db,
-		break; case NtStatus::invalid_server_state: os << TS8("invalid_server_state"); //0xc00000dc,
-		break; case NtStatus::invalid_domain_state: os << TS8("invalid_domain_state"); //0xc00000dd,
-		break; case NtStatus::invalid_domain_role: os << TS8("invalid_domain_role"); //0xc00000de,
-		break; case NtStatus::no_such_domain: os << TS8("no_such_domain"); //0xc00000df,
-		break; case NtStatus::domain_exists: os << TS8("domain_exists"); //0xc00000e0,
-		break; case NtStatus::domain_limit_exceeded: os << TS8("domain_limit_exceeded"); //0xc00000e1,
-		break; case NtStatus::oplock_not_granted: os << TS8("oplock_not_granted"); //0xc00000e2,
-		break; case NtStatus::invalid_oplock_protocol: os << TS8("invalid_oplock_protocol"); //0xc00000e3,
-		break; case NtStatus::internal_db_corruption: os << TS8("internal_db_corruption"); //0xc00000e4,
-		break; case NtStatus::internal_error: os << TS8("internal_error"); //0xc00000e5,
-		break; case NtStatus::generic_not_mapped: os << TS8("generic_not_mapped"); //0xc00000e6,
-		break; case NtStatus::bad_descriptor_format: os << TS8("bad_descriptor_format"); //0xc00000e7,
-		break; case NtStatus::invalid_user_buffer: os << TS8("invalid_user_buffer"); //0xc00000e8,
-		break; case NtStatus::unexpected_io_error: os << TS8("unexpected_io_error"); //0xc00000e9,
-		break; case NtStatus::unexpected_mm_create_err: os << TS8("unexpected_mm_create_err"); //0xc00000ea,
-		break; case NtStatus::unexpected_mm_map_error: os << TS8("unexpected_mm_map_error"); //0xc00000eb,
-		break; case NtStatus::unexpected_mm_extend_err: os << TS8("unexpected_mm_extend_err"); //0xc00000ec,
-		break; case NtStatus::not_logon_process: os << TS8("not_logon_process"); //0xc00000ed,
-		break; case NtStatus::logon_session_exists: os << TS8("logon_session_exists"); //0xc00000ee,
-		break; case NtStatus::invalid_parameter_1: os << TS8("invalid_parameter_1"); //0xc00000ef,
-		break; case NtStatus::invalid_parameter_2: os << TS8("invalid_parameter_2"); //0xc00000f0,
-		break; case NtStatus::invalid_parameter_3: os << TS8("invalid_parameter_3"); //0xc00000f1,
-		break; case NtStatus::invalid_parameter_4: os << TS8("invalid_parameter_4"); //0xc00000f2,
-		break; case NtStatus::invalid_parameter_5: os << TS8("invalid_parameter_5"); //0xc00000f3,
-		break; case NtStatus::invalid_parameter_6: os << TS8("invalid_parameter_6"); //0xc00000f4,
-		break; case NtStatus::invalid_parameter_7: os << TS8("invalid_parameter_7"); //0xc00000f5,
-		break; case NtStatus::invalid_parameter_8: os << TS8("invalid_parameter_8"); //0xc00000f6,
-		break; case NtStatus::invalid_parameter_9: os << TS8("invalid_parameter_9"); //0xc00000f7,
-		break; case NtStatus::invalid_parameter_10: os << TS8("invalid_parameter_10"); //0xc00000f8,
-		break; case NtStatus::invalid_parameter_11: os << TS8("invalid_parameter_11"); //0xc00000f9,
-		break; case NtStatus::invalid_parameter_12: os << TS8("invalid_parameter_12"); //0xc00000fa,
-		break; case NtStatus::redirector_not_started: os << TS8("redirector_not_started"); //0xc00000fb,
-		break; case NtStatus::redirector_started: os << TS8("redirector_started"); //0xc00000fc,
-		break; case NtStatus::stack_overflow: os << TS8("stack_overflow"); //0xc00000fd,
-		break; case NtStatus::no_such_package: os << TS8("no_such_package"); //0xc00000fe,
-		break; case NtStatus::bad_function_table: os << TS8("bad_function_table"); //0xc00000ff,
-		break; case NtStatus::variable_not_found: os << TS8("variable_not_found"); //0xc0000100,
-		break; case NtStatus::directory_not_empty: os << TS8("directory_not_empty"); //0xc0000101,
-		break; case NtStatus::file_corrupt_error: os << TS8("file_corrupt_error"); //0xc0000102,
-		break; case NtStatus::not_a_directory: os << TS8("not_a_directory"); //0xc0000103,
-		break; case NtStatus::bad_logon_session_state: os << TS8("bad_logon_session_state"); //0xc0000104,
-		break; case NtStatus::logon_session_collision: os << TS8("logon_session_collision"); //0xc0000105,
-		break; case NtStatus::name_too_long: os << TS8("name_too_long"); //0xc0000106,
-		break; case NtStatus::files_open: os << TS8("files_open"); //0xc0000107,
-		break; case NtStatus::connection_in_use: os << TS8("connection_in_use"); //0xc0000108,
-		break; case NtStatus::message_not_found: os << TS8("message_not_found"); //0xc0000109,
-		break; case NtStatus::process_is_terminating: os << TS8("process_is_terminating"); //0xc000010a,
-		break; case NtStatus::invalid_logon_type: os << TS8("invalid_logon_type"); //0xc000010b,
-		break; case NtStatus::no_guid_translation: os << TS8("no_guid_translation"); //0xc000010c,
-		break; case NtStatus::cannot_impersonate: os << TS8("cannot_impersonate"); //0xc000010d,
-		break; case NtStatus::image_already_loaded: os << TS8("image_already_loaded"); //0xc000010e,
-		break; case NtStatus::abios_not_present: os << TS8("abios_not_present"); //0xc000010f,
-		break; case NtStatus::abios_lid_not_exist: os << TS8("abios_lid_not_exist"); //0xc0000110,
-		break; case NtStatus::abios_lid_already_owned: os << TS8("abios_lid_already_owned"); //0xc0000111,
-		break; case NtStatus::abios_not_lid_owner: os << TS8("abios_not_lid_owner"); //0xc0000112,
-		break; case NtStatus::abios_invalid_command: os << TS8("abios_invalid_command"); //0xc0000113,
-		break; case NtStatus::abios_invalid_lid: os << TS8("abios_invalid_lid"); //0xc0000114,
-		break; case NtStatus::abios_selector_not_available: os << TS8("abios_selector_not_available"); //0xc0000115,
-		break; case NtStatus::abios_invalid_selector: os << TS8("abios_invalid_selector"); //0xc0000116,
-		break; case NtStatus::no_ldt: os << TS8("no_ldt"); //0xc0000117,
-		break; case NtStatus::invalid_ldt_size: os << TS8("invalid_ldt_size"); //0xc0000118,
-		break; case NtStatus::invalid_ldt_offset: os << TS8("invalid_ldt_offset"); //0xc0000119,
-		break; case NtStatus::invalid_ldt_descriptor: os << TS8("invalid_ldt_descriptor"); //0xc000011a,
-		break; case NtStatus::invalid_image_ne_format: os << TS8("invalid_image_ne_format"); //0xc000011b,
-		break; case NtStatus::rxact_invalid_state: os << TS8("rxact_invalid_state"); //0xc000011c,
-		break; case NtStatus::rxact_commit_failure: os << TS8("rxact_commit_failure"); //0xc000011d,
-		break; case NtStatus::mapped_file_size_zero: os << TS8("mapped_file_size_zero"); //0xc000011e,
-		break; case NtStatus::too_many_opened_files: os << TS8("too_many_opened_files"); //0xc000011f,
-		break; case NtStatus::cancelled: os << TS8("cancelled"); //0xc0000120,
-		break; case NtStatus::cannot_delete: os << TS8("cannot_delete"); //0xc0000121,
-		break; case NtStatus::invalid_computer_name: os << TS8("invalid_computer_name"); //0xc0000122,
-		break; case NtStatus::file_deleted: os << TS8("file_deleted"); //0xc0000123,
-		break; case NtStatus::special_account: os << TS8("special_account"); //0xc0000124,
-		break; case NtStatus::special_group: os << TS8("special_group"); //0xc0000125,
-		break; case NtStatus::special_user: os << TS8("special_user"); //0xc0000126,
-		break; case NtStatus::members_primary_group: os << TS8("members_primary_group"); //0xc0000127,
-		break; case NtStatus::file_closed: os << TS8("file_closed"); //0xc0000128,
-		break; case NtStatus::too_many_threads: os << TS8("too_many_threads"); //0xc0000129,
-		break; case NtStatus::thread_not_in_process: os << TS8("thread_not_in_process"); //0xc000012a,
-		break; case NtStatus::token_already_in_use: os << TS8("token_already_in_use"); //0xc000012b,
-		break; case NtStatus::pagefile_quota_exceeded: os << TS8("pagefile_quota_exceeded"); //0xc000012c,
-		break; case NtStatus::commitment_limit: os << TS8("commitment_limit"); //0xc000012d,
-		break; case NtStatus::invalid_image_le_format: os << TS8("invalid_image_le_format"); //0xc000012e,
-		break; case NtStatus::invalid_image_not_mz: os << TS8("invalid_image_not_mz"); //0xc000012f,
-		break; case NtStatus::invalid_image_protect: os << TS8("invalid_image_protect"); //0xc0000130,
-		break; case NtStatus::invalid_image_win_16: os << TS8("invalid_image_win_16"); //0xc0000131,
-		break; case NtStatus::logon_server_conflict: os << TS8("logon_server_conflict"); //0xc0000132,
-		break; case NtStatus::time_difference_at_dc: os << TS8("time_difference_at_dc"); //0xc0000133,
-		break; case NtStatus::synchronization_required: os << TS8("synchronization_required"); //0xc0000134,
-		break; case NtStatus::dll_not_found: os << TS8("dll_not_found"); //0xc0000135,
-		break; case NtStatus::open_failed: os << TS8("open_failed"); //0xc0000136,
-		break; case NtStatus::io_privilege_failed: os << TS8("io_privilege_failed"); //0xc0000137,
-		break; case NtStatus::ordinal_not_found: os << TS8("ordinal_not_found"); //0xc0000138,
-		break; case NtStatus::entrypoint_not_found: os << TS8("entrypoint_not_found"); //0xc0000139,
-		break; case NtStatus::control_c_exit: os << TS8("control_c_exit"); //0xc000013a,
-		break; case NtStatus::local_disconnect: os << TS8("local_disconnect"); //0xc000013b,
-		break; case NtStatus::remote_disconnect: os << TS8("remote_disconnect"); //0xc000013c,
-		break; case NtStatus::remote_resources: os << TS8("remote_resources"); //0xc000013d,
-		break; case NtStatus::link_failed: os << TS8("link_failed"); //0xc000013e,
-		break; case NtStatus::link_timeout: os << TS8("link_timeout"); //0xc000013f,
-		break; case NtStatus::invalid_connection: os << TS8("invalid_connection"); //0xc0000140,
-		break; case NtStatus::invalid_address: os << TS8("invalid_address"); //0xc0000141,
-		break; case NtStatus::dll_init_failed: os << TS8("dll_init_failed"); //0xc0000142,
-		break; case NtStatus::missing_systemfile: os << TS8("missing_systemfile"); //0xc0000143,
-		break; case NtStatus::unhandled_exception: os << TS8("unhandled_exception"); //0xc0000144,
-		break; case NtStatus::app_init_failure: os << TS8("app_init_failure"); //0xc0000145,
-		break; case NtStatus::pagefile_create_failed: os << TS8("pagefile_create_failed"); //0xc0000146,
-		break; case NtStatus::no_pagefile: os << TS8("no_pagefile"); //0xc0000147,
-		break; case NtStatus::invalid_level: os << TS8("invalid_level"); //0xc0000148,
-		break; case NtStatus::wrong_password_core: os << TS8("wrong_password_core"); //0xc0000149,
-		break; case NtStatus::illegal_float_context: os << TS8("illegal_float_context"); //0xc000014a,
-		break; case NtStatus::pipe_broken: os << TS8("pipe_broken"); //0xc000014b,
-		break; case NtStatus::registry_corrupt: os << TS8("registry_corrupt"); //0xc000014c,
-		break; case NtStatus::registry_io_failed: os << TS8("registry_io_failed"); //0xc000014d,
-		break; case NtStatus::no_event_pair: os << TS8("no_event_pair"); //0xc000014e,
-		break; case NtStatus::unrecognized_volume: os << TS8("unrecognized_volume"); //0xc000014f,
-		break; case NtStatus::serial_no_device_inited: os << TS8("serial_no_device_inited"); //0xc0000150,
-		break; case NtStatus::no_such_alias: os << TS8("no_such_alias"); //0xc0000151,
-		break; case NtStatus::member_not_in_alias: os << TS8("member_not_in_alias"); //0xc0000152,
-		break; case NtStatus::member_in_alias: os << TS8("member_in_alias"); //0xc0000153,
-		break; case NtStatus::alias_exists: os << TS8("alias_exists"); //0xc0000154,
-		break; case NtStatus::logon_not_granted: os << TS8("logon_not_granted"); //0xc0000155,
-		break; case NtStatus::too_many_secrets: os << TS8("too_many_secrets"); //0xc0000156,
-		break; case NtStatus::secret_too_long: os << TS8("secret_too_long"); //0xc0000157,
-		break; case NtStatus::internal_db_error: os << TS8("internal_db_error"); //0xc0000158,
-		break; case NtStatus::fullscreen_mode: os << TS8("fullscreen_mode"); //0xc0000159,
-		break; case NtStatus::too_many_context_ids: os << TS8("too_many_context_ids"); //0xc000015a,
-		break; case NtStatus::logon_type_not_granted: os << TS8("logon_type_not_granted"); //0xc000015b,
-		break; case NtStatus::not_registry_file: os << TS8("not_registry_file"); //0xc000015c,
-		break; case NtStatus::nt_cross_encryption_required: os << TS8("nt_cross_encryption_required"); //0xc000015d,
-		break; case NtStatus::domain_ctrlr_config_error: os << TS8("domain_ctrlr_config_error"); //0xc000015e,
-		break; case NtStatus::ft_missing_member: os << TS8("ft_missing_member"); //0xc000015f,
-		break; case NtStatus::ill_formed_service_entry: os << TS8("ill_formed_service_entry"); //0xc0000160,
-		break; case NtStatus::illegal_character: os << TS8("illegal_character"); //0xc0000161,
-		break; case NtStatus::unmappable_character: os << TS8("unmappable_character"); //0xc0000162,
-		break; case NtStatus::undefined_character: os << TS8("undefined_character"); //0xc0000163,
-		break; case NtStatus::floppy_volume: os << TS8("floppy_volume"); //0xc0000164,
-		break; case NtStatus::floppy_id_mark_not_found: os << TS8("floppy_id_mark_not_found"); //0xc0000165,
-		break; case NtStatus::floppy_wrong_cylinder: os << TS8("floppy_wrong_cylinder"); //0xc0000166,
-		break; case NtStatus::floppy_unknown_error: os << TS8("floppy_unknown_error"); //0xc0000167,
-		break; case NtStatus::floppy_bad_registers: os << TS8("floppy_bad_registers"); //0xc0000168,
-		break; case NtStatus::disk_recalibrate_failed: os << TS8("disk_recalibrate_failed"); //0xc0000169,
-		break; case NtStatus::disk_operation_failed: os << TS8("disk_operation_failed"); //0xc000016a,
-		break; case NtStatus::disk_reset_failed: os << TS8("disk_reset_failed"); //0xc000016b,
-		break; case NtStatus::shared_irq_busy: os << TS8("shared_irq_busy"); //0xc000016c,
-		break; case NtStatus::ft_orphaning: os << TS8("ft_orphaning"); //0xc000016d,
-		break; case NtStatus::bios_failed_to_connect_interrupt: os << TS8("bios_failed_to_connect_interrupt"); //0xc000016e,
-		break; case NtStatus::partition_failure: os << TS8("partition_failure"); //0xc0000172,
-		break; case NtStatus::invalid_block_length: os << TS8("invalid_block_length"); //0xc0000173,
-		break; case NtStatus::device_not_partitioned: os << TS8("device_not_partitioned"); //0xc0000174,
-		break; case NtStatus::unable_to_lock_media: os << TS8("unable_to_lock_media"); //0xc0000175,
-		break; case NtStatus::unable_to_unload_media: os << TS8("unable_to_unload_media"); //0xc0000176,
-		break; case NtStatus::eom_overflow: os << TS8("eom_overflow"); //0xc0000177,
-		break; case NtStatus::no_media: os << TS8("no_media"); //0xc0000178,
-		break; case NtStatus::no_such_member: os << TS8("no_such_member"); //0xc000017a,
-		break; case NtStatus::invalid_member: os << TS8("invalid_member"); //0xc000017b,
-		break; case NtStatus::key_deleted: os << TS8("key_deleted"); //0xc000017c,
-		break; case NtStatus::no_log_space: os << TS8("no_log_space"); //0xc000017d,
-		break; case NtStatus::too_many_sids: os << TS8("too_many_sids"); //0xc000017e,
-		break; case NtStatus::lm_cross_encryption_required: os << TS8("lm_cross_encryption_required"); //0xc000017f,
-		break; case NtStatus::key_has_children: os << TS8("key_has_children"); //0xc0000180,
-		break; case NtStatus::child_must_be_volatile: os << TS8("child_must_be_volatile"); //0xc0000181,
-		break; case NtStatus::device_configuration_error: os << TS8("device_configuration_error"); //0xc0000182,
-		break; case NtStatus::driver_internal_error: os << TS8("driver_internal_error"); //0xc0000183,
-		break; case NtStatus::invalid_device_state: os << TS8("invalid_device_state"); //0xc0000184,
-		break; case NtStatus::io_device_error: os << TS8("io_device_error"); //0xc0000185,
-		break; case NtStatus::device_protocol_error: os << TS8("device_protocol_error"); //0xc0000186,
-		break; case NtStatus::backup_controller: os << TS8("backup_controller"); //0xc0000187,
-		break; case NtStatus::log_file_full: os << TS8("log_file_full"); //0xc0000188,
-		break; case NtStatus::too_late: os << TS8("too_late"); //0xc0000189,
-		break; case NtStatus::no_trust_lsa_secret: os << TS8("no_trust_lsa_secret"); //0xc000018a,
-		break; case NtStatus::no_trust_sam_account: os << TS8("no_trust_sam_account"); //0xc000018b,
-		break; case NtStatus::trusted_domain_failure: os << TS8("trusted_domain_failure"); //0xc000018c,
-		break; case NtStatus::trusted_relationship_failure: os << TS8("trusted_relationship_failure"); //0xc000018d,
-		break; case NtStatus::eventlog_file_corrupt: os << TS8("eventlog_file_corrupt"); //0xc000018e,
-		break; case NtStatus::eventlog_cant_start: os << TS8("eventlog_cant_start"); //0xc000018f,
-		break; case NtStatus::trust_failure: os << TS8("trust_failure"); //0xc0000190,
-		break; case NtStatus::mutant_limit_exceeded: os << TS8("mutant_limit_exceeded"); //0xc0000191,
-		break; case NtStatus::netlogon_not_started: os << TS8("netlogon_not_started"); //0xc0000192,
-		break; case NtStatus::account_expired: os << TS8("account_expired"); //0xc0000193,
-		break; case NtStatus::possible_deadlock: os << TS8("possible_deadlock"); //0xc0000194,
-		break; case NtStatus::network_credential_conflict: os << TS8("network_credential_conflict"); //0xc0000195,
-		break; case NtStatus::remote_session_limit: os << TS8("remote_session_limit"); //0xc0000196,
-		break; case NtStatus::eventlog_file_changed: os << TS8("eventlog_file_changed"); //0xc0000197,
-		break; case NtStatus::nologon_interdomain_trust_account: os << TS8("nologon_interdomain_trust_account"); //0xc0000198,
-		break; case NtStatus::nologon_workstation_trust_account: os << TS8("nologon_workstation_trust_account"); //0xc0000199,
-		break; case NtStatus::nologon_server_trust_account: os << TS8("nologon_server_trust_account"); //0xc000019a,
-		break; case NtStatus::domain_trust_inconsistent: os << TS8("domain_trust_inconsistent"); //0xc000019b,
-		break; case NtStatus::fs_driver_required: os << TS8("fs_driver_required"); //0xc000019c,
-		break; case NtStatus::image_already_loaded_as_dll: os << TS8("image_already_loaded_as_dll"); //0xc000019d,
-		break; case NtStatus::incompatible_with_global_short_name_registry_setting: os << TS8("incompatible_with_global_short_name_registry_setting"); //0xc000019e,
-		break; case NtStatus::short_names_not_enabled_on_volume: os << TS8("short_names_not_enabled_on_volume"); //0xc000019f,
-		break; case NtStatus::security_stream_is_inconsistent: os << TS8("security_stream_is_inconsistent"); //0xc00001a0,
-		break; case NtStatus::invalid_lock_range: os << TS8("invalid_lock_range"); //0xc00001a1,
-		break; case NtStatus::invalid_ace_condition: os << TS8("invalid_ace_condition"); //0xc00001a2,
-		break; case NtStatus::image_subsystem_not_present: os << TS8("image_subsystem_not_present"); //0xc00001a3,
-		break; case NtStatus::notification_guid_already_defined: os << TS8("notification_guid_already_defined"); //0xc00001a4,
-		break; case NtStatus::invalid_exception_handler: os << TS8("invalid_exception_handler"); //0xc00001a5,
-		break; case NtStatus::duplicate_privileges: os << TS8("duplicate_privileges"); //0xc00001a6,
-		break; case NtStatus::not_allowed_on_system_file: os << TS8("not_allowed_on_system_file"); //0xc00001a7,
-		break; case NtStatus::repair_needed: os << TS8("repair_needed"); //0xc00001a8,
-		break; case NtStatus::quota_not_enabled: os << TS8("quota_not_enabled"); //0xc00001a9,
-		break; case NtStatus::no_application_package: os << TS8("no_application_package"); //0xc00001aa,
-		break; case NtStatus::file_metadata_optimization_in_progress: os << TS8("file_metadata_optimization_in_progress"); //0xc00001ab,
-		break; case NtStatus::not_same_object: os << TS8("not_same_object"); //0xc00001ac,
-		break; case NtStatus::fatal_memory_exhaustion: os << TS8("fatal_memory_exhaustion"); //0xc00001ad,
-		break; case NtStatus::error_process_not_in_job: os << TS8("error_process_not_in_job"); //0xc00001ae,
-		break; case NtStatus::cpu_set_invalid: os << TS8("cpu_set_invalid"); //0xc00001af,
-		break; case NtStatus::io_device_invalid_data: os << TS8("io_device_invalid_data"); //0xc00001b0,
-		break; case NtStatus::io_unaligned_write: os << TS8("io_unaligned_write"); //0xc00001b1,
-		break; case NtStatus::control_stack_violation: os << TS8("control_stack_violation"); //0xc00001b2,
-		break; case NtStatus::weak_whfbkey_blocked: os << TS8("weak_whfbkey_blocked"); //0xc00001b3,
-		break; case NtStatus::server_transport_conflict: os << TS8("server_transport_conflict"); //0xc00001b4,
-		break; case NtStatus::certificate_validation_preference_conflict: os << TS8("certificate_validation_preference_conflict"); //0xc00001b5,
-		break; case NtStatus::network_open_restriction: os << TS8("network_open_restriction"); //0xc0000201,
-		break; case NtStatus::no_user_session_key: os << TS8("no_user_session_key"); //0xc0000202,
-		break; case NtStatus::user_session_deleted: os << TS8("user_session_deleted"); //0xc0000203,
-		break; case NtStatus::resource_lang_not_found: os << TS8("resource_lang_not_found"); //0xc0000204,
-		break; case NtStatus::insuff_server_resources: os << TS8("insuff_server_resources"); //0xc0000205,
-		break; case NtStatus::invalid_buffer_size: os << TS8("invalid_buffer_size"); //0xc0000206,
-		break; case NtStatus::invalid_address_component: os << TS8("invalid_address_component"); //0xc0000207,
-		break; case NtStatus::invalid_address_wildcard: os << TS8("invalid_address_wildcard"); //0xc0000208,
-		break; case NtStatus::too_many_addresses: os << TS8("too_many_addresses"); //0xc0000209,
-		break; case NtStatus::address_already_exists: os << TS8("address_already_exists"); //0xc000020a,
-		break; case NtStatus::address_closed: os << TS8("address_closed"); //0xc000020b,
-		break; case NtStatus::connection_disconnected: os << TS8("connection_disconnected"); //0xc000020c,
-		break; case NtStatus::connection_reset: os << TS8("connection_reset"); //0xc000020d,
-		break; case NtStatus::too_many_nodes: os << TS8("too_many_nodes"); //0xc000020e,
-		break; case NtStatus::transaction_aborted: os << TS8("transaction_aborted"); //0xc000020f,
-		break; case NtStatus::transaction_timed_out: os << TS8("transaction_timed_out"); //0xc0000210,
-		break; case NtStatus::transaction_no_release: os << TS8("transaction_no_release"); //0xc0000211,
-		break; case NtStatus::transaction_no_match: os << TS8("transaction_no_match"); //0xc0000212,
-		break; case NtStatus::transaction_responded: os << TS8("transaction_responded"); //0xc0000213,
-		break; case NtStatus::transaction_invalid_id: os << TS8("transaction_invalid_id"); //0xc0000214,
-		break; case NtStatus::transaction_invalid_type: os << TS8("transaction_invalid_type"); //0xc0000215,
-		break; case NtStatus::not_server_session: os << TS8("not_server_session"); //0xc0000216,
-		break; case NtStatus::not_client_session: os << TS8("not_client_session"); //0xc0000217,
-		break; case NtStatus::cannot_load_registry_file: os << TS8("cannot_load_registry_file"); //0xc0000218,
-		break; case NtStatus::debug_attach_failed: os << TS8("debug_attach_failed"); //0xc0000219,
-		break; case NtStatus::system_process_terminated: os << TS8("system_process_terminated"); //0xc000021a,
-		break; case NtStatus::data_not_accepted: os << TS8("data_not_accepted"); //0xc000021b,
-		break; case NtStatus::no_browser_servers_found: os << TS8("no_browser_servers_found"); //0xc000021c,
-		break; case NtStatus::vdm_hard_error: os << TS8("vdm_hard_error"); //0xc000021d,
-		break; case NtStatus::driver_cancel_timeout: os << TS8("driver_cancel_timeout"); //0xc000021e,
-		break; case NtStatus::reply_message_mismatch: os << TS8("reply_message_mismatch"); //0xc000021f,
-		break; case NtStatus::mapped_alignment: os << TS8("mapped_alignment"); //0xc0000220,
-		break; case NtStatus::image_checksum_mismatch: os << TS8("image_checksum_mismatch"); //0xc0000221,
-		break; case NtStatus::lost_writebehind_data: os << TS8("lost_writebehind_data"); //0xc0000222,
-		break; case NtStatus::client_server_parameters_invalid: os << TS8("client_server_parameters_invalid"); //0xc0000223,
-		break; case NtStatus::password_must_change: os << TS8("password_must_change"); //0xc0000224,
-		break; case NtStatus::not_found: os << TS8("not_found"); //0xc0000225,
-		break; case NtStatus::not_tiny_stream: os << TS8("not_tiny_stream"); //0xc0000226,
-		break; case NtStatus::recovery_failure: os << TS8("recovery_failure"); //0xc0000227,
-		break; case NtStatus::stack_overflow_read: os << TS8("stack_overflow_read"); //0xc0000228,
-		break; case NtStatus::fail_check: os << TS8("fail_check"); //0xc0000229,
-		break; case NtStatus::duplicate_objectid: os << TS8("duplicate_objectid"); //0xc000022a,
-		break; case NtStatus::objectid_exists: os << TS8("objectid_exists"); //0xc000022b,
-		break; case NtStatus::convert_to_large: os << TS8("convert_to_large"); //0xc000022c,
-		break; case NtStatus::retry: os << TS8("retry"); //0xc000022d,
-		break; case NtStatus::found_out_of_scope: os << TS8("found_out_of_scope"); //0xc000022e,
-		break; case NtStatus::allocate_bucket: os << TS8("allocate_bucket"); //0xc000022f,
-		break; case NtStatus::propset_not_found: os << TS8("propset_not_found"); //0xc0000230,
-		break; case NtStatus::marshall_overflow: os << TS8("marshall_overflow"); //0xc0000231,
-		break; case NtStatus::invalid_variant: os << TS8("invalid_variant"); //0xc0000232,
-		break; case NtStatus::domain_controller_not_found: os << TS8("domain_controller_not_found"); //0xc0000233,
-		break; case NtStatus::account_locked_out: os << TS8("account_locked_out"); //0xc0000234,
-		break; case NtStatus::handle_not_closable: os << TS8("handle_not_closable"); //0xc0000235,
-		break; case NtStatus::connection_refused: os << TS8("connection_refused"); //0xc0000236,
-		break; case NtStatus::graceful_disconnect: os << TS8("graceful_disconnect"); //0xc0000237,
-		break; case NtStatus::address_already_associated: os << TS8("address_already_associated"); //0xc0000238,
-		break; case NtStatus::address_not_associated: os << TS8("address_not_associated"); //0xc0000239,
-		break; case NtStatus::connection_invalid: os << TS8("connection_invalid"); //0xc000023a,
-		break; case NtStatus::connection_active: os << TS8("connection_active"); //0xc000023b,
-		break; case NtStatus::network_unreachable: os << TS8("network_unreachable"); //0xc000023c,
-		break; case NtStatus::host_unreachable: os << TS8("host_unreachable"); //0xc000023d,
-		break; case NtStatus::protocol_unreachable: os << TS8("protocol_unreachable"); //0xc000023e,
-		break; case NtStatus::port_unreachable: os << TS8("port_unreachable"); //0xc000023f,
-		break; case NtStatus::request_aborted: os << TS8("request_aborted"); //0xc0000240,
-		break; case NtStatus::connection_aborted: os << TS8("connection_aborted"); //0xc0000241,
-		break; case NtStatus::bad_compression_buffer: os << TS8("bad_compression_buffer"); //0xc0000242,
-		break; case NtStatus::user_mapped_file: os << TS8("user_mapped_file"); //0xc0000243,
-		break; case NtStatus::audit_failed: os << TS8("audit_failed"); //0xc0000244,
-		break; case NtStatus::timer_resolution_not_set: os << TS8("timer_resolution_not_set"); //0xc0000245,
-		break; case NtStatus::connection_count_limit: os << TS8("connection_count_limit"); //0xc0000246,
-		break; case NtStatus::login_time_restriction: os << TS8("login_time_restriction"); //0xc0000247,
-		break; case NtStatus::login_wksta_restriction: os << TS8("login_wksta_restriction"); //0xc0000248,
-		break; case NtStatus::image_mp_up_mismatch: os << TS8("image_mp_up_mismatch"); //0xc0000249,
-		break; case NtStatus::insufficient_logon_info: os << TS8("insufficient_logon_info"); //0xc0000250,
-		break; case NtStatus::bad_dll_entrypoint: os << TS8("bad_dll_entrypoint"); //0xc0000251,
-		break; case NtStatus::bad_service_entrypoint: os << TS8("bad_service_entrypoint"); //0xc0000252,
-		break; case NtStatus::lpc_reply_lost: os << TS8("lpc_reply_lost"); //0xc0000253,
-		break; case NtStatus::ip_address_conflict1: os << TS8("ip_address_conflict1"); //0xc0000254,
-		break; case NtStatus::ip_address_conflict2: os << TS8("ip_address_conflict2"); //0xc0000255,
-		break; case NtStatus::registry_quota_limit: os << TS8("registry_quota_limit"); //0xc0000256,
-		break; case NtStatus::path_not_covered: os << TS8("path_not_covered"); //0xc0000257,
-		break; case NtStatus::no_callback_active: os << TS8("no_callback_active"); //0xc0000258,
-		break; case NtStatus::license_quota_exceeded: os << TS8("license_quota_exceeded"); //0xc0000259,
-		break; case NtStatus::pwd_too_short: os << TS8("pwd_too_short"); //0xc000025a,
-		break; case NtStatus::pwd_too_recent: os << TS8("pwd_too_recent"); //0xc000025b,
-		break; case NtStatus::pwd_history_conflict: os << TS8("pwd_history_conflict"); //0xc000025c,
-		break; case NtStatus::plugplay_no_device: os << TS8("plugplay_no_device"); //0xc000025e,
-		break; case NtStatus::unsupported_compression: os << TS8("unsupported_compression"); //0xc000025f,
-		break; case NtStatus::invalid_hw_profile: os << TS8("invalid_hw_profile"); //0xc0000260,
-		break; case NtStatus::invalid_plugplay_device_path: os << TS8("invalid_plugplay_device_path"); //0xc0000261,
-		break; case NtStatus::driver_ordinal_not_found: os << TS8("driver_ordinal_not_found"); //0xc0000262,
-		break; case NtStatus::driver_entrypoint_not_found: os << TS8("driver_entrypoint_not_found"); //0xc0000263,
-		break; case NtStatus::resource_not_owned: os << TS8("resource_not_owned"); //0xc0000264,
-		break; case NtStatus::too_many_links: os << TS8("too_many_links"); //0xc0000265,
-		break; case NtStatus::quota_list_inconsistent: os << TS8("quota_list_inconsistent"); //0xc0000266,
-		break; case NtStatus::file_is_offline: os << TS8("file_is_offline"); //0xc0000267,
-		break; case NtStatus::evaluation_expiration: os << TS8("evaluation_expiration"); //0xc0000268,
-		break; case NtStatus::illegal_dll_relocation: os << TS8("illegal_dll_relocation"); //0xc0000269,
-		break; case NtStatus::license_violation: os << TS8("license_violation"); //0xc000026a,
-		break; case NtStatus::dll_init_failed_logoff: os << TS8("dll_init_failed_logoff"); //0xc000026b,
-		break; case NtStatus::driver_unable_to_load: os << TS8("driver_unable_to_load"); //0xc000026c,
-		break; case NtStatus::dfs_unavailable: os << TS8("dfs_unavailable"); //0xc000026d,
-		break; case NtStatus::volume_dismounted: os << TS8("volume_dismounted"); //0xc000026e,
-		break; case NtStatus::wx86_internal_error: os << TS8("wx86_internal_error"); //0xc000026f,
-		break; case NtStatus::wx86_float_stack_check: os << TS8("wx86_float_stack_check"); //0xc0000270,
-		break; case NtStatus::validate_continue: os << TS8("validate_continue"); //0xc0000271,
-		break; case NtStatus::no_match: os << TS8("no_match"); //0xc0000272,
-		break; case NtStatus::no_more_matches: os << TS8("no_more_matches"); //0xc0000273,
-		break; case NtStatus::not_a_reparse_point: os << TS8("not_a_reparse_point"); //0xc0000275,
-		break; case NtStatus::io_reparse_tag_invalid: os << TS8("io_reparse_tag_invalid"); //0xc0000276,
-		break; case NtStatus::io_reparse_tag_mismatch: os << TS8("io_reparse_tag_mismatch"); //0xc0000277,
-		break; case NtStatus::io_reparse_data_invalid: os << TS8("io_reparse_data_invalid"); //0xc0000278,
-		break; case NtStatus::io_reparse_tag_not_handled: os << TS8("io_reparse_tag_not_handled"); //0xc0000279,
-		break; case NtStatus::pwd_too_long: os << TS8("pwd_too_long"); //0xc000027a,
-		break; case NtStatus::stowed_exception: os << TS8("stowed_exception"); //0xc000027b,
-		break; case NtStatus::context_stowed_exception: os << TS8("context_stowed_exception"); //0xc000027c,
-		break; case NtStatus::reparse_point_not_resolved: os << TS8("reparse_point_not_resolved"); //0xc0000280,
-		break; case NtStatus::directory_is_a_reparse_point: os << TS8("directory_is_a_reparse_point"); //0xc0000281,
-		break; case NtStatus::range_list_conflict: os << TS8("range_list_conflict"); //0xc0000282,
-		break; case NtStatus::source_element_empty: os << TS8("source_element_empty"); //0xc0000283,
-		break; case NtStatus::destination_element_full: os << TS8("destination_element_full"); //0xc0000284,
-		break; case NtStatus::illegal_element_address: os << TS8("illegal_element_address"); //0xc0000285,
-		break; case NtStatus::magazine_not_present: os << TS8("magazine_not_present"); //0xc0000286,
-		break; case NtStatus::reinitialization_needed: os << TS8("reinitialization_needed"); //0xc0000287,
-		break; case NtStatus::encryption_failed: os << TS8("encryption_failed"); //0xc000028a,
-		break; case NtStatus::decryption_failed: os << TS8("decryption_failed"); //0xc000028b,
-		break; case NtStatus::range_not_found: os << TS8("range_not_found"); //0xc000028c,
-		break; case NtStatus::no_recovery_policy: os << TS8("no_recovery_policy"); //0xc000028d,
-		break; case NtStatus::no_efs: os << TS8("no_efs"); //0xc000028e,
-		break; case NtStatus::wrong_efs: os << TS8("wrong_efs"); //0xc000028f,
-		break; case NtStatus::no_user_keys: os << TS8("no_user_keys"); //0xc0000290,
-		break; case NtStatus::file_not_encrypted: os << TS8("file_not_encrypted"); //0xc0000291,
-		break; case NtStatus::not_export_format: os << TS8("not_export_format"); //0xc0000292,
-		break; case NtStatus::file_encrypted: os << TS8("file_encrypted"); //0xc0000293,
-		break; case NtStatus::wmi_guid_not_found: os << TS8("wmi_guid_not_found"); //0xc0000295,
-		break; case NtStatus::wmi_instance_not_found: os << TS8("wmi_instance_not_found"); //0xc0000296,
-		break; case NtStatus::wmi_itemid_not_found: os << TS8("wmi_itemid_not_found"); //0xc0000297,
-		break; case NtStatus::wmi_try_again: os << TS8("wmi_try_again"); //0xc0000298,
-		break; case NtStatus::shared_policy: os << TS8("shared_policy"); //0xc0000299,
-		break; case NtStatus::policy_object_not_found: os << TS8("policy_object_not_found"); //0xc000029a,
-		break; case NtStatus::policy_only_in_ds: os << TS8("policy_only_in_ds"); //0xc000029b,
-		break; case NtStatus::volume_not_upgraded: os << TS8("volume_not_upgraded"); //0xc000029c,
-		break; case NtStatus::remote_storage_not_active: os << TS8("remote_storage_not_active"); //0xc000029d,
-		break; case NtStatus::remote_storage_media_error: os << TS8("remote_storage_media_error"); //0xc000029e,
-		break; case NtStatus::no_tracking_service: os << TS8("no_tracking_service"); //0xc000029f,
-		break; case NtStatus::server_sid_mismatch: os << TS8("server_sid_mismatch"); //0xc00002a0,
-		break; case NtStatus::ds_no_attribute_or_value: os << TS8("ds_no_attribute_or_value"); //0xc00002a1,
-		break; case NtStatus::ds_invalid_attribute_syntax: os << TS8("ds_invalid_attribute_syntax"); //0xc00002a2,
-		break; case NtStatus::ds_attribute_type_undefined: os << TS8("ds_attribute_type_undefined"); //0xc00002a3,
-		break; case NtStatus::ds_attribute_or_value_exists: os << TS8("ds_attribute_or_value_exists"); //0xc00002a4,
-		break; case NtStatus::ds_busy: os << TS8("ds_busy"); //0xc00002a5,
-		break; case NtStatus::ds_unavailable: os << TS8("ds_unavailable"); //0xc00002a6,
-		break; case NtStatus::ds_no_rids_allocated: os << TS8("ds_no_rids_allocated"); //0xc00002a7,
-		break; case NtStatus::ds_no_more_rids: os << TS8("ds_no_more_rids"); //0xc00002a8,
-		break; case NtStatus::ds_incorrect_role_owner: os << TS8("ds_incorrect_role_owner"); //0xc00002a9,
-		break; case NtStatus::ds_ridmgr_init_error: os << TS8("ds_ridmgr_init_error"); //0xc00002aa,
-		break; case NtStatus::ds_obj_class_violation: os << TS8("ds_obj_class_violation"); //0xc00002ab,
-		break; case NtStatus::ds_cant_on_non_leaf: os << TS8("ds_cant_on_non_leaf"); //0xc00002ac,
-		break; case NtStatus::ds_cant_on_rdn: os << TS8("ds_cant_on_rdn"); //0xc00002ad,
-		break; case NtStatus::ds_cant_mod_obj_class: os << TS8("ds_cant_mod_obj_class"); //0xc00002ae,
-		break; case NtStatus::ds_cross_dom_move_failed: os << TS8("ds_cross_dom_move_failed"); //0xc00002af,
-		break; case NtStatus::ds_gc_not_available: os << TS8("ds_gc_not_available"); //0xc00002b0,
-		break; case NtStatus::directory_service_required: os << TS8("directory_service_required"); //0xc00002b1,
-		break; case NtStatus::reparse_attribute_conflict: os << TS8("reparse_attribute_conflict"); //0xc00002b2,
-		break; case NtStatus::cant_enable_deny_only: os << TS8("cant_enable_deny_only"); //0xc00002b3,
-		break; case NtStatus::float_multiple_faults: os << TS8("float_multiple_faults"); //0xc00002b4,
-		break; case NtStatus::float_multiple_traps: os << TS8("float_multiple_traps"); //0xc00002b5,
-		break; case NtStatus::device_removed: os << TS8("device_removed"); //0xc00002b6,
-		break; case NtStatus::journal_delete_in_progress: os << TS8("journal_delete_in_progress"); //0xc00002b7,
-		break; case NtStatus::journal_not_active: os << TS8("journal_not_active"); //0xc00002b8,
-		break; case NtStatus::nointerface: os << TS8("nointerface"); //0xc00002b9,
-		break; case NtStatus::ds_ridmgr_disabled: os << TS8("ds_ridmgr_disabled"); //0xc00002ba,
-		break; case NtStatus::ds_admin_limit_exceeded: os << TS8("ds_admin_limit_exceeded"); //0xc00002c1,
-		break; case NtStatus::driver_failed_sleep: os << TS8("driver_failed_sleep"); //0xc00002c2,
-		break; case NtStatus::mutual_authentication_failed: os << TS8("mutual_authentication_failed"); //0xc00002c3,
-		break; case NtStatus::corrupt_system_file: os << TS8("corrupt_system_file"); //0xc00002c4,
-		break; case NtStatus::datatype_misalignment_error: os << TS8("datatype_misalignment_error"); //0xc00002c5,
-		break; case NtStatus::wmi_read_only: os << TS8("wmi_read_only"); //0xc00002c6,
-		break; case NtStatus::wmi_set_failure: os << TS8("wmi_set_failure"); //0xc00002c7,
-		break; case NtStatus::commitment_minimum: os << TS8("commitment_minimum"); //0xc00002c8,
-		break; case NtStatus::reg_nat_consumption: os << TS8("reg_nat_consumption"); //0xc00002c9,
-		break; case NtStatus::transport_full: os << TS8("transport_full"); //0xc00002ca,
-		break; case NtStatus::ds_sam_init_failure: os << TS8("ds_sam_init_failure"); //0xc00002cb,
-		break; case NtStatus::only_if_connected: os << TS8("only_if_connected"); //0xc00002cc,
-		break; case NtStatus::ds_sensitive_group_violation: os << TS8("ds_sensitive_group_violation"); //0xc00002cd,
-		break; case NtStatus::pnp_restart_enumeration: os << TS8("pnp_restart_enumeration"); //0xc00002ce,
-		break; case NtStatus::journal_entry_deleted: os << TS8("journal_entry_deleted"); //0xc00002cf,
-		break; case NtStatus::ds_cant_mod_primarygroupid: os << TS8("ds_cant_mod_primarygroupid"); //0xc00002d0,
-		break; case NtStatus::system_image_bad_signature: os << TS8("system_image_bad_signature"); //0xc00002d1,
-		break; case NtStatus::pnp_reboot_required: os << TS8("pnp_reboot_required"); //0xc00002d2,
-		break; case NtStatus::power_state_invalid: os << TS8("power_state_invalid"); //0xc00002d3,
-		break; case NtStatus::ds_invalid_group_type: os << TS8("ds_invalid_group_type"); //0xc00002d4,
-		break; case NtStatus::ds_no_nest_globalgroup_in_mixeddomain: os << TS8("ds_no_nest_globalgroup_in_mixeddomain"); //0xc00002d5,
-		break; case NtStatus::ds_no_nest_localgroup_in_mixeddomain: os << TS8("ds_no_nest_localgroup_in_mixeddomain"); //0xc00002d6,
-		break; case NtStatus::ds_global_cant_have_local_member: os << TS8("ds_global_cant_have_local_member"); //0xc00002d7,
-		break; case NtStatus::ds_global_cant_have_universal_member: os << TS8("ds_global_cant_have_universal_member"); //0xc00002d8,
-		break; case NtStatus::ds_universal_cant_have_local_member: os << TS8("ds_universal_cant_have_local_member"); //0xc00002d9,
-		break; case NtStatus::ds_global_cant_have_crossdomain_member: os << TS8("ds_global_cant_have_crossdomain_member"); //0xc00002da,
-		break; case NtStatus::ds_local_cant_have_crossdomain_local_member: os << TS8("ds_local_cant_have_crossdomain_local_member"); //0xc00002db,
-		break; case NtStatus::ds_have_primary_members: os << TS8("ds_have_primary_members"); //0xc00002dc,
-		break; case NtStatus::wmi_not_supported: os << TS8("wmi_not_supported"); //0xc00002dd,
-		break; case NtStatus::insufficient_power: os << TS8("insufficient_power"); //0xc00002de,
-		break; case NtStatus::sam_need_bootkey_password: os << TS8("sam_need_bootkey_password"); //0xc00002df,
-		break; case NtStatus::sam_need_bootkey_floppy: os << TS8("sam_need_bootkey_floppy"); //0xc00002e0,
-		break; case NtStatus::ds_cant_start: os << TS8("ds_cant_start"); //0xc00002e1,
-		break; case NtStatus::ds_init_failure: os << TS8("ds_init_failure"); //0xc00002e2,
-		break; case NtStatus::sam_init_failure: os << TS8("sam_init_failure"); //0xc00002e3,
-		break; case NtStatus::ds_gc_required: os << TS8("ds_gc_required"); //0xc00002e4,
-		break; case NtStatus::ds_local_member_of_local_only: os << TS8("ds_local_member_of_local_only"); //0xc00002e5,
-		break; case NtStatus::ds_no_fpo_in_universal_groups: os << TS8("ds_no_fpo_in_universal_groups"); //0xc00002e6,
-		break; case NtStatus::ds_machine_account_quota_exceeded: os << TS8("ds_machine_account_quota_exceeded"); //0xc00002e7,
-		break; case NtStatus::multiple_fault_violation: os << TS8("multiple_fault_violation"); //0xc00002e8,
-		break; case NtStatus::current_domain_not_allowed: os << TS8("current_domain_not_allowed"); //0xc00002e9,
-		break; case NtStatus::cannot_make: os << TS8("cannot_make"); //0xc00002ea,
-		break; case NtStatus::system_shutdown: os << TS8("system_shutdown"); //0xc00002eb,
-		break; case NtStatus::ds_init_failure_console: os << TS8("ds_init_failure_console"); //0xc00002ec,
-		break; case NtStatus::ds_sam_init_failure_console: os << TS8("ds_sam_init_failure_console"); //0xc00002ed,
-		break; case NtStatus::unfinished_context_deleted: os << TS8("unfinished_context_deleted"); //0xc00002ee,
-		break; case NtStatus::no_tgt_reply: os << TS8("no_tgt_reply"); //0xc00002ef,
-		break; case NtStatus::objectid_not_found: os << TS8("objectid_not_found"); //0xc00002f0,
-		break; case NtStatus::no_ip_addresses: os << TS8("no_ip_addresses"); //0xc00002f1,
-		break; case NtStatus::wrong_credential_handle: os << TS8("wrong_credential_handle"); //0xc00002f2,
-		break; case NtStatus::crypto_system_invalid: os << TS8("crypto_system_invalid"); //0xc00002f3,
-		break; case NtStatus::max_referrals_exceeded: os << TS8("max_referrals_exceeded"); //0xc00002f4,
-		break; case NtStatus::must_be_kdc: os << TS8("must_be_kdc"); //0xc00002f5,
-		break; case NtStatus::strong_crypto_not_supported: os << TS8("strong_crypto_not_supported"); //0xc00002f6,
-		break; case NtStatus::too_many_principals: os << TS8("too_many_principals"); //0xc00002f7,
-		break; case NtStatus::no_pa_data: os << TS8("no_pa_data"); //0xc00002f8,
-		break; case NtStatus::pkinit_name_mismatch: os << TS8("pkinit_name_mismatch"); //0xc00002f9,
-		break; case NtStatus::smartcard_logon_required: os << TS8("smartcard_logon_required"); //0xc00002fa,
-		break; case NtStatus::kdc_invalid_request: os << TS8("kdc_invalid_request"); //0xc00002fb,
-		break; case NtStatus::kdc_unable_to_refer: os << TS8("kdc_unable_to_refer"); //0xc00002fc,
-		break; case NtStatus::kdc_unknown_etype: os << TS8("kdc_unknown_etype"); //0xc00002fd,
-		break; case NtStatus::shutdown_in_progress: os << TS8("shutdown_in_progress"); //0xc00002fe,
-		break; case NtStatus::server_shutdown_in_progress: os << TS8("server_shutdown_in_progress"); //0xc00002ff,
-		break; case NtStatus::not_supported_on_sbs: os << TS8("not_supported_on_sbs"); //0xc0000300,
-		break; case NtStatus::wmi_guid_disconnected: os << TS8("wmi_guid_disconnected"); //0xc0000301,
-		break; case NtStatus::wmi_already_disabled: os << TS8("wmi_already_disabled"); //0xc0000302,
-		break; case NtStatus::wmi_already_enabled: os << TS8("wmi_already_enabled"); //0xc0000303,
-		break; case NtStatus::mft_too_fragmented: os << TS8("mft_too_fragmented"); //0xc0000304,
-		break; case NtStatus::copy_protection_failure: os << TS8("copy_protection_failure"); //0xc0000305,
-		break; case NtStatus::css_authentication_failure: os << TS8("css_authentication_failure"); //0xc0000306,
-		break; case NtStatus::css_key_not_present: os << TS8("css_key_not_present"); //0xc0000307,
-		break; case NtStatus::css_key_not_established: os << TS8("css_key_not_established"); //0xc0000308,
-		break; case NtStatus::css_scrambled_sector: os << TS8("css_scrambled_sector"); //0xc0000309,
-		break; case NtStatus::css_region_mismatch: os << TS8("css_region_mismatch"); //0xc000030a,
-		break; case NtStatus::css_resets_exhausted: os << TS8("css_resets_exhausted"); //0xc000030b,
-		break; case NtStatus::password_change_required: os << TS8("password_change_required"); //0xc000030c,
-		break; case NtStatus::lost_mode_logon_restriction: os << TS8("lost_mode_logon_restriction"); //0xc000030d,
-		break; case NtStatus::pkinit_failure: os << TS8("pkinit_failure"); //0xc0000320,
-		break; case NtStatus::smartcard_subsystem_failure: os << TS8("smartcard_subsystem_failure"); //0xc0000321,
-		break; case NtStatus::no_kerb_key: os << TS8("no_kerb_key"); //0xc0000322,
-		break; case NtStatus::host_down: os << TS8("host_down"); //0xc0000350,
-		break; case NtStatus::unsupported_preauth: os << TS8("unsupported_preauth"); //0xc0000351,
-		break; case NtStatus::efs_alg_blob_too_big: os << TS8("efs_alg_blob_too_big"); //0xc0000352,
-		break; case NtStatus::port_not_set: os << TS8("port_not_set"); //0xc0000353,
-		break; case NtStatus::debugger_inactive: os << TS8("debugger_inactive"); //0xc0000354,
-		break; case NtStatus::ds_version_check_failure: os << TS8("ds_version_check_failure"); //0xc0000355,
-		break; case NtStatus::auditing_disabled: os << TS8("auditing_disabled"); //0xc0000356,
-		break; case NtStatus::prent4_machine_account: os << TS8("prent4_machine_account"); //0xc0000357,
-		break; case NtStatus::ds_ag_cant_have_universal_member: os << TS8("ds_ag_cant_have_universal_member"); //0xc0000358,
-		break; case NtStatus::invalid_image_win_32: os << TS8("invalid_image_win_32"); //0xc0000359,
-		break; case NtStatus::invalid_image_win_64: os << TS8("invalid_image_win_64"); //0xc000035a,
-		break; case NtStatus::bad_bindings: os << TS8("bad_bindings"); //0xc000035b,
-		break; case NtStatus::network_session_expired: os << TS8("network_session_expired"); //0xc000035c,
-		break; case NtStatus::apphelp_block: os << TS8("apphelp_block"); //0xc000035d,
-		break; case NtStatus::all_sids_filtered: os << TS8("all_sids_filtered"); //0xc000035e,
-		break; case NtStatus::not_safe_mode_driver: os << TS8("not_safe_mode_driver"); //0xc000035f,
-		break; case NtStatus::access_disabled_by_policy_default: os << TS8("access_disabled_by_policy_default"); //0xc0000361,
-		break; case NtStatus::access_disabled_by_policy_path: os << TS8("access_disabled_by_policy_path"); //0xc0000362,
-		break; case NtStatus::access_disabled_by_policy_publisher: os << TS8("access_disabled_by_policy_publisher"); //0xc0000363,
-		break; case NtStatus::access_disabled_by_policy_other: os << TS8("access_disabled_by_policy_other"); //0xc0000364,
-		break; case NtStatus::failed_driver_entry: os << TS8("failed_driver_entry"); //0xc0000365,
-		break; case NtStatus::device_enumeration_error: os << TS8("device_enumeration_error"); //0xc0000366,
-		break; case NtStatus::mount_point_not_resolved: os << TS8("mount_point_not_resolved"); //0xc0000368,
-		break; case NtStatus::invalid_device_object_parameter: os << TS8("invalid_device_object_parameter"); //0xc0000369,
-		break; case NtStatus::mca_occured: os << TS8("mca_occured"); //0xc000036a,
-		break; case NtStatus::driver_blocked_critical: os << TS8("driver_blocked_critical"); //0xc000036b,
-		break; case NtStatus::driver_blocked: os << TS8("driver_blocked"); //0xc000036c,
-		break; case NtStatus::driver_database_error: os << TS8("driver_database_error"); //0xc000036d,
-		break; case NtStatus::system_hive_too_large: os << TS8("system_hive_too_large"); //0xc000036e,
-		break; case NtStatus::invalid_import_of_non_dll: os << TS8("invalid_import_of_non_dll"); //0xc000036f,
-		break; case NtStatus::no_secrets: os << TS8("no_secrets"); //0xc0000371,
-		break; case NtStatus::access_disabled_no_safer_ui_by_policy: os << TS8("access_disabled_no_safer_ui_by_policy"); //0xc0000372,
-		break; case NtStatus::failed_stack_switch: os << TS8("failed_stack_switch"); //0xc0000373,
-		break; case NtStatus::heap_corruption: os << TS8("heap_corruption"); //0xc0000374,
-		break; case NtStatus::smartcard_wrong_pin: os << TS8("smartcard_wrong_pin"); //0xc0000380,
-		break; case NtStatus::smartcard_card_blocked: os << TS8("smartcard_card_blocked"); //0xc0000381,
-		break; case NtStatus::smartcard_card_not_authenticated: os << TS8("smartcard_card_not_authenticated"); //0xc0000382,
-		break; case NtStatus::smartcard_no_card: os << TS8("smartcard_no_card"); //0xc0000383,
-		break; case NtStatus::smartcard_no_key_container: os << TS8("smartcard_no_key_container"); //0xc0000384,
-		break; case NtStatus::smartcard_no_certificate: os << TS8("smartcard_no_certificate"); //0xc0000385,
-		break; case NtStatus::smartcard_no_keyset: os << TS8("smartcard_no_keyset"); //0xc0000386,
-		break; case NtStatus::smartcard_io_error: os << TS8("smartcard_io_error"); //0xc0000387,
-		break; case NtStatus::downgrade_detected: os << TS8("downgrade_detected"); //0xc0000388,
-		break; case NtStatus::smartcard_cert_revoked: os << TS8("smartcard_cert_revoked"); //0xc0000389,
-		break; case NtStatus::issuing_ca_untrusted: os << TS8("issuing_ca_untrusted"); //0xc000038a,
-		break; case NtStatus::revocation_offline_c: os << TS8("revocation_offline_c"); //0xc000038b,
-		break; case NtStatus::pkinit_client_failure: os << TS8("pkinit_client_failure"); //0xc000038c,
-		break; case NtStatus::smartcard_cert_expired: os << TS8("smartcard_cert_expired"); //0xc000038d,
-		break; case NtStatus::driver_failed_prior_unload: os << TS8("driver_failed_prior_unload"); //0xc000038e,
-		break; case NtStatus::smartcard_silent_context: os << TS8("smartcard_silent_context"); //0xc000038f,
-		break; case NtStatus::per_user_trust_quota_exceeded: os << TS8("per_user_trust_quota_exceeded"); //0xc0000401,
-		break; case NtStatus::all_user_trust_quota_exceeded: os << TS8("all_user_trust_quota_exceeded"); //0xc0000402,
-		break; case NtStatus::user_delete_trust_quota_exceeded: os << TS8("user_delete_trust_quota_exceeded"); //0xc0000403,
-		break; case NtStatus::ds_name_not_unique: os << TS8("ds_name_not_unique"); //0xc0000404,
-		break; case NtStatus::ds_duplicate_id_found: os << TS8("ds_duplicate_id_found"); //0xc0000405,
-		break; case NtStatus::ds_group_conversion_error: os << TS8("ds_group_conversion_error"); //0xc0000406,
-		break; case NtStatus::volsnap_prepare_hibernate: os << TS8("volsnap_prepare_hibernate"); //0xc0000407,
-		break; case NtStatus::user2user_required: os << TS8("user2user_required"); //0xc0000408,
-		break; case NtStatus::stack_buffer_overrun: os << TS8("stack_buffer_overrun"); //0xc0000409,
-		break; case NtStatus::no_s4u_prot_support: os << TS8("no_s4u_prot_support"); //0xc000040a,
-		break; case NtStatus::crossrealm_delegation_failure: os << TS8("crossrealm_delegation_failure"); //0xc000040b,
-		break; case NtStatus::revocation_offline_kdc: os << TS8("revocation_offline_kdc"); //0xc000040c,
-		break; case NtStatus::issuing_ca_untrusted_kdc: os << TS8("issuing_ca_untrusted_kdc"); //0xc000040d,
-		break; case NtStatus::kdc_cert_expired: os << TS8("kdc_cert_expired"); //0xc000040e,
-		break; case NtStatus::kdc_cert_revoked: os << TS8("kdc_cert_revoked"); //0xc000040f,
-		break; case NtStatus::parameter_quota_exceeded: os << TS8("parameter_quota_exceeded"); //0xc0000410,
-		break; case NtStatus::hibernation_failure: os << TS8("hibernation_failure"); //0xc0000411,
-		break; case NtStatus::delay_load_failed: os << TS8("delay_load_failed"); //0xc0000412,
-		break; case NtStatus::authentication_firewall_failed: os << TS8("authentication_firewall_failed"); //0xc0000413,
-		break; case NtStatus::vdm_disallowed: os << TS8("vdm_disallowed"); //0xc0000414,
-		break; case NtStatus::hung_display_driver_thread: os << TS8("hung_display_driver_thread"); //0xc0000415,
-		break; case NtStatus::insufficient_resource_for_specified_shared_section_size: os << TS8("insufficient_resource_for_specified_shared_section_size"); //0xc0000416,
-		break; case NtStatus::invalid_cruntime_parameter: os << TS8("invalid_cruntime_parameter"); //0xc0000417,
-		break; case NtStatus::ntlm_blocked: os << TS8("ntlm_blocked"); //0xc0000418,
-		break; case NtStatus::ds_src_sid_exists_in_forest: os << TS8("ds_src_sid_exists_in_forest"); //0xc0000419,
-		break; case NtStatus::ds_domain_name_exists_in_forest: os << TS8("ds_domain_name_exists_in_forest"); //0xc000041a,
-		break; case NtStatus::ds_flat_name_exists_in_forest: os << TS8("ds_flat_name_exists_in_forest"); //0xc000041b,
-		break; case NtStatus::invalid_user_principal_name: os << TS8("invalid_user_principal_name"); //0xc000041c,
-		break; case NtStatus::fatal_user_callback_exception: os << TS8("fatal_user_callback_exception"); //0xc000041d,
-		break; case NtStatus::assertion_failure: os << TS8("assertion_failure"); //0xc0000420,
-		break; case NtStatus::verifier_stop: os << TS8("verifier_stop"); //0xc0000421,
-		break; case NtStatus::callback_pop_stack: os << TS8("callback_pop_stack"); //0xc0000423,
-		break; case NtStatus::incompatible_driver_blocked: os << TS8("incompatible_driver_blocked"); //0xc0000424,
-		break; case NtStatus::hive_unloaded: os << TS8("hive_unloaded"); //0xc0000425,
-		break; case NtStatus::compression_disabled: os << TS8("compression_disabled"); //0xc0000426,
-		break; case NtStatus::file_system_limitation: os << TS8("file_system_limitation"); //0xc0000427,
-		break; case NtStatus::invalid_image_hash: os << TS8("invalid_image_hash"); //0xc0000428,
-		break; case NtStatus::not_capable: os << TS8("not_capable"); //0xc0000429,
-		break; case NtStatus::request_out_of_sequence: os << TS8("request_out_of_sequence"); //0xc000042a,
-		break; case NtStatus::implementation_limit: os << TS8("implementation_limit"); //0xc000042b,
-		break; case NtStatus::elevation_required: os << TS8("elevation_required"); //0xc000042c,
-		break; case NtStatus::no_security_context: os << TS8("no_security_context"); //0xc000042d,
-		break; case NtStatus::pku2u_cert_failure: os << TS8("pku2u_cert_failure"); //0xc000042f,
-		break; case NtStatus::beyond_vdl: os << TS8("beyond_vdl"); //0xc0000432,
-		break; case NtStatus::encountered_write_in_progress: os << TS8("encountered_write_in_progress"); //0xc0000433,
-		break; case NtStatus::pte_changed: os << TS8("pte_changed"); //0xc0000434,
-		break; case NtStatus::purge_failed: os << TS8("purge_failed"); //0xc0000435,
-		break; case NtStatus::cred_requires_confirmation: os << TS8("cred_requires_confirmation"); //0xc0000440,
-		break; case NtStatus::cs_encryption_invalid_server_response: os << TS8("cs_encryption_invalid_server_response"); //0xc0000441,
-		break; case NtStatus::cs_encryption_unsupported_server: os << TS8("cs_encryption_unsupported_server"); //0xc0000442,
-		break; case NtStatus::cs_encryption_existing_encrypted_file: os << TS8("cs_encryption_existing_encrypted_file"); //0xc0000443,
-		break; case NtStatus::cs_encryption_new_encrypted_file: os << TS8("cs_encryption_new_encrypted_file"); //0xc0000444,
-		break; case NtStatus::cs_encryption_file_not_cse: os << TS8("cs_encryption_file_not_cse"); //0xc0000445,
-		break; case NtStatus::invalid_label: os << TS8("invalid_label"); //0xc0000446,
-		break; case NtStatus::driver_process_terminated: os << TS8("driver_process_terminated"); //0xc0000450,
-		break; case NtStatus::ambiguous_system_device: os << TS8("ambiguous_system_device"); //0xc0000451,
-		break; case NtStatus::system_device_not_found: os << TS8("system_device_not_found"); //0xc0000452,
-		break; case NtStatus::restart_boot_application: os << TS8("restart_boot_application"); //0xc0000453,
-		break; case NtStatus::insufficient_nvram_resources: os << TS8("insufficient_nvram_resources"); //0xc0000454,
-		break; case NtStatus::invalid_session: os << TS8("invalid_session"); //0xc0000455,
-		break; case NtStatus::thread_already_in_session: os << TS8("thread_already_in_session"); //0xc0000456,
-		break; case NtStatus::thread_not_in_session: os << TS8("thread_not_in_session"); //0xc0000457,
-		break; case NtStatus::invalid_weight: os << TS8("invalid_weight"); //0xc0000458,
-		break; case NtStatus::request_paused: os << TS8("request_paused"); //0xc0000459,
-		break; case NtStatus::no_ranges_processed: os << TS8("no_ranges_processed"); //0xc0000460,
-		break; case NtStatus::disk_resources_exhausted: os << TS8("disk_resources_exhausted"); //0xc0000461,
-		break; case NtStatus::needs_remediation: os << TS8("needs_remediation"); //0xc0000462,
-		break; case NtStatus::device_feature_not_supported: os << TS8("device_feature_not_supported"); //0xc0000463,
-		break; case NtStatus::device_unreachable: os << TS8("device_unreachable"); //0xc0000464,
-		break; case NtStatus::invalid_token: os << TS8("invalid_token"); //0xc0000465,
-		break; case NtStatus::server_unavailable: os << TS8("server_unavailable"); //0xc0000466,
-		break; case NtStatus::file_not_available: os << TS8("file_not_available"); //0xc0000467,
-		break; case NtStatus::device_insufficient_resources: os << TS8("device_insufficient_resources"); //0xc0000468,
-		break; case NtStatus::package_updating: os << TS8("package_updating"); //0xc0000469,
-		break; case NtStatus::not_read_from_copy: os << TS8("not_read_from_copy"); //0xc000046a,
-		break; case NtStatus::ft_write_failure: os << TS8("ft_write_failure"); //0xc000046b,
-		break; case NtStatus::ft_di_scan_required: os << TS8("ft_di_scan_required"); //0xc000046c,
-		break; case NtStatus::object_not_externally_backed: os << TS8("object_not_externally_backed"); //0xc000046d,
-		break; case NtStatus::external_backing_provider_unknown: os << TS8("external_backing_provider_unknown"); //0xc000046e,
-		break; case NtStatus::compression_not_beneficial: os << TS8("compression_not_beneficial"); //0xc000046f,
-		break; case NtStatus::data_checksum_error: os << TS8("data_checksum_error"); //0xc0000470,
-		break; case NtStatus::intermixed_kernel_ea_operation: os << TS8("intermixed_kernel_ea_operation"); //0xc0000471,
-		break; case NtStatus::trim_read_zero_not_supported: os << TS8("trim_read_zero_not_supported"); //0xc0000472,
-		break; case NtStatus::too_many_segment_descriptors: os << TS8("too_many_segment_descriptors"); //0xc0000473,
-		break; case NtStatus::invalid_offset_alignment: os << TS8("invalid_offset_alignment"); //0xc0000474,
-		break; case NtStatus::invalid_field_in_parameter_list: os << TS8("invalid_field_in_parameter_list"); //0xc0000475,
-		break; case NtStatus::operation_in_progress: os << TS8("operation_in_progress"); //0xc0000476,
-		break; case NtStatus::invalid_initiator_target_path: os << TS8("invalid_initiator_target_path"); //0xc0000477,
-		break; case NtStatus::scrub_data_disabled: os << TS8("scrub_data_disabled"); //0xc0000478,
-		break; case NtStatus::not_redundant_storage: os << TS8("not_redundant_storage"); //0xc0000479,
-		break; case NtStatus::resident_file_not_supported: os << TS8("resident_file_not_supported"); //0xc000047a,
-		break; case NtStatus::compressed_file_not_supported: os << TS8("compressed_file_not_supported"); //0xc000047b,
-		break; case NtStatus::directory_not_supported: os << TS8("directory_not_supported"); //0xc000047c,
-		break; case NtStatus::io_operation_timeout: os << TS8("io_operation_timeout"); //0xc000047d,
-		break; case NtStatus::system_needs_remediation: os << TS8("system_needs_remediation"); //0xc000047e,
-		break; case NtStatus::appx_integrity_failure_clr_ngen: os << TS8("appx_integrity_failure_clr_ngen"); //0xc000047f,
-		break; case NtStatus::share_unavailable: os << TS8("share_unavailable"); //0xc0000480,
-		break; case NtStatus::apiset_not_hosted: os << TS8("apiset_not_hosted"); //0xc0000481,
-		break; case NtStatus::apiset_not_present: os << TS8("apiset_not_present"); //0xc0000482,
-		break; case NtStatus::device_hardware_error: os << TS8("device_hardware_error"); //0xc0000483,
-		break; case NtStatus::firmware_slot_invalid: os << TS8("firmware_slot_invalid"); //0xc0000484,
-		break; case NtStatus::firmware_image_invalid: os << TS8("firmware_image_invalid"); //0xc0000485,
-		break; case NtStatus::storage_topology_id_mismatch: os << TS8("storage_topology_id_mismatch"); //0xc0000486,
-		break; case NtStatus::wim_not_bootable: os << TS8("wim_not_bootable"); //0xc0000487,
-		break; case NtStatus::blocked_by_parental_controls: os << TS8("blocked_by_parental_controls"); //0xc0000488,
-		break; case NtStatus::needs_registration: os << TS8("needs_registration"); //0xc0000489,
-		break; case NtStatus::quota_activity: os << TS8("quota_activity"); //0xc000048a,
-		break; case NtStatus::callback_invoke_inline: os << TS8("callback_invoke_inline"); //0xc000048b,
-		break; case NtStatus::block_too_many_references: os << TS8("block_too_many_references"); //0xc000048c,
-		break; case NtStatus::marked_to_disallow_writes: os << TS8("marked_to_disallow_writes"); //0xc000048d,
-		break; case NtStatus::network_access_denied_edp: os << TS8("network_access_denied_edp"); //0xc000048e,
-		break; case NtStatus::enclave_failure: os << TS8("enclave_failure"); //0xc000048f,
-		break; case NtStatus::pnp_no_compat_drivers: os << TS8("pnp_no_compat_drivers"); //0xc0000490,
-		break; case NtStatus::pnp_driver_package_not_found: os << TS8("pnp_driver_package_not_found"); //0xc0000491,
-		break; case NtStatus::pnp_driver_configuration_not_found: os << TS8("pnp_driver_configuration_not_found"); //0xc0000492,
-		break; case NtStatus::pnp_driver_configuration_incomplete: os << TS8("pnp_driver_configuration_incomplete"); //0xc0000493,
-		break; case NtStatus::pnp_function_driver_required: os << TS8("pnp_function_driver_required"); //0xc0000494,
-		break; case NtStatus::pnp_device_configuration_pending: os << TS8("pnp_device_configuration_pending"); //0xc0000495,
-		break; case NtStatus::device_hint_name_buffer_too_small: os << TS8("device_hint_name_buffer_too_small"); //0xc0000496,
-		break; case NtStatus::package_not_available: os << TS8("package_not_available"); //0xc0000497,
-		break; case NtStatus::device_in_maintenance: os << TS8("device_in_maintenance"); //0xc0000499,
-		break; case NtStatus::not_supported_on_dax: os << TS8("not_supported_on_dax"); //0xc000049a,
-		break; case NtStatus::free_space_too_fragmented: os << TS8("free_space_too_fragmented"); //0xc000049b,
-		break; case NtStatus::dax_mapping_exists: os << TS8("dax_mapping_exists"); //0xc000049c,
-		break; case NtStatus::child_process_blocked: os << TS8("child_process_blocked"); //0xc000049d,
-		break; case NtStatus::storage_lost_data_persistence: os << TS8("storage_lost_data_persistence"); //0xc000049e,
-		break; case NtStatus::vrf_cfg_enabled: os << TS8("vrf_cfg_enabled"); //0xc000049f,
-		break; case NtStatus::partition_terminating: os << TS8("partition_terminating"); //0xc00004a0,
-		break; case NtStatus::external_syskey_not_supported: os << TS8("external_syskey_not_supported"); //0xc00004a1,
-		break; case NtStatus::enclave_violation: os << TS8("enclave_violation"); //0xc00004a2,
-		break; case NtStatus::file_protected_under_dpl: os << TS8("file_protected_under_dpl"); //0xc00004a3,
-		break; case NtStatus::volume_not_cluster_aligned: os << TS8("volume_not_cluster_aligned"); //0xc00004a4,
-		break; case NtStatus::no_physically_aligned_free_space_found: os << TS8("no_physically_aligned_free_space_found"); //0xc00004a5,
-		break; case NtStatus::appx_file_not_encrypted: os << TS8("appx_file_not_encrypted"); //0xc00004a6,
-		break; case NtStatus::rwraw_encrypted_file_not_encrypted: os << TS8("rwraw_encrypted_file_not_encrypted"); //0xc00004a7,
-		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_fileoffset: os << TS8("rwraw_encrypted_invalid_edatainfo_fileoffset"); //0xc00004a8,
-		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_filerange: os << TS8("rwraw_encrypted_invalid_edatainfo_filerange"); //0xc00004a9,
-		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_parameter: os << TS8("rwraw_encrypted_invalid_edatainfo_parameter"); //0xc00004aa,
-		break; case NtStatus::ft_read_failure: os << TS8("ft_read_failure"); //0xc00004ab,
-		break; case NtStatus::patch_conflict: os << TS8("patch_conflict"); //0xc00004ac,
-		break; case NtStatus::storage_reserve_id_invalid: os << TS8("storage_reserve_id_invalid"); //0xc00004ad,
-		break; case NtStatus::storage_reserve_does_not_exist: os << TS8("storage_reserve_does_not_exist"); //0xc00004ae,
-		break; case NtStatus::storage_reserve_already_exists: os << TS8("storage_reserve_already_exists"); //0xc00004af,
-		break; case NtStatus::storage_reserve_not_empty: os << TS8("storage_reserve_not_empty"); //0xc00004b0,
-		break; case NtStatus::not_a_dax_volume: os << TS8("not_a_dax_volume"); //0xc00004b1,
-		break; case NtStatus::not_dax_mappable: os << TS8("not_dax_mappable"); //0xc00004b2,
-		break; case NtStatus::case_differing_names_in_dir: os << TS8("case_differing_names_in_dir"); //0xc00004b3,
-		break; case NtStatus::file_not_supported: os << TS8("file_not_supported"); //0xc00004b4,
-		break; case NtStatus::not_supported_with_btt: os << TS8("not_supported_with_btt"); //0xc00004b5,
-		break; case NtStatus::encryption_disabled: os << TS8("encryption_disabled"); //0xc00004b6,
-		break; case NtStatus::encrypting_metadata_disallowed: os << TS8("encrypting_metadata_disallowed"); //0xc00004b7,
-		break; case NtStatus::cant_clear_encryption_flag: os << TS8("cant_clear_encryption_flag"); //0xc00004b8,
-		break; case NtStatus::unsatisfied_dependencies: os << TS8("unsatisfied_dependencies"); //0xc00004b9,
-		break; case NtStatus::case_sensitive_path: os << TS8("case_sensitive_path"); //0xc00004ba,
-		break; case NtStatus::unsupported_paging_mode: os << TS8("unsupported_paging_mode"); //0xc00004bb,
-		break; case NtStatus::untrusted_mount_point: os << TS8("untrusted_mount_point"); //0xc00004bc,
-		break; case NtStatus::has_system_critical_files: os << TS8("has_system_critical_files"); //0xc00004bd,
-		break; case NtStatus::object_is_immutable: os << TS8("object_is_immutable"); //0xc00004be,
-		break; case NtStatus::ft_read_from_copy_failure: os << TS8("ft_read_from_copy_failure"); //0xc00004bf,
-		break; case NtStatus::image_loaded_as_patch_image: os << TS8("image_loaded_as_patch_image"); //0xc00004c0,
-		break; case NtStatus::storage_stack_access_denied: os << TS8("storage_stack_access_denied"); //0xc00004c1,
-		break; case NtStatus::insufficient_virtual_addr_resources: os << TS8("insufficient_virtual_addr_resources"); //0xc00004c2,
-		break; case NtStatus::encrypted_file_not_supported: os << TS8("encrypted_file_not_supported"); //0xc00004c3,
-		break; case NtStatus::sparse_file_not_supported: os << TS8("sparse_file_not_supported"); //0xc00004c4,
-		break; case NtStatus::pagefile_not_supported: os << TS8("pagefile_not_supported"); //0xc00004c5,
-		break; case NtStatus::volume_not_supported: os << TS8("volume_not_supported"); //0xc00004c6,
-		break; case NtStatus::not_supported_with_bypassio: os << TS8("not_supported_with_bypassio"); //0xc00004c7,
-		break; case NtStatus::no_bypassio_driver_support: os << TS8("no_bypassio_driver_support"); //0xc00004c8,
-		break; case NtStatus::not_supported_with_encryption: os << TS8("not_supported_with_encryption"); //0xc00004c9,
-		break; case NtStatus::not_supported_with_compression: os << TS8("not_supported_with_compression"); //0xc00004ca,
-		break; case NtStatus::not_supported_with_replication: os << TS8("not_supported_with_replication"); //0xc00004cb,
-		break; case NtStatus::not_supported_with_deduplication: os << TS8("not_supported_with_deduplication"); //0xc00004cc,
-		break; case NtStatus::not_supported_with_auditing: os << TS8("not_supported_with_auditing"); //0xc00004cd,
-		break; case NtStatus::not_supported_with_monitoring: os << TS8("not_supported_with_monitoring"); //0xc00004ce,
-		break; case NtStatus::not_supported_with_snapshot: os << TS8("not_supported_with_snapshot"); //0xc00004cf,
-		break; case NtStatus::not_supported_with_virtualization: os << TS8("not_supported_with_virtualization"); //0xc00004d0,
-		break; case NtStatus::index_out_of_bounds: os << TS8("index_out_of_bounds"); //0xc00004d1,
-		break; case NtStatus::bypassio_flt_not_supported: os << TS8("bypassio_flt_not_supported"); //0xc00004d2,
-		break; case NtStatus::volume_write_access_denied: os << TS8("volume_write_access_denied"); //0xc00004d3,
-		break; case NtStatus::patch_not_registered: os << TS8("patch_not_registered"); //0xc00004d4,
-		break; case NtStatus::not_supported_with_cached_handle: os << TS8("not_supported_with_cached_handle"); //0xc00004d5,
-		break; case NtStatus::invalid_task_name: os << TS8("invalid_task_name"); //0xc0000500,
-		break; case NtStatus::invalid_task_index: os << TS8("invalid_task_index"); //0xc0000501,
-		break; case NtStatus::thread_already_in_task: os << TS8("thread_already_in_task"); //0xc0000502,
-		break; case NtStatus::callback_bypass: os << TS8("callback_bypass"); //0xc0000503,
-		break; case NtStatus::undefined_scope: os << TS8("undefined_scope"); //0xc0000504,
-		break; case NtStatus::invalid_cap: os << TS8("invalid_cap"); //0xc0000505,
-		break; case NtStatus::not_gui_process: os << TS8("not_gui_process"); //0xc0000506,
-		break; case NtStatus::device_hung: os << TS8("device_hung"); //0xc0000507,
-		break; case NtStatus::container_assigned: os << TS8("container_assigned"); //0xc0000508,
-		break; case NtStatus::job_no_container: os << TS8("job_no_container"); //0xc0000509,
-		break; case NtStatus::device_unresponsive: os << TS8("device_unresponsive"); //0xc000050a,
-		break; case NtStatus::reparse_point_encountered: os << TS8("reparse_point_encountered"); //0xc000050b,
-		break; case NtStatus::attribute_not_present: os << TS8("attribute_not_present"); //0xc000050c,
-		break; case NtStatus::not_a_tiered_volume: os << TS8("not_a_tiered_volume"); //0xc000050d,
-		break; case NtStatus::already_has_stream_id: os << TS8("already_has_stream_id"); //0xc000050e,
-		break; case NtStatus::job_not_empty: os << TS8("job_not_empty"); //0xc000050f,
-		break; case NtStatus::already_initialized: os << TS8("already_initialized"); //0xc0000510,
-		break; case NtStatus::enclave_not_terminated: os << TS8("enclave_not_terminated"); //0xc0000511,
-		break; case NtStatus::enclave_is_terminating: os << TS8("enclave_is_terminating"); //0xc0000512,
-		break; case NtStatus::smb1_not_available: os << TS8("smb1_not_available"); //0xc0000513,
-		break; case NtStatus::smr_garbage_collection_required: os << TS8("smr_garbage_collection_required"); //0xc0000514,
-		break; case NtStatus::interrupted: os << TS8("interrupted"); //0xc0000515,
-		break; case NtStatus::thread_not_running: os << TS8("thread_not_running"); //0xc0000516,
-		break; case NtStatus::session_key_too_short: os << TS8("session_key_too_short"); //0xc0000517,
-		break; case NtStatus::fs_metadata_inconsistent: os << TS8("fs_metadata_inconsistent"); //0xc0000518,
-		break; case NtStatus::fail_fast_exception: os << TS8("fail_fast_exception"); //0xc0000602,
-		break; case NtStatus::image_cert_revoked: os << TS8("image_cert_revoked"); //0xc0000603,
-		break; case NtStatus::dynamic_code_blocked: os << TS8("dynamic_code_blocked"); //0xc0000604,
-		break; case NtStatus::image_cert_expired: os << TS8("image_cert_expired"); //0xc0000605,
-		break; case NtStatus::strict_cfg_violation: os << TS8("strict_cfg_violation"); //0xc0000606,
-		break; case NtStatus::set_context_denied: os << TS8("set_context_denied"); //0xc000060a,
-		break; case NtStatus::cross_partition_violation: os << TS8("cross_partition_violation"); //0xc000060b,
-		break; case NtStatus::port_closed: os << TS8("port_closed"); //0xc0000700,
-		break; case NtStatus::message_lost: os << TS8("message_lost"); //0xc0000701,
-		break; case NtStatus::invalid_message: os << TS8("invalid_message"); //0xc0000702,
-		break; case NtStatus::request_canceled: os << TS8("request_canceled"); //0xc0000703,
-		break; case NtStatus::recursive_dispatch: os << TS8("recursive_dispatch"); //0xc0000704,
-		break; case NtStatus::lpc_receive_buffer_expected: os << TS8("lpc_receive_buffer_expected"); //0xc0000705,
-		break; case NtStatus::lpc_invalid_connection_usage: os << TS8("lpc_invalid_connection_usage"); //0xc0000706,
-		break; case NtStatus::lpc_requests_not_allowed: os << TS8("lpc_requests_not_allowed"); //0xc0000707,
-		break; case NtStatus::resource_in_use: os << TS8("resource_in_use"); //0xc0000708,
-		break; case NtStatus::hardware_memory_error: os << TS8("hardware_memory_error"); //0xc0000709,
-		break; case NtStatus::threadpool_handle_exception: os << TS8("threadpool_handle_exception"); //0xc000070a,
-		break; case NtStatus::threadpool_set_event_on_completion_failed: os << TS8("threadpool_set_event_on_completion_failed"); //0xc000070b,
-		break; case NtStatus::threadpool_release_semaphore_on_completion_failed: os << TS8("threadpool_release_semaphore_on_completion_failed"); //0xc000070c,
-		break; case NtStatus::threadpool_release_mutex_on_completion_failed: os << TS8("threadpool_release_mutex_on_completion_failed"); //0xc000070d,
-		break; case NtStatus::threadpool_free_library_on_completion_failed: os << TS8("threadpool_free_library_on_completion_failed"); //0xc000070e,
-		break; case NtStatus::threadpool_released_during_operation: os << TS8("threadpool_released_during_operation"); //0xc000070f,
-		break; case NtStatus::callback_returned_while_impersonating: os << TS8("callback_returned_while_impersonating"); //0xc0000710,
-		break; case NtStatus::apc_returned_while_impersonating: os << TS8("apc_returned_while_impersonating"); //0xc0000711,
-		break; case NtStatus::process_is_protected: os << TS8("process_is_protected"); //0xc0000712,
-		break; case NtStatus::mca_exception: os << TS8("mca_exception"); //0xc0000713,
-		break; case NtStatus::certificate_mapping_not_unique: os << TS8("certificate_mapping_not_unique"); //0xc0000714,
-		break; case NtStatus::symlink_class_disabled: os << TS8("symlink_class_disabled"); //0xc0000715,
-		break; case NtStatus::invalid_idn_normalization: os << TS8("invalid_idn_normalization"); //0xc0000716,
-		break; case NtStatus::no_unicode_translation: os << TS8("no_unicode_translation"); //0xc0000717,
-		break; case NtStatus::already_registered: os << TS8("already_registered"); //0xc0000718,
-		break; case NtStatus::context_mismatch: os << TS8("context_mismatch"); //0xc0000719,
-		break; case NtStatus::port_already_has_completion_list: os << TS8("port_already_has_completion_list"); //0xc000071a,
-		break; case NtStatus::callback_returned_thread_priority: os << TS8("callback_returned_thread_priority"); //0xc000071b,
-		break; case NtStatus::invalid_thread: os << TS8("invalid_thread"); //0xc000071c,
-		break; case NtStatus::callback_returned_transaction: os << TS8("callback_returned_transaction"); //0xc000071d,
-		break; case NtStatus::callback_returned_ldr_lock: os << TS8("callback_returned_ldr_lock"); //0xc000071e,
-		break; case NtStatus::callback_returned_lang: os << TS8("callback_returned_lang"); //0xc000071f,
-		break; case NtStatus::callback_returned_pri_back: os << TS8("callback_returned_pri_back"); //0xc0000720,
-		break; case NtStatus::callback_returned_thread_affinity: os << TS8("callback_returned_thread_affinity"); //0xc0000721,
-		break; case NtStatus::lpc_handle_count_exceeded: os << TS8("lpc_handle_count_exceeded"); //0xc0000722,
-		break; case NtStatus::executable_memory_write: os << TS8("executable_memory_write"); //0xc0000723,
-		break; case NtStatus::kernel_executable_memory_write: os << TS8("kernel_executable_memory_write"); //0xc0000724,
-		break; case NtStatus::attached_executable_memory_write: os << TS8("attached_executable_memory_write"); //0xc0000725,
-		break; case NtStatus::triggered_executable_memory_write: os << TS8("triggered_executable_memory_write"); //0xc0000726,
-		break; case NtStatus::disk_repair_disabled: os << TS8("disk_repair_disabled"); //0xc0000800,
-		break; case NtStatus::ds_domain_rename_in_progress: os << TS8("ds_domain_rename_in_progress"); //0xc0000801,
-		break; case NtStatus::disk_quota_exceeded: os << TS8("disk_quota_exceeded"); //0xc0000802,
-		break; case NtStatus::content_blocked: os << TS8("content_blocked"); //0xc0000804,
-		break; case NtStatus::bad_clusters: os << TS8("bad_clusters"); //0xc0000805,
-		break; case NtStatus::volume_dirty: os << TS8("volume_dirty"); //0xc0000806,
-		break; case NtStatus::disk_repair_unsuccessful: os << TS8("disk_repair_unsuccessful"); //0xc0000808,
-		break; case NtStatus::corrupt_log_overfull: os << TS8("corrupt_log_overfull"); //0xc0000809,
-		break; case NtStatus::corrupt_log_corrupted: os << TS8("corrupt_log_corrupted"); //0xc000080a,
-		break; case NtStatus::corrupt_log_unavailable: os << TS8("corrupt_log_unavailable"); //0xc000080b,
-		break; case NtStatus::corrupt_log_deleted_full: os << TS8("corrupt_log_deleted_full"); //0xc000080c,
-		break; case NtStatus::corrupt_log_cleared: os << TS8("corrupt_log_cleared"); //0xc000080d,
-		break; case NtStatus::orphan_name_exhausted: os << TS8("orphan_name_exhausted"); //0xc000080e,
-		break; case NtStatus::proactive_scan_in_progress: os << TS8("proactive_scan_in_progress"); //0xc000080f,
-		break; case NtStatus::encrypted_io_not_possible: os << TS8("encrypted_io_not_possible"); //0xc0000810,
-		break; case NtStatus::corrupt_log_uplevel_records: os << TS8("corrupt_log_uplevel_records"); //0xc0000811,
-		break; case NtStatus::file_checked_out: os << TS8("file_checked_out"); //0xc0000901,
-		break; case NtStatus::checkout_required: os << TS8("checkout_required"); //0xc0000902,
-		break; case NtStatus::bad_file_type: os << TS8("bad_file_type"); //0xc0000903,
-		break; case NtStatus::file_too_large: os << TS8("file_too_large"); //0xc0000904,
-		break; case NtStatus::forms_auth_required: os << TS8("forms_auth_required"); //0xc0000905,
-		break; case NtStatus::virus_infected: os << TS8("virus_infected"); //0xc0000906,
-		break; case NtStatus::virus_deleted: os << TS8("virus_deleted"); //0xc0000907,
-		break; case NtStatus::bad_mcfg_table: os << TS8("bad_mcfg_table"); //0xc0000908,
-		break; case NtStatus::cannot_break_oplock: os << TS8("cannot_break_oplock"); //0xc0000909,
-		break; case NtStatus::bad_key: os << TS8("bad_key"); //0xc000090a,
-		break; case NtStatus::bad_data: os << TS8("bad_data"); //0xc000090b,
-		break; case NtStatus::no_key: os << TS8("no_key"); //0xc000090c,
-		break; case NtStatus::file_handle_revoked: os << TS8("file_handle_revoked"); //0xc0000910,
-		break; case NtStatus::section_direct_map_only: os << TS8("section_direct_map_only"); //0xc0000911,
-		break; case NtStatus::block_weak_reference_invalid: os << TS8("block_weak_reference_invalid"); //0xc0000912,
-		break; case NtStatus::block_source_weak_reference_invalid: os << TS8("block_source_weak_reference_invalid"); //0xc0000913,
-		break; case NtStatus::block_target_weak_reference_invalid: os << TS8("block_target_weak_reference_invalid"); //0xc0000914,
-		break; case NtStatus::block_shared: os << TS8("block_shared"); //0xc0000915,
-		break; case NtStatus::vrf_volatile_cfg_and_io_enabled: os << TS8("vrf_volatile_cfg_and_io_enabled"); //0xc0000c08,
-		break; case NtStatus::vrf_volatile_not_stoppable: os << TS8("vrf_volatile_not_stoppable"); //0xc0000c09,
-		break; case NtStatus::vrf_volatile_safe_mode: os << TS8("vrf_volatile_safe_mode"); //0xc0000c0a,
-		break; case NtStatus::vrf_volatile_not_runnable_system: os << TS8("vrf_volatile_not_runnable_system"); //0xc0000c0b,
-		break; case NtStatus::vrf_volatile_not_supported_ruleclass: os << TS8("vrf_volatile_not_supported_ruleclass"); //0xc0000c0c,
-		break; case NtStatus::vrf_volatile_protected_driver: os << TS8("vrf_volatile_protected_driver"); //0xc0000c0d,
-		break; case NtStatus::vrf_volatile_nmi_registered: os << TS8("vrf_volatile_nmi_registered"); //0xc0000c0e,
-		break; case NtStatus::vrf_volatile_settings_conflict: os << TS8("vrf_volatile_settings_conflict"); //0xc0000c0f,
-		break; case NtStatus::dif_iocallback_not_replaced: os << TS8("dif_iocallback_not_replaced"); //0xc0000c76,
-		break; case NtStatus::dif_livedump_limit_exceeded: os << TS8("dif_livedump_limit_exceeded"); //0xc0000c77,
-		break; case NtStatus::dif_volatile_section_not_locked: os << TS8("dif_volatile_section_not_locked"); //0xc0000c78,
-		break; case NtStatus::dif_volatile_driver_hotpatched: os << TS8("dif_volatile_driver_hotpatched"); //0xc0000c79,
-		break; case NtStatus::dif_volatile_invalid_info: os << TS8("dif_volatile_invalid_info"); //0xc0000c7a,
-		break; case NtStatus::dif_volatile_driver_is_not_running: os << TS8("dif_volatile_driver_is_not_running"); //0xc0000c7b,
-		break; case NtStatus::dif_volatile_plugin_is_not_running: os << TS8("dif_volatile_plugin_is_not_running"); //0xc0000c7c,
-		break; case NtStatus::dif_volatile_plugin_change_not_allowed: os << TS8("dif_volatile_plugin_change_not_allowed"); //0xc0000c7d,
-		break; case NtStatus::dif_volatile_not_allowed: os << TS8("dif_volatile_not_allowed"); //0xc0000c7e,
-		break; case NtStatus::dif_binding_api_not_found: os << TS8("dif_binding_api_not_found"); //0xc0000c7f,
-		break; case NtStatus::wow_assertion: os << TS8("wow_assertion"); //0xc0009898,
-		break; case NtStatus::invalid_signature: os << TS8("invalid_signature"); //0xc000a000,
-		break; case NtStatus::hmac_not_supported: os << TS8("hmac_not_supported"); //0xc000a001,
-		break; case NtStatus::auth_tag_mismatch: os << TS8("auth_tag_mismatch"); //0xc000a002,
-		break; case NtStatus::invalid_state_transition: os << TS8("invalid_state_transition"); //0xc000a003,
-		break; case NtStatus::invalid_kernel_info_version: os << TS8("invalid_kernel_info_version"); //0xc000a004,
-		break; case NtStatus::invalid_pep_info_version: os << TS8("invalid_pep_info_version"); //0xc000a005,
-		break; case NtStatus::handle_revoked: os << TS8("handle_revoked"); //0xc000a006,
-		break; case NtStatus::eof_on_ghosted_range: os << TS8("eof_on_ghosted_range"); //0xc000a007,
-		break; case NtStatus::cc_needs_callback_section_drain: os << TS8("cc_needs_callback_section_drain"); //0xc000a008,
-		break; case NtStatus::ipsec_queue_overflow: os << TS8("ipsec_queue_overflow"); //0xc000a010,
-		break; case NtStatus::nd_queue_overflow: os << TS8("nd_queue_overflow"); //0xc000a011,
-		break; case NtStatus::hoplimit_exceeded: os << TS8("hoplimit_exceeded"); //0xc000a012,
-		break; case NtStatus::protocol_not_supported: os << TS8("protocol_not_supported"); //0xc000a013,
-		break; case NtStatus::fastpath_rejected: os << TS8("fastpath_rejected"); //0xc000a014,
-		break; case NtStatus::lost_writebehind_data_network_disconnected: os << TS8("lost_writebehind_data_network_disconnected"); //0xc000a080,
-		break; case NtStatus::lost_writebehind_data_network_server_error: os << TS8("lost_writebehind_data_network_server_error"); //0xc000a081,
-		break; case NtStatus::lost_writebehind_data_local_disk_error: os << TS8("lost_writebehind_data_local_disk_error"); //0xc000a082,
-		break; case NtStatus::xml_parse_error: os << TS8("xml_parse_error"); //0xc000a083,
-		break; case NtStatus::xmldsig_error: os << TS8("xmldsig_error"); //0xc000a084,
-		break; case NtStatus::wrong_compartment: os << TS8("wrong_compartment"); //0xc000a085,
-		break; case NtStatus::authip_failure: os << TS8("authip_failure"); //0xc000a086,
-		break; case NtStatus::ds_oid_mapped_group_cant_have_members: os << TS8("ds_oid_mapped_group_cant_have_members"); //0xc000a087,
-		break; case NtStatus::ds_oid_not_found: os << TS8("ds_oid_not_found"); //0xc000a088,
-		break; case NtStatus::incorrect_account_type: os << TS8("incorrect_account_type"); //0xc000a089,
-		break; case NtStatus::local_policy_modification_not_supported: os << TS8("local_policy_modification_not_supported"); //0xc000a08a,
-		break; case NtStatus::policy_controlled_account: os << TS8("policy_controlled_account"); //0xc000a08b,
-		break; case NtStatus::laps_legacy_schema_missing: os << TS8("laps_legacy_schema_missing"); //0xc000a08c,
-		break; case NtStatus::laps_schema_missing: os << TS8("laps_schema_missing"); //0xc000a08d,
-		break; case NtStatus::laps_encryption_requires_2016_dfl: os << TS8("laps_encryption_requires_2016_dfl"); //0xc000a08e,
-		break; case NtStatus::hash_not_supported: os << TS8("hash_not_supported"); //0xc000a100,
-		break; case NtStatus::hash_not_present: os << TS8("hash_not_present"); //0xc000a101,
-		break; case NtStatus::secondary_ic_provider_not_registered: os << TS8("secondary_ic_provider_not_registered"); //0xc000a121,
-		break; case NtStatus::gpio_client_information_invalid: os << TS8("gpio_client_information_invalid"); //0xc000a122,
-		break; case NtStatus::gpio_version_not_supported: os << TS8("gpio_version_not_supported"); //0xc000a123,
-		break; case NtStatus::gpio_invalid_registration_packet: os << TS8("gpio_invalid_registration_packet"); //0xc000a124,
-		break; case NtStatus::gpio_operation_denied: os << TS8("gpio_operation_denied"); //0xc000a125,
-		break; case NtStatus::gpio_incompatible_connect_mode: os << TS8("gpio_incompatible_connect_mode"); //0xc000a126,
-		break; case NtStatus::cannot_switch_runlevel: os << TS8("cannot_switch_runlevel"); //0xc000a141,
-		break; case NtStatus::invalid_runlevel_setting: os << TS8("invalid_runlevel_setting"); //0xc000a142,
-		break; case NtStatus::runlevel_switch_timeout: os << TS8("runlevel_switch_timeout"); //0xc000a143,
-		break; case NtStatus::runlevel_switch_agent_timeout: os << TS8("runlevel_switch_agent_timeout"); //0xc000a145,
-		break; case NtStatus::runlevel_switch_in_progress: os << TS8("runlevel_switch_in_progress"); //0xc000a146,
-		break; case NtStatus::not_appcontainer: os << TS8("not_appcontainer"); //0xc000a200,
-		break; case NtStatus::not_supported_in_appcontainer: os << TS8("not_supported_in_appcontainer"); //0xc000a201,
-		break; case NtStatus::invalid_package_sid_length: os << TS8("invalid_package_sid_length"); //0xc000a202,
-		break; case NtStatus::lpac_access_denied: os << TS8("lpac_access_denied"); //0xc000a203,
-		break; case NtStatus::adminless_access_denied: os << TS8("adminless_access_denied"); //0xc000a204,
-		break; case NtStatus::app_data_not_found: os << TS8("app_data_not_found"); //0xc000a281,
-		break; case NtStatus::app_data_expired: os << TS8("app_data_expired"); //0xc000a282,
-		break; case NtStatus::app_data_corrupt: os << TS8("app_data_corrupt"); //0xc000a283,
-		break; case NtStatus::app_data_limit_exceeded: os << TS8("app_data_limit_exceeded"); //0xc000a284,
-		break; case NtStatus::app_data_reboot_required: os << TS8("app_data_reboot_required"); //0xc000a285,
-		break; case NtStatus::offload_read_flt_not_supported: os << TS8("offload_read_flt_not_supported"); //0xc000a2a1,
-		break; case NtStatus::offload_write_flt_not_supported: os << TS8("offload_write_flt_not_supported"); //0xc000a2a2,
-		break; case NtStatus::offload_read_file_not_supported: os << TS8("offload_read_file_not_supported"); //0xc000a2a3,
-		break; case NtStatus::offload_write_file_not_supported: os << TS8("offload_write_file_not_supported"); //0xc000a2a4,
-		break; case NtStatus::wof_wim_header_corrupt: os << TS8("wof_wim_header_corrupt"); //0xc000a2a5,
-		break; case NtStatus::wof_wim_resource_table_corrupt: os << TS8("wof_wim_resource_table_corrupt"); //0xc000a2a6,
-		break; case NtStatus::wof_file_resource_table_corrupt: os << TS8("wof_file_resource_table_corrupt"); //0xc000a2a7,
-		break; case NtStatus::cimfs_image_corrupt: os << TS8("cimfs_image_corrupt"); //0xc000c001,
-		break; case NtStatus::cimfs_image_version_not_supported: os << TS8("cimfs_image_version_not_supported"); //0xc000c002,
-		break; case NtStatus::file_system_virtualization_unavailable: os << TS8("file_system_virtualization_unavailable"); //0xc000ce01,
-		break; case NtStatus::file_system_virtualization_metadata_corrupt: os << TS8("file_system_virtualization_metadata_corrupt"); //0xc000ce02,
-		break; case NtStatus::file_system_virtualization_busy: os << TS8("file_system_virtualization_busy"); //0xc000ce03,
-		break; case NtStatus::file_system_virtualization_provider_unknown: os << TS8("file_system_virtualization_provider_unknown"); //0xc000ce04,
-		break; case NtStatus::file_system_virtualization_invalid_operation: os << TS8("file_system_virtualization_invalid_operation"); //0xc000ce05,
-		break; case NtStatus::cloud_file_sync_root_metadata_corrupt: os << TS8("cloud_file_sync_root_metadata_corrupt"); //0xc000cf00,
-		break; case NtStatus::cloud_file_provider_not_running: os << TS8("cloud_file_provider_not_running"); //0xc000cf01,
-		break; case NtStatus::cloud_file_metadata_corrupt: os << TS8("cloud_file_metadata_corrupt"); //0xc000cf02,
-		break; case NtStatus::cloud_file_metadata_too_large: os << TS8("cloud_file_metadata_too_large"); //0xc000cf03,
-		break; case NtStatus::cloud_file_property_version_not_supported: os << TS8("cloud_file_property_version_not_supported"); //0xc000cf06,
-		break; case NtStatus::not_a_cloud_file: os << TS8("not_a_cloud_file"); //0xc000cf07,
-		break; case NtStatus::cloud_file_not_in_sync: os << TS8("cloud_file_not_in_sync"); //0xc000cf08,
-		break; case NtStatus::cloud_file_already_connected: os << TS8("cloud_file_already_connected"); //0xc000cf09,
-		break; case NtStatus::cloud_file_not_supported: os << TS8("cloud_file_not_supported"); //0xc000cf0a,
-		break; case NtStatus::cloud_file_invalid_request: os << TS8("cloud_file_invalid_request"); //0xc000cf0b,
-		break; case NtStatus::cloud_file_read_only_volume: os << TS8("cloud_file_read_only_volume"); //0xc000cf0c,
-		break; case NtStatus::cloud_file_connected_provider_only: os << TS8("cloud_file_connected_provider_only"); //0xc000cf0d,
-		break; case NtStatus::cloud_file_validation_failed: os << TS8("cloud_file_validation_failed"); //0xc000cf0e,
-		break; case NtStatus::cloud_file_authentication_failed: os << TS8("cloud_file_authentication_failed"); //0xc000cf0f,
-		break; case NtStatus::cloud_file_insufficient_resources: os << TS8("cloud_file_insufficient_resources"); //0xc000cf10,
-		break; case NtStatus::cloud_file_network_unavailable: os << TS8("cloud_file_network_unavailable"); //0xc000cf11,
-		break; case NtStatus::cloud_file_unsuccessful: os << TS8("cloud_file_unsuccessful"); //0xc000cf12,
-		break; case NtStatus::cloud_file_not_under_sync_root: os << TS8("cloud_file_not_under_sync_root"); //0xc000cf13,
-		break; case NtStatus::cloud_file_in_use: os << TS8("cloud_file_in_use"); //0xc000cf14,
-		break; case NtStatus::cloud_file_pinned: os << TS8("cloud_file_pinned"); //0xc000cf15,
-		break; case NtStatus::cloud_file_request_aborted: os << TS8("cloud_file_request_aborted"); //0xc000cf16,
-		break; case NtStatus::cloud_file_property_corrupt: os << TS8("cloud_file_property_corrupt"); //0xc000cf17,
-		break; case NtStatus::cloud_file_access_denied: os << TS8("cloud_file_access_denied"); //0xc000cf18,
-		break; case NtStatus::cloud_file_incompatible_hardlinks: os << TS8("cloud_file_incompatible_hardlinks"); //0xc000cf19,
-		break; case NtStatus::cloud_file_property_lock_conflict: os << TS8("cloud_file_property_lock_conflict"); //0xc000cf1a,
-		break; case NtStatus::cloud_file_request_canceled: os << TS8("cloud_file_request_canceled"); //0xc000cf1b,
-		break; case NtStatus::cloud_file_provider_terminated: os << TS8("cloud_file_provider_terminated"); //0xc000cf1d,
-		break; case NtStatus::not_a_cloud_sync_root: os << TS8("not_a_cloud_sync_root"); //0xc000cf1e,
-		break; case NtStatus::cloud_file_request_timeout: os << TS8("cloud_file_request_timeout"); //0xc000cf1f,
-		break; case NtStatus::cloud_file_dehydration_disallowed: os << TS8("cloud_file_dehydration_disallowed"); //0xc000cf20,
-		break; case NtStatus::cloud_file_us_message_timeout: os << TS8("cloud_file_us_message_timeout"); //0xc000cf21,
-		break; case NtStatus::file_snap_in_progress: os << TS8("file_snap_in_progress"); //0xc000f500,
-		break; case NtStatus::file_snap_user_section_not_supported: os << TS8("file_snap_user_section_not_supported"); //0xc000f501,
-		break; case NtStatus::file_snap_modify_not_supported: os << TS8("file_snap_modify_not_supported"); //0xc000f502,
-		break; case NtStatus::file_snap_io_not_coordinated: os << TS8("file_snap_io_not_coordinated"); //0xc000f503,
-		break; case NtStatus::file_snap_unexpected_error: os << TS8("file_snap_unexpected_error"); //0xc000f504,
-		break; case NtStatus::file_snap_invalid_parameter: os << TS8("file_snap_invalid_parameter"); //0xc000f505,
-		break; case NtStatus::dbg_exception_handled: os << TS8("dbg_exception_handled"); //0x00010001,
-		break; case NtStatus::dbg_reply_later: os << TS8("dbg_reply_later"); //0x40010001,
-		break; case NtStatus::dbg_exception_not_handled: os << TS8("dbg_exception_not_handled"); //0x80010001,
-		break; case NtStatus::dbg_no_state_change: os << TS8("dbg_no_state_change"); //0xc0010001,
-		break; case NtStatus::dbg_continue: os << TS8("dbg_continue"); //0x00010002,
-		break; case NtStatus::dbg_unable_to_provide_handle: os << TS8("dbg_unable_to_provide_handle"); //0x40010002,
-		break; case NtStatus::dbg_app_not_idle: os << TS8("dbg_app_not_idle"); //0xc0010002,
-		break; case NtStatus::dbg_terminate_thread: os << TS8("dbg_terminate_thread"); //0x40010003,
-		break; case NtStatus::dbg_terminate_process: os << TS8("dbg_terminate_process"); //0x40010004,
-		break; case NtStatus::dbg_control_c: os << TS8("dbg_control_c"); //0x40010005,
-		break; case NtStatus::dbg_printexception_c: os << TS8("dbg_printexception_c"); //0x40010006,
-		break; case NtStatus::dbg_ripexception: os << TS8("dbg_ripexception"); //0x40010007,
-		break; case NtStatus::dbg_control_break: os << TS8("dbg_control_break"); //0x40010008,
-		break; case NtStatus::dbg_command_exception: os << TS8("dbg_command_exception"); //0x40010009,
-		break; case NtStatus::dbg_printexception_wide_c: os << TS8("dbg_printexception_wide_c"); //0x4001000a,
-		break; case NtStatus::rpc_nt_invalid_string_binding: os << TS8("rpc_nt_invalid_string_binding"); //0xc0020001,
-		break; case NtStatus::rpc_nt_wrong_kind_of_binding: os << TS8("rpc_nt_wrong_kind_of_binding"); //0xc0020002,
-		break; case NtStatus::rpc_nt_invalid_binding: os << TS8("rpc_nt_invalid_binding"); //0xc0020003,
-		break; case NtStatus::rpc_nt_protseq_not_supported: os << TS8("rpc_nt_protseq_not_supported"); //0xc0020004,
-		break; case NtStatus::rpc_nt_invalid_rpc_protseq: os << TS8("rpc_nt_invalid_rpc_protseq"); //0xc0020005,
-		break; case NtStatus::rpc_nt_invalid_string_uuid: os << TS8("rpc_nt_invalid_string_uuid"); //0xc0020006,
-		break; case NtStatus::rpc_nt_invalid_endpoint_format: os << TS8("rpc_nt_invalid_endpoint_format"); //0xc0020007,
-		break; case NtStatus::rpc_nt_invalid_net_addr: os << TS8("rpc_nt_invalid_net_addr"); //0xc0020008,
-		break; case NtStatus::rpc_nt_no_endpoint_found: os << TS8("rpc_nt_no_endpoint_found"); //0xc0020009,
-		break; case NtStatus::rpc_nt_invalid_timeout: os << TS8("rpc_nt_invalid_timeout"); //0xc002000a,
-		break; case NtStatus::rpc_nt_object_not_found: os << TS8("rpc_nt_object_not_found"); //0xc002000b,
-		break; case NtStatus::rpc_nt_already_registered: os << TS8("rpc_nt_already_registered"); //0xc002000c,
-		break; case NtStatus::rpc_nt_type_already_registered: os << TS8("rpc_nt_type_already_registered"); //0xc002000d,
-		break; case NtStatus::rpc_nt_already_listening: os << TS8("rpc_nt_already_listening"); //0xc002000e,
-		break; case NtStatus::rpc_nt_no_protseqs_registered: os << TS8("rpc_nt_no_protseqs_registered"); //0xc002000f,
-		break; case NtStatus::rpc_nt_not_listening: os << TS8("rpc_nt_not_listening"); //0xc0020010,
-		break; case NtStatus::rpc_nt_unknown_mgr_type: os << TS8("rpc_nt_unknown_mgr_type"); //0xc0020011,
-		break; case NtStatus::rpc_nt_unknown_if: os << TS8("rpc_nt_unknown_if"); //0xc0020012,
-		break; case NtStatus::rpc_nt_no_bindings: os << TS8("rpc_nt_no_bindings"); //0xc0020013,
-		break; case NtStatus::rpc_nt_no_protseqs: os << TS8("rpc_nt_no_protseqs"); //0xc0020014,
-		break; case NtStatus::rpc_nt_cant_create_endpoint: os << TS8("rpc_nt_cant_create_endpoint"); //0xc0020015,
-		break; case NtStatus::rpc_nt_out_of_resources: os << TS8("rpc_nt_out_of_resources"); //0xc0020016,
-		break; case NtStatus::rpc_nt_server_unavailable: os << TS8("rpc_nt_server_unavailable"); //0xc0020017,
-		break; case NtStatus::rpc_nt_server_too_busy: os << TS8("rpc_nt_server_too_busy"); //0xc0020018,
-		break; case NtStatus::rpc_nt_invalid_network_options: os << TS8("rpc_nt_invalid_network_options"); //0xc0020019,
-		break; case NtStatus::rpc_nt_no_call_active: os << TS8("rpc_nt_no_call_active"); //0xc002001a,
-		break; case NtStatus::rpc_nt_call_failed: os << TS8("rpc_nt_call_failed"); //0xc002001b,
-		break; case NtStatus::rpc_nt_call_failed_dne: os << TS8("rpc_nt_call_failed_dne"); //0xc002001c,
-		break; case NtStatus::rpc_nt_protocol_error: os << TS8("rpc_nt_protocol_error"); //0xc002001d,
-		break; case NtStatus::rpc_nt_unsupported_trans_syn: os << TS8("rpc_nt_unsupported_trans_syn"); //0xc002001f,
-		break; case NtStatus::rpc_nt_unsupported_type: os << TS8("rpc_nt_unsupported_type"); //0xc0020021,
-		break; case NtStatus::rpc_nt_invalid_tag: os << TS8("rpc_nt_invalid_tag"); //0xc0020022,
-		break; case NtStatus::rpc_nt_invalid_bound: os << TS8("rpc_nt_invalid_bound"); //0xc0020023,
-		break; case NtStatus::rpc_nt_no_entry_name: os << TS8("rpc_nt_no_entry_name"); //0xc0020024,
-		break; case NtStatus::rpc_nt_invalid_name_syntax: os << TS8("rpc_nt_invalid_name_syntax"); //0xc0020025,
-		break; case NtStatus::rpc_nt_unsupported_name_syntax: os << TS8("rpc_nt_unsupported_name_syntax"); //0xc0020026,
-		break; case NtStatus::rpc_nt_uuid_no_address: os << TS8("rpc_nt_uuid_no_address"); //0xc0020028,
-		break; case NtStatus::rpc_nt_duplicate_endpoint: os << TS8("rpc_nt_duplicate_endpoint"); //0xc0020029,
-		break; case NtStatus::rpc_nt_unknown_authn_type: os << TS8("rpc_nt_unknown_authn_type"); //0xc002002a,
-		break; case NtStatus::rpc_nt_max_calls_too_small: os << TS8("rpc_nt_max_calls_too_small"); //0xc002002b,
-		break; case NtStatus::rpc_nt_string_too_long: os << TS8("rpc_nt_string_too_long"); //0xc002002c,
-		break; case NtStatus::rpc_nt_protseq_not_found: os << TS8("rpc_nt_protseq_not_found"); //0xc002002d,
-		break; case NtStatus::rpc_nt_procnum_out_of_range: os << TS8("rpc_nt_procnum_out_of_range"); //0xc002002e,
-		break; case NtStatus::rpc_nt_binding_has_no_auth: os << TS8("rpc_nt_binding_has_no_auth"); //0xc002002f,
-		break; case NtStatus::rpc_nt_unknown_authn_service: os << TS8("rpc_nt_unknown_authn_service"); //0xc0020030,
-		break; case NtStatus::rpc_nt_unknown_authn_level: os << TS8("rpc_nt_unknown_authn_level"); //0xc0020031,
-		break; case NtStatus::rpc_nt_invalid_auth_identity: os << TS8("rpc_nt_invalid_auth_identity"); //0xc0020032,
-		break; case NtStatus::rpc_nt_unknown_authz_service: os << TS8("rpc_nt_unknown_authz_service"); //0xc0020033,
-		break; case NtStatus::ept_nt_invalid_entry: os << TS8("ept_nt_invalid_entry"); //0xc0020034,
-		break; case NtStatus::ept_nt_cant_perform_op: os << TS8("ept_nt_cant_perform_op"); //0xc0020035,
-		break; case NtStatus::ept_nt_not_registered: os << TS8("ept_nt_not_registered"); //0xc0020036,
-		break; case NtStatus::rpc_nt_nothing_to_export: os << TS8("rpc_nt_nothing_to_export"); //0xc0020037,
-		break; case NtStatus::rpc_nt_incomplete_name: os << TS8("rpc_nt_incomplete_name"); //0xc0020038,
-		break; case NtStatus::rpc_nt_invalid_vers_option: os << TS8("rpc_nt_invalid_vers_option"); //0xc0020039,
-		break; case NtStatus::rpc_nt_no_more_members: os << TS8("rpc_nt_no_more_members"); //0xc002003a,
-		break; case NtStatus::rpc_nt_not_all_objs_unexported: os << TS8("rpc_nt_not_all_objs_unexported"); //0xc002003b,
-		break; case NtStatus::rpc_nt_interface_not_found: os << TS8("rpc_nt_interface_not_found"); //0xc002003c,
-		break; case NtStatus::rpc_nt_entry_already_exists: os << TS8("rpc_nt_entry_already_exists"); //0xc002003d,
-		break; case NtStatus::rpc_nt_entry_not_found: os << TS8("rpc_nt_entry_not_found"); //0xc002003e,
-		break; case NtStatus::rpc_nt_name_service_unavailable: os << TS8("rpc_nt_name_service_unavailable"); //0xc002003f,
-		break; case NtStatus::rpc_nt_invalid_naf_id: os << TS8("rpc_nt_invalid_naf_id"); //0xc0020040,
-		break; case NtStatus::rpc_nt_cannot_support: os << TS8("rpc_nt_cannot_support"); //0xc0020041,
-		break; case NtStatus::rpc_nt_no_context_available: os << TS8("rpc_nt_no_context_available"); //0xc0020042,
-		break; case NtStatus::rpc_nt_internal_error: os << TS8("rpc_nt_internal_error"); //0xc0020043,
-		break; case NtStatus::rpc_nt_zero_divide: os << TS8("rpc_nt_zero_divide"); //0xc0020044,
-		break; case NtStatus::rpc_nt_address_error: os << TS8("rpc_nt_address_error"); //0xc0020045,
-		break; case NtStatus::rpc_nt_fp_div_zero: os << TS8("rpc_nt_fp_div_zero"); //0xc0020046,
-		break; case NtStatus::rpc_nt_fp_underflow: os << TS8("rpc_nt_fp_underflow"); //0xc0020047,
-		break; case NtStatus::rpc_nt_fp_overflow: os << TS8("rpc_nt_fp_overflow"); //0xc0020048,
-		break; case NtStatus::rpc_nt_call_in_progress: os << TS8("rpc_nt_call_in_progress"); //0xc0020049,
-		break; case NtStatus::rpc_nt_no_more_bindings: os << TS8("rpc_nt_no_more_bindings"); //0xc002004a,
-		break; case NtStatus::rpc_nt_group_member_not_found: os << TS8("rpc_nt_group_member_not_found"); //0xc002004b,
-		break; case NtStatus::ept_nt_cant_create: os << TS8("ept_nt_cant_create"); //0xc002004c,
-		break; case NtStatus::rpc_nt_invalid_object: os << TS8("rpc_nt_invalid_object"); //0xc002004d,
-		break; case NtStatus::rpc_nt_no_interfaces: os << TS8("rpc_nt_no_interfaces"); //0xc002004f,
-		break; case NtStatus::rpc_nt_call_cancelled: os << TS8("rpc_nt_call_cancelled"); //0xc0020050,
-		break; case NtStatus::rpc_nt_binding_incomplete: os << TS8("rpc_nt_binding_incomplete"); //0xc0020051,
-		break; case NtStatus::rpc_nt_comm_failure: os << TS8("rpc_nt_comm_failure"); //0xc0020052,
-		break; case NtStatus::rpc_nt_unsupported_authn_level: os << TS8("rpc_nt_unsupported_authn_level"); //0xc0020053,
-		break; case NtStatus::rpc_nt_no_princ_name: os << TS8("rpc_nt_no_princ_name"); //0xc0020054,
-		break; case NtStatus::rpc_nt_not_rpc_error: os << TS8("rpc_nt_not_rpc_error"); //0xc0020055,
-		break; case NtStatus::rpc_nt_uuid_local_only: os << TS8("rpc_nt_uuid_local_only"); //0x40020056,
-		break; case NtStatus::rpc_nt_sec_pkg_error: os << TS8("rpc_nt_sec_pkg_error"); //0xc0020057,
-		break; case NtStatus::rpc_nt_not_cancelled: os << TS8("rpc_nt_not_cancelled"); //0xc0020058,
-		break; case NtStatus::rpc_nt_invalid_async_handle: os << TS8("rpc_nt_invalid_async_handle"); //0xc0020062,
-		break; case NtStatus::rpc_nt_invalid_async_call: os << TS8("rpc_nt_invalid_async_call"); //0xc0020063,
-		break; case NtStatus::rpc_nt_proxy_access_denied: os << TS8("rpc_nt_proxy_access_denied"); //0xc0020064,
-		break; case NtStatus::rpc_nt_cookie_auth_failed: os << TS8("rpc_nt_cookie_auth_failed"); //0xc0020065,
-		break; case NtStatus::rpc_nt_send_incomplete: os << TS8("rpc_nt_send_incomplete"); //0x400200af,
-		break; case NtStatus::rpc_nt_no_more_entries: os << TS8("rpc_nt_no_more_entries"); //0xc0030001,
-		break; case NtStatus::rpc_nt_ss_char_trans_open_fail: os << TS8("rpc_nt_ss_char_trans_open_fail"); //0xc0030002,
-		break; case NtStatus::rpc_nt_ss_char_trans_short_file: os << TS8("rpc_nt_ss_char_trans_short_file"); //0xc0030003,
-		break; case NtStatus::rpc_nt_ss_in_null_context: os << TS8("rpc_nt_ss_in_null_context"); //0xc0030004,
-		break; case NtStatus::rpc_nt_ss_context_mismatch: os << TS8("rpc_nt_ss_context_mismatch"); //0xc0030005,
-		break; case NtStatus::rpc_nt_ss_context_damaged: os << TS8("rpc_nt_ss_context_damaged"); //0xc0030006,
-		break; case NtStatus::rpc_nt_ss_handles_mismatch: os << TS8("rpc_nt_ss_handles_mismatch"); //0xc0030007,
-		break; case NtStatus::rpc_nt_ss_cannot_get_call_handle: os << TS8("rpc_nt_ss_cannot_get_call_handle"); //0xc0030008,
-		break; case NtStatus::rpc_nt_null_ref_pointer: os << TS8("rpc_nt_null_ref_pointer"); //0xc0030009,
-		break; case NtStatus::rpc_nt_enum_value_out_of_range: os << TS8("rpc_nt_enum_value_out_of_range"); //0xc003000a,
-		break; case NtStatus::rpc_nt_byte_count_too_small: os << TS8("rpc_nt_byte_count_too_small"); //0xc003000b,
-		break; case NtStatus::rpc_nt_bad_stub_data: os << TS8("rpc_nt_bad_stub_data"); //0xc003000c,
-		break; case NtStatus::rpc_nt_invalid_es_action: os << TS8("rpc_nt_invalid_es_action"); //0xc0030059,
-		break; case NtStatus::rpc_nt_wrong_es_version: os << TS8("rpc_nt_wrong_es_version"); //0xc003005a,
-		break; case NtStatus::rpc_nt_wrong_stub_version: os << TS8("rpc_nt_wrong_stub_version"); //0xc003005b,
-		break; case NtStatus::rpc_nt_invalid_pipe_object: os << TS8("rpc_nt_invalid_pipe_object"); //0xc003005c,
-		break; case NtStatus::rpc_nt_invalid_pipe_operation: os << TS8("rpc_nt_invalid_pipe_operation"); //0xc003005d,
-		break; case NtStatus::rpc_nt_wrong_pipe_version: os << TS8("rpc_nt_wrong_pipe_version"); //0xc003005e,
-		break; case NtStatus::rpc_nt_pipe_closed: os << TS8("rpc_nt_pipe_closed"); //0xc003005f,
-		break; case NtStatus::rpc_nt_pipe_discipline_error: os << TS8("rpc_nt_pipe_discipline_error"); //0xc0030060,
-		break; case NtStatus::rpc_nt_pipe_empty: os << TS8("rpc_nt_pipe_empty"); //0xc0030061,
-		break; case NtStatus::pnp_bad_mps_table: os << TS8("pnp_bad_mps_table"); //0xc0040035,
-		break; case NtStatus::pnp_translation_failed: os << TS8("pnp_translation_failed"); //0xc0040036,
-		break; case NtStatus::pnp_irq_translation_failed: os << TS8("pnp_irq_translation_failed"); //0xc0040037,
-		break; case NtStatus::pnp_invalid_id: os << TS8("pnp_invalid_id"); //0xc0040038,
-		break; case NtStatus::io_reissue_as_cached: os << TS8("io_reissue_as_cached"); //0xc0040039,
-		break; case NtStatus::ctx_winstation_name_invalid: os << TS8("ctx_winstation_name_invalid"); //0xc00a0001,
-		break; case NtStatus::ctx_invalid_pd: os << TS8("ctx_invalid_pd"); //0xc00a0002,
-		break; case NtStatus::ctx_pd_not_found: os << TS8("ctx_pd_not_found"); //0xc00a0003,
-		break; case NtStatus::ctx_cdm_connect: os << TS8("ctx_cdm_connect"); //0x400a0004,
-		break; case NtStatus::ctx_cdm_disconnect: os << TS8("ctx_cdm_disconnect"); //0x400a0005,
-		break; case NtStatus::ctx_close_pending: os << TS8("ctx_close_pending"); //0xc00a0006,
-		break; case NtStatus::ctx_no_outbuf: os << TS8("ctx_no_outbuf"); //0xc00a0007,
-		break; case NtStatus::ctx_modem_inf_not_found: os << TS8("ctx_modem_inf_not_found"); //0xc00a0008,
-		break; case NtStatus::ctx_invalid_modemname: os << TS8("ctx_invalid_modemname"); //0xc00a0009,
-		break; case NtStatus::ctx_response_error: os << TS8("ctx_response_error"); //0xc00a000a,
-		break; case NtStatus::ctx_modem_response_timeout: os << TS8("ctx_modem_response_timeout"); //0xc00a000b,
-		break; case NtStatus::ctx_modem_response_no_carrier: os << TS8("ctx_modem_response_no_carrier"); //0xc00a000c,
-		break; case NtStatus::ctx_modem_response_no_dialtone: os << TS8("ctx_modem_response_no_dialtone"); //0xc00a000d,
-		break; case NtStatus::ctx_modem_response_busy: os << TS8("ctx_modem_response_busy"); //0xc00a000e,
-		break; case NtStatus::ctx_modem_response_voice: os << TS8("ctx_modem_response_voice"); //0xc00a000f,
-		break; case NtStatus::ctx_td_error: os << TS8("ctx_td_error"); //0xc00a0010,
-		break; case NtStatus::ctx_license_client_invalid: os << TS8("ctx_license_client_invalid"); //0xc00a0012,
-		break; case NtStatus::ctx_license_not_available: os << TS8("ctx_license_not_available"); //0xc00a0013,
-		break; case NtStatus::ctx_license_expired: os << TS8("ctx_license_expired"); //0xc00a0014,
-		break; case NtStatus::ctx_winstation_not_found: os << TS8("ctx_winstation_not_found"); //0xc00a0015,
-		break; case NtStatus::ctx_winstation_name_collision: os << TS8("ctx_winstation_name_collision"); //0xc00a0016,
-		break; case NtStatus::ctx_winstation_busy: os << TS8("ctx_winstation_busy"); //0xc00a0017,
-		break; case NtStatus::ctx_bad_video_mode: os << TS8("ctx_bad_video_mode"); //0xc00a0018,
-		break; case NtStatus::ctx_graphics_invalid: os << TS8("ctx_graphics_invalid"); //0xc00a0022,
-		break; case NtStatus::ctx_not_console: os << TS8("ctx_not_console"); //0xc00a0024,
-		break; case NtStatus::ctx_client_query_timeout: os << TS8("ctx_client_query_timeout"); //0xc00a0026,
-		break; case NtStatus::ctx_console_disconnect: os << TS8("ctx_console_disconnect"); //0xc00a0027,
-		break; case NtStatus::ctx_console_connect: os << TS8("ctx_console_connect"); //0xc00a0028,
-		break; case NtStatus::ctx_shadow_denied: os << TS8("ctx_shadow_denied"); //0xc00a002a,
-		break; case NtStatus::ctx_winstation_access_denied: os << TS8("ctx_winstation_access_denied"); //0xc00a002b,
-		break; case NtStatus::ctx_invalid_wd: os << TS8("ctx_invalid_wd"); //0xc00a002e,
-		break; case NtStatus::ctx_wd_not_found: os << TS8("ctx_wd_not_found"); //0xc00a002f,
-		break; case NtStatus::ctx_shadow_invalid: os << TS8("ctx_shadow_invalid"); //0xc00a0030,
-		break; case NtStatus::ctx_shadow_disabled: os << TS8("ctx_shadow_disabled"); //0xc00a0031,
-		break; case NtStatus::rdp_protocol_error: os << TS8("rdp_protocol_error"); //0xc00a0032,
-		break; case NtStatus::ctx_client_license_not_set: os << TS8("ctx_client_license_not_set"); //0xc00a0033,
-		break; case NtStatus::ctx_client_license_in_use: os << TS8("ctx_client_license_in_use"); //0xc00a0034,
-		break; case NtStatus::ctx_shadow_ended_by_mode_change: os << TS8("ctx_shadow_ended_by_mode_change"); //0xc00a0035,
-		break; case NtStatus::ctx_shadow_not_running: os << TS8("ctx_shadow_not_running"); //0xc00a0036,
-		break; case NtStatus::ctx_logon_disabled: os << TS8("ctx_logon_disabled"); //0xc00a0037,
-		break; case NtStatus::ctx_security_layer_error: os << TS8("ctx_security_layer_error"); //0xc00a0038,
-		break; case NtStatus::ts_incompatible_sessions: os << TS8("ts_incompatible_sessions"); //0xc00a0039,
-		break; case NtStatus::ts_video_subsystem_error: os << TS8("ts_video_subsystem_error"); //0xc00a003a,
-		break; case NtStatus::mui_file_not_found: os << TS8("mui_file_not_found"); //0xc00b0001,
-		break; case NtStatus::mui_invalid_file: os << TS8("mui_invalid_file"); //0xc00b0002,
-		break; case NtStatus::mui_invalid_rc_config: os << TS8("mui_invalid_rc_config"); //0xc00b0003,
-		break; case NtStatus::mui_invalid_locale_name: os << TS8("mui_invalid_locale_name"); //0xc00b0004,
-		break; case NtStatus::mui_invalid_ultimatefallback_name: os << TS8("mui_invalid_ultimatefallback_name"); //0xc00b0005,
-		break; case NtStatus::mui_file_not_loaded: os << TS8("mui_file_not_loaded"); //0xc00b0006,
-		break; case NtStatus::resource_enum_user_stop: os << TS8("resource_enum_user_stop"); //0xc00b0007,
-		break; case NtStatus::cluster_node_already_up: os << TS8("cluster_node_already_up"); //0x80130001,
-		break; case NtStatus::cluster_invalid_node: os << TS8("cluster_invalid_node"); //0xc0130001,
-		break; case NtStatus::cluster_node_already_down: os << TS8("cluster_node_already_down"); //0x80130002,
-		break; case NtStatus::cluster_node_exists: os << TS8("cluster_node_exists"); //0xc0130002,
-		break; case NtStatus::cluster_network_already_online: os << TS8("cluster_network_already_online"); //0x80130003,
-		break; case NtStatus::cluster_join_in_progress: os << TS8("cluster_join_in_progress"); //0xc0130003,
-		break; case NtStatus::cluster_network_already_offline: os << TS8("cluster_network_already_offline"); //0x80130004,
-		break; case NtStatus::cluster_node_not_found: os << TS8("cluster_node_not_found"); //0xc0130004,
-		break; case NtStatus::cluster_node_already_member: os << TS8("cluster_node_already_member"); //0x80130005,
-		break; case NtStatus::cluster_local_node_not_found: os << TS8("cluster_local_node_not_found"); //0xc0130005,
-		break; case NtStatus::cluster_network_exists: os << TS8("cluster_network_exists"); //0xc0130006,
-		break; case NtStatus::cluster_network_not_found: os << TS8("cluster_network_not_found"); //0xc0130007,
-		break; case NtStatus::cluster_netinterface_exists: os << TS8("cluster_netinterface_exists"); //0xc0130008,
-		break; case NtStatus::cluster_netinterface_not_found: os << TS8("cluster_netinterface_not_found"); //0xc0130009,
-		break; case NtStatus::cluster_invalid_request: os << TS8("cluster_invalid_request"); //0xc013000a,
-		break; case NtStatus::cluster_invalid_network_provider: os << TS8("cluster_invalid_network_provider"); //0xc013000b,
-		break; case NtStatus::cluster_node_down: os << TS8("cluster_node_down"); //0xc013000c,
-		break; case NtStatus::cluster_node_unreachable: os << TS8("cluster_node_unreachable"); //0xc013000d,
-		break; case NtStatus::cluster_node_not_member: os << TS8("cluster_node_not_member"); //0xc013000e,
-		break; case NtStatus::cluster_join_not_in_progress: os << TS8("cluster_join_not_in_progress"); //0xc013000f,
-		break; case NtStatus::cluster_invalid_network: os << TS8("cluster_invalid_network"); //0xc0130010,
-		break; case NtStatus::cluster_no_net_adapters: os << TS8("cluster_no_net_adapters"); //0xc0130011,
-		break; case NtStatus::cluster_node_up: os << TS8("cluster_node_up"); //0xc0130012,
-		break; case NtStatus::cluster_node_paused: os << TS8("cluster_node_paused"); //0xc0130013,
-		break; case NtStatus::cluster_node_not_paused: os << TS8("cluster_node_not_paused"); //0xc0130014,
-		break; case NtStatus::cluster_no_security_context: os << TS8("cluster_no_security_context"); //0xc0130015,
-		break; case NtStatus::cluster_network_not_internal: os << TS8("cluster_network_not_internal"); //0xc0130016,
-		break; case NtStatus::cluster_poisoned: os << TS8("cluster_poisoned"); //0xc0130017,
-		break; case NtStatus::cluster_non_csv_path: os << TS8("cluster_non_csv_path"); //0xc0130018,
-		break; case NtStatus::cluster_csv_volume_not_local: os << TS8("cluster_csv_volume_not_local"); //0xc0130019,
-		break; case NtStatus::cluster_csv_read_oplock_break_in_progress: os << TS8("cluster_csv_read_oplock_break_in_progress"); //0xc0130020,
-		break; case NtStatus::cluster_csv_auto_pause_error: os << TS8("cluster_csv_auto_pause_error"); //0xc0130021,
-		break; case NtStatus::cluster_csv_redirected: os << TS8("cluster_csv_redirected"); //0xc0130022,
-		break; case NtStatus::cluster_csv_not_redirected: os << TS8("cluster_csv_not_redirected"); //0xc0130023,
-		break; case NtStatus::cluster_csv_volume_draining: os << TS8("cluster_csv_volume_draining"); //0xc0130024,
-		break; case NtStatus::cluster_csv_snapshot_creation_in_progress: os << TS8("cluster_csv_snapshot_creation_in_progress"); //0xc0130025,
-		break; case NtStatus::cluster_csv_volume_draining_succeeded_downlevel: os << TS8("cluster_csv_volume_draining_succeeded_downlevel"); //0xc0130026,
-		break; case NtStatus::cluster_csv_no_snapshots: os << TS8("cluster_csv_no_snapshots"); //0xc0130027,
-		break; case NtStatus::csv_io_pause_timeout: os << TS8("csv_io_pause_timeout"); //0xc0130028,
-		break; case NtStatus::cluster_csv_invalid_handle: os << TS8("cluster_csv_invalid_handle"); //0xc0130029,
-		break; case NtStatus::cluster_csv_supported_only_on_coordinator: os << TS8("cluster_csv_supported_only_on_coordinator"); //0xc0130030,
-		break; case NtStatus::cluster_cam_ticket_replay_detected: os << TS8("cluster_cam_ticket_replay_detected"); //0xc0130031,
-		break; case NtStatus::acpi_invalid_opcode: os << TS8("acpi_invalid_opcode"); //0xc0140001,
-		break; case NtStatus::acpi_stack_overflow: os << TS8("acpi_stack_overflow"); //0xc0140002,
-		break; case NtStatus::acpi_assert_failed: os << TS8("acpi_assert_failed"); //0xc0140003,
-		break; case NtStatus::acpi_invalid_index: os << TS8("acpi_invalid_index"); //0xc0140004,
-		break; case NtStatus::acpi_invalid_argument: os << TS8("acpi_invalid_argument"); //0xc0140005,
-		break; case NtStatus::acpi_fatal: os << TS8("acpi_fatal"); //0xc0140006,
-		break; case NtStatus::acpi_invalid_supername: os << TS8("acpi_invalid_supername"); //0xc0140007,
-		break; case NtStatus::acpi_invalid_argtype: os << TS8("acpi_invalid_argtype"); //0xc0140008,
-		break; case NtStatus::acpi_invalid_objtype: os << TS8("acpi_invalid_objtype"); //0xc0140009,
-		break; case NtStatus::acpi_invalid_targettype: os << TS8("acpi_invalid_targettype"); //0xc014000a,
-		break; case NtStatus::acpi_incorrect_argument_count: os << TS8("acpi_incorrect_argument_count"); //0xc014000b,
-		break; case NtStatus::acpi_address_not_mapped: os << TS8("acpi_address_not_mapped"); //0xc014000c,
-		break; case NtStatus::acpi_invalid_eventtype: os << TS8("acpi_invalid_eventtype"); //0xc014000d,
-		break; case NtStatus::acpi_handler_collision: os << TS8("acpi_handler_collision"); //0xc014000e,
-		break; case NtStatus::acpi_invalid_data: os << TS8("acpi_invalid_data"); //0xc014000f,
-		break; case NtStatus::acpi_invalid_region: os << TS8("acpi_invalid_region"); //0xc0140010,
-		break; case NtStatus::acpi_invalid_access_size: os << TS8("acpi_invalid_access_size"); //0xc0140011,
-		break; case NtStatus::acpi_acquire_global_lock: os << TS8("acpi_acquire_global_lock"); //0xc0140012,
-		break; case NtStatus::acpi_already_initialized: os << TS8("acpi_already_initialized"); //0xc0140013,
-		break; case NtStatus::acpi_not_initialized: os << TS8("acpi_not_initialized"); //0xc0140014,
-		break; case NtStatus::acpi_invalid_mutex_level: os << TS8("acpi_invalid_mutex_level"); //0xc0140015,
-		break; case NtStatus::acpi_mutex_not_owned: os << TS8("acpi_mutex_not_owned"); //0xc0140016,
-		break; case NtStatus::acpi_mutex_not_owner: os << TS8("acpi_mutex_not_owner"); //0xc0140017,
-		break; case NtStatus::acpi_rs_access: os << TS8("acpi_rs_access"); //0xc0140018,
-		break; case NtStatus::acpi_invalid_table: os << TS8("acpi_invalid_table"); //0xc0140019,
-		break; case NtStatus::acpi_reg_handler_failed: os << TS8("acpi_reg_handler_failed"); //0xc0140020,
-		break; case NtStatus::acpi_power_request_failed: os << TS8("acpi_power_request_failed"); //0xc0140021,
-		break; case NtStatus::sxs_section_not_found: os << TS8("sxs_section_not_found"); //0xc0150001,
-		break; case NtStatus::sxs_cant_gen_actctx: os << TS8("sxs_cant_gen_actctx"); //0xc0150002,
-		break; case NtStatus::sxs_invalid_actctxdata_format: os << TS8("sxs_invalid_actctxdata_format"); //0xc0150003,
-		break; case NtStatus::sxs_assembly_not_found: os << TS8("sxs_assembly_not_found"); //0xc0150004,
-		break; case NtStatus::sxs_manifest_format_error: os << TS8("sxs_manifest_format_error"); //0xc0150005,
-		break; case NtStatus::sxs_manifest_parse_error: os << TS8("sxs_manifest_parse_error"); //0xc0150006,
-		break; case NtStatus::sxs_activation_context_disabled: os << TS8("sxs_activation_context_disabled"); //0xc0150007,
-		break; case NtStatus::sxs_key_not_found: os << TS8("sxs_key_not_found"); //0xc0150008,
-		break; case NtStatus::sxs_version_conflict: os << TS8("sxs_version_conflict"); //0xc0150009,
-		break; case NtStatus::sxs_wrong_section_type: os << TS8("sxs_wrong_section_type"); //0xc015000a,
-		break; case NtStatus::sxs_thread_queries_disabled: os << TS8("sxs_thread_queries_disabled"); //0xc015000b,
-		break; case NtStatus::sxs_assembly_missing: os << TS8("sxs_assembly_missing"); //0xc015000c,
-		break; case NtStatus::sxs_release_activation_context: os << TS8("sxs_release_activation_context"); //0x4015000d,
-		break; case NtStatus::sxs_process_default_already_set: os << TS8("sxs_process_default_already_set"); //0xc015000e,
-		break; case NtStatus::sxs_early_deactivation: os << TS8("sxs_early_deactivation"); //0xc015000f,
-		break; case NtStatus::sxs_invalid_deactivation: os << TS8("sxs_invalid_deactivation"); //0xc0150010,
-		break; case NtStatus::sxs_multiple_deactivation: os << TS8("sxs_multiple_deactivation"); //0xc0150011,
-		break; case NtStatus::sxs_system_default_activation_context_empty: os << TS8("sxs_system_default_activation_context_empty"); //0xc0150012,
-		break; case NtStatus::sxs_process_termination_requested: os << TS8("sxs_process_termination_requested"); //0xc0150013,
-		break; case NtStatus::sxs_corrupt_activation_stack: os << TS8("sxs_corrupt_activation_stack"); //0xc0150014,
-		break; case NtStatus::sxs_corruption: os << TS8("sxs_corruption"); //0xc0150015,
-		break; case NtStatus::sxs_invalid_identity_attribute_value: os << TS8("sxs_invalid_identity_attribute_value"); //0xc0150016,
-		break; case NtStatus::sxs_invalid_identity_attribute_name: os << TS8("sxs_invalid_identity_attribute_name"); //0xc0150017,
-		break; case NtStatus::sxs_identity_duplicate_attribute: os << TS8("sxs_identity_duplicate_attribute"); //0xc0150018,
-		break; case NtStatus::sxs_identity_parse_error: os << TS8("sxs_identity_parse_error"); //0xc0150019,
-		break; case NtStatus::sxs_component_store_corrupt: os << TS8("sxs_component_store_corrupt"); //0xc015001a,
-		break; case NtStatus::sxs_file_hash_mismatch: os << TS8("sxs_file_hash_mismatch"); //0xc015001b,
-		break; case NtStatus::sxs_manifest_identity_same_but_contents_different: os << TS8("sxs_manifest_identity_same_but_contents_different"); //0xc015001c,
-		break; case NtStatus::sxs_identities_different: os << TS8("sxs_identities_different"); //0xc015001d,
-		break; case NtStatus::sxs_assembly_is_not_a_deployment: os << TS8("sxs_assembly_is_not_a_deployment"); //0xc015001e,
-		break; case NtStatus::sxs_file_not_part_of_assembly: os << TS8("sxs_file_not_part_of_assembly"); //0xc015001f,
-		break; case NtStatus::advanced_installer_failed: os << TS8("advanced_installer_failed"); //0xc0150020,
-		break; case NtStatus::xml_encoding_mismatch: os << TS8("xml_encoding_mismatch"); //0xc0150021,
-		break; case NtStatus::sxs_manifest_too_big: os << TS8("sxs_manifest_too_big"); //0xc0150022,
-		break; case NtStatus::sxs_setting_not_registered: os << TS8("sxs_setting_not_registered"); //0xc0150023,
-		break; case NtStatus::sxs_transaction_closure_incomplete: os << TS8("sxs_transaction_closure_incomplete"); //0xc0150024,
-		break; case NtStatus::smi_primitive_installer_failed: os << TS8("smi_primitive_installer_failed"); //0xc0150025,
-		break; case NtStatus::generic_command_failed: os << TS8("generic_command_failed"); //0xc0150026,
-		break; case NtStatus::sxs_file_hash_missing: os << TS8("sxs_file_hash_missing"); //0xc0150027,
-		break; case NtStatus::heuristic_damage_possible: os << TS8("heuristic_damage_possible"); //0x40190001,
-		break; case NtStatus::transactional_conflict: os << TS8("transactional_conflict"); //0xc0190001,
-		break; case NtStatus::invalid_transaction: os << TS8("invalid_transaction"); //0xc0190002,
-		break; case NtStatus::transaction_not_active: os << TS8("transaction_not_active"); //0xc0190003,
-		break; case NtStatus::tm_initialization_failed: os << TS8("tm_initialization_failed"); //0xc0190004,
-		break; case NtStatus::rm_not_active: os << TS8("rm_not_active"); //0xc0190005,
-		break; case NtStatus::rm_metadata_corrupt: os << TS8("rm_metadata_corrupt"); //0xc0190006,
-		break; case NtStatus::transaction_not_joined: os << TS8("transaction_not_joined"); //0xc0190007,
-		break; case NtStatus::directory_not_rm: os << TS8("directory_not_rm"); //0xc0190008,
-		break; case NtStatus::could_not_resize_log: os << TS8("could_not_resize_log"); //0x80190009,
-		break; case NtStatus::transactions_unsupported_remote: os << TS8("transactions_unsupported_remote"); //0xc019000a,
-		break; case NtStatus::log_resize_invalid_size: os << TS8("log_resize_invalid_size"); //0xc019000b,
-		break; case NtStatus::remote_file_version_mismatch: os << TS8("remote_file_version_mismatch"); //0xc019000c,
-		break; case NtStatus::crm_protocol_already_exists: os << TS8("crm_protocol_already_exists"); //0xc019000f,
-		break; case NtStatus::transaction_propagation_failed: os << TS8("transaction_propagation_failed"); //0xc0190010,
-		break; case NtStatus::crm_protocol_not_found: os << TS8("crm_protocol_not_found"); //0xc0190011,
-		break; case NtStatus::transaction_superior_exists: os << TS8("transaction_superior_exists"); //0xc0190012,
-		break; case NtStatus::transaction_request_not_valid: os << TS8("transaction_request_not_valid"); //0xc0190013,
-		break; case NtStatus::transaction_not_requested: os << TS8("transaction_not_requested"); //0xc0190014,
-		break; case NtStatus::transaction_already_aborted: os << TS8("transaction_already_aborted"); //0xc0190015,
-		break; case NtStatus::transaction_already_committed: os << TS8("transaction_already_committed"); //0xc0190016,
-		break; case NtStatus::transaction_invalid_marshall_buffer: os << TS8("transaction_invalid_marshall_buffer"); //0xc0190017,
-		break; case NtStatus::current_transaction_not_valid: os << TS8("current_transaction_not_valid"); //0xc0190018,
-		break; case NtStatus::log_growth_failed: os << TS8("log_growth_failed"); //0xc0190019,
-		break; case NtStatus::object_no_longer_exists: os << TS8("object_no_longer_exists"); //0xc0190021,
-		break; case NtStatus::stream_miniversion_not_found: os << TS8("stream_miniversion_not_found"); //0xc0190022,
-		break; case NtStatus::stream_miniversion_not_valid: os << TS8("stream_miniversion_not_valid"); //0xc0190023,
-		break; case NtStatus::miniversion_inaccessible_from_specified_transaction: os << TS8("miniversion_inaccessible_from_specified_transaction"); //0xc0190024,
-		break; case NtStatus::cant_open_miniversion_with_modify_intent: os << TS8("cant_open_miniversion_with_modify_intent"); //0xc0190025,
-		break; case NtStatus::cant_create_more_stream_miniversions: os << TS8("cant_create_more_stream_miniversions"); //0xc0190026,
-		break; case NtStatus::handle_no_longer_valid: os << TS8("handle_no_longer_valid"); //0xc0190028,
-		break; case NtStatus::no_txf_metadata: os << TS8("no_txf_metadata"); //0x80190029,
-		break; case NtStatus::log_corruption_detected: os << TS8("log_corruption_detected"); //0xc0190030,
-		break; case NtStatus::cant_recover_with_handle_open: os << TS8("cant_recover_with_handle_open"); //0x80190031,
-		break; case NtStatus::rm_disconnected: os << TS8("rm_disconnected"); //0xc0190032,
-		break; case NtStatus::enlistment_not_superior: os << TS8("enlistment_not_superior"); //0xc0190033,
-		break; case NtStatus::recovery_not_needed: os << TS8("recovery_not_needed"); //0x40190034,
-		break; case NtStatus::rm_already_started: os << TS8("rm_already_started"); //0x40190035,
-		break; case NtStatus::file_identity_not_persistent: os << TS8("file_identity_not_persistent"); //0xc0190036,
-		break; case NtStatus::cant_break_transactional_dependency: os << TS8("cant_break_transactional_dependency"); //0xc0190037,
-		break; case NtStatus::cant_cross_rm_boundary: os << TS8("cant_cross_rm_boundary"); //0xc0190038,
-		break; case NtStatus::txf_dir_not_empty: os << TS8("txf_dir_not_empty"); //0xc0190039,
-		break; case NtStatus::indoubt_transactions_exist: os << TS8("indoubt_transactions_exist"); //0xc019003a,
-		break; case NtStatus::tm_volatile: os << TS8("tm_volatile"); //0xc019003b,
-		break; case NtStatus::rollback_timer_expired: os << TS8("rollback_timer_expired"); //0xc019003c,
-		break; case NtStatus::txf_attribute_corrupt: os << TS8("txf_attribute_corrupt"); //0xc019003d,
-		break; case NtStatus::efs_not_allowed_in_transaction: os << TS8("efs_not_allowed_in_transaction"); //0xc019003e,
-		break; case NtStatus::transactional_open_not_allowed: os << TS8("transactional_open_not_allowed"); //0xc019003f,
-		break; case NtStatus::transacted_mapping_unsupported_remote: os << TS8("transacted_mapping_unsupported_remote"); //0xc0190040,
-		break; case NtStatus::txf_metadata_already_present: os << TS8("txf_metadata_already_present"); //0x80190041,
-		break; case NtStatus::transaction_scope_callbacks_not_set: os << TS8("transaction_scope_callbacks_not_set"); //0x80190042,
-		break; case NtStatus::transaction_required_promotion: os << TS8("transaction_required_promotion"); //0xc0190043,
-		break; case NtStatus::cannot_execute_file_in_transaction: os << TS8("cannot_execute_file_in_transaction"); //0xc0190044,
-		break; case NtStatus::transactions_not_frozen: os << TS8("transactions_not_frozen"); //0xc0190045,
-		break; case NtStatus::transaction_freeze_in_progress: os << TS8("transaction_freeze_in_progress"); //0xc0190046,
-		break; case NtStatus::not_snapshot_volume: os << TS8("not_snapshot_volume"); //0xc0190047,
-		break; case NtStatus::no_savepoint_with_open_files: os << TS8("no_savepoint_with_open_files"); //0xc0190048,
-		break; case NtStatus::sparse_not_allowed_in_transaction: os << TS8("sparse_not_allowed_in_transaction"); //0xc0190049,
-		break; case NtStatus::tm_identity_mismatch: os << TS8("tm_identity_mismatch"); //0xc019004a,
-		break; case NtStatus::floated_section: os << TS8("floated_section"); //0xc019004b,
-		break; case NtStatus::cannot_accept_transacted_work: os << TS8("cannot_accept_transacted_work"); //0xc019004c,
-		break; case NtStatus::cannot_abort_transactions: os << TS8("cannot_abort_transactions"); //0xc019004d,
-		break; case NtStatus::transaction_not_found: os << TS8("transaction_not_found"); //0xc019004e,
-		break; case NtStatus::resourcemanager_not_found: os << TS8("resourcemanager_not_found"); //0xc019004f,
-		break; case NtStatus::enlistment_not_found: os << TS8("enlistment_not_found"); //0xc0190050,
-		break; case NtStatus::transactionmanager_not_found: os << TS8("transactionmanager_not_found"); //0xc0190051,
-		break; case NtStatus::transactionmanager_not_online: os << TS8("transactionmanager_not_online"); //0xc0190052,
-		break; case NtStatus::transactionmanager_recovery_name_collision: os << TS8("transactionmanager_recovery_name_collision"); //0xc0190053,
-		break; case NtStatus::transaction_not_root: os << TS8("transaction_not_root"); //0xc0190054,
-		break; case NtStatus::transaction_object_expired: os << TS8("transaction_object_expired"); //0xc0190055,
-		break; case NtStatus::compression_not_allowed_in_transaction: os << TS8("compression_not_allowed_in_transaction"); //0xc0190056,
-		break; case NtStatus::transaction_response_not_enlisted: os << TS8("transaction_response_not_enlisted"); //0xc0190057,
-		break; case NtStatus::transaction_record_too_long: os << TS8("transaction_record_too_long"); //0xc0190058,
-		break; case NtStatus::no_link_tracking_in_transaction: os << TS8("no_link_tracking_in_transaction"); //0xc0190059,
-		break; case NtStatus::operation_not_supported_in_transaction: os << TS8("operation_not_supported_in_transaction"); //0xc019005a,
-		break; case NtStatus::transaction_integrity_violated: os << TS8("transaction_integrity_violated"); //0xc019005b,
-		break; case NtStatus::transactionmanager_identity_mismatch: os << TS8("transactionmanager_identity_mismatch"); //0xc019005c,
-		break; case NtStatus::rm_cannot_be_frozen_for_snapshot: os << TS8("rm_cannot_be_frozen_for_snapshot"); //0xc019005d,
-		break; case NtStatus::transaction_must_writethrough: os << TS8("transaction_must_writethrough"); //0xc019005e,
-		break; case NtStatus::transaction_no_superior: os << TS8("transaction_no_superior"); //0xc019005f,
-		break; case NtStatus::expired_handle: os << TS8("expired_handle"); //0xc0190060,
-		break; case NtStatus::transaction_not_enlisted: os << TS8("transaction_not_enlisted"); //0xc0190061,
-		break; case NtStatus::log_sector_invalid: os << TS8("log_sector_invalid"); //0xc01a0001,
-		break; case NtStatus::log_sector_parity_invalid: os << TS8("log_sector_parity_invalid"); //0xc01a0002,
-		break; case NtStatus::log_sector_remapped: os << TS8("log_sector_remapped"); //0xc01a0003,
-		break; case NtStatus::log_block_incomplete: os << TS8("log_block_incomplete"); //0xc01a0004,
-		break; case NtStatus::log_invalid_range: os << TS8("log_invalid_range"); //0xc01a0005,
-		break; case NtStatus::log_blocks_exhausted: os << TS8("log_blocks_exhausted"); //0xc01a0006,
-		break; case NtStatus::log_read_context_invalid: os << TS8("log_read_context_invalid"); //0xc01a0007,
-		break; case NtStatus::log_restart_invalid: os << TS8("log_restart_invalid"); //0xc01a0008,
-		break; case NtStatus::log_block_version: os << TS8("log_block_version"); //0xc01a0009,
-		break; case NtStatus::log_block_invalid: os << TS8("log_block_invalid"); //0xc01a000a,
-		break; case NtStatus::log_read_mode_invalid: os << TS8("log_read_mode_invalid"); //0xc01a000b,
-		break; case NtStatus::log_no_restart: os << TS8("log_no_restart"); //0x401a000c,
-		break; case NtStatus::log_metadata_corrupt: os << TS8("log_metadata_corrupt"); //0xc01a000d,
-		break; case NtStatus::log_metadata_invalid: os << TS8("log_metadata_invalid"); //0xc01a000e,
-		break; case NtStatus::log_metadata_inconsistent: os << TS8("log_metadata_inconsistent"); //0xc01a000f,
-		break; case NtStatus::log_reservation_invalid: os << TS8("log_reservation_invalid"); //0xc01a0010,
-		break; case NtStatus::log_cant_delete: os << TS8("log_cant_delete"); //0xc01a0011,
-		break; case NtStatus::log_container_limit_exceeded: os << TS8("log_container_limit_exceeded"); //0xc01a0012,
-		break; case NtStatus::log_start_of_log: os << TS8("log_start_of_log"); //0xc01a0013,
-		break; case NtStatus::log_policy_already_installed: os << TS8("log_policy_already_installed"); //0xc01a0014,
-		break; case NtStatus::log_policy_not_installed: os << TS8("log_policy_not_installed"); //0xc01a0015,
-		break; case NtStatus::log_policy_invalid: os << TS8("log_policy_invalid"); //0xc01a0016,
-		break; case NtStatus::log_policy_conflict: os << TS8("log_policy_conflict"); //0xc01a0017,
-		break; case NtStatus::log_pinned_archive_tail: os << TS8("log_pinned_archive_tail"); //0xc01a0018,
-		break; case NtStatus::log_record_nonexistent: os << TS8("log_record_nonexistent"); //0xc01a0019,
-		break; case NtStatus::log_records_reserved_invalid: os << TS8("log_records_reserved_invalid"); //0xc01a001a,
-		break; case NtStatus::log_space_reserved_invalid: os << TS8("log_space_reserved_invalid"); //0xc01a001b,
-		break; case NtStatus::log_tail_invalid: os << TS8("log_tail_invalid"); //0xc01a001c,
-		break; case NtStatus::log_full: os << TS8("log_full"); //0xc01a001d,
-		break; case NtStatus::log_multiplexed: os << TS8("log_multiplexed"); //0xc01a001e,
-		break; case NtStatus::log_dedicated: os << TS8("log_dedicated"); //0xc01a001f,
-		break; case NtStatus::log_archive_not_in_progress: os << TS8("log_archive_not_in_progress"); //0xc01a0020,
-		break; case NtStatus::log_archive_in_progress: os << TS8("log_archive_in_progress"); //0xc01a0021,
-		break; case NtStatus::log_ephemeral: os << TS8("log_ephemeral"); //0xc01a0022,
-		break; case NtStatus::log_not_enough_containers: os << TS8("log_not_enough_containers"); //0xc01a0023,
-		break; case NtStatus::log_client_already_registered: os << TS8("log_client_already_registered"); //0xc01a0024,
-		break; case NtStatus::log_client_not_registered: os << TS8("log_client_not_registered"); //0xc01a0025,
-		break; case NtStatus::log_full_handler_in_progress: os << TS8("log_full_handler_in_progress"); //0xc01a0026,
-		break; case NtStatus::log_container_read_failed: os << TS8("log_container_read_failed"); //0xc01a0027,
-		break; case NtStatus::log_container_write_failed: os << TS8("log_container_write_failed"); //0xc01a0028,
-		break; case NtStatus::log_container_open_failed: os << TS8("log_container_open_failed"); //0xc01a0029,
-		break; case NtStatus::log_container_state_invalid: os << TS8("log_container_state_invalid"); //0xc01a002a,
-		break; case NtStatus::log_state_invalid: os << TS8("log_state_invalid"); //0xc01a002b,
-		break; case NtStatus::log_pinned: os << TS8("log_pinned"); //0xc01a002c,
-		break; case NtStatus::log_metadata_flush_failed: os << TS8("log_metadata_flush_failed"); //0xc01a002d,
-		break; case NtStatus::log_inconsistent_security: os << TS8("log_inconsistent_security"); //0xc01a002e,
-		break; case NtStatus::log_appended_flush_failed: os << TS8("log_appended_flush_failed"); //0xc01a002f,
-		break; case NtStatus::log_pinned_reservation: os << TS8("log_pinned_reservation"); //0xc01a0030,
-		break; case NtStatus::video_hung_display_driver_thread: os << TS8("video_hung_display_driver_thread"); //0xc01b00ea,
-		break; case NtStatus::video_hung_display_driver_thread_recovered: os << TS8("video_hung_display_driver_thread_recovered"); //0x801b00eb,
-		break; case NtStatus::video_driver_debug_report_request: os << TS8("video_driver_debug_report_request"); //0x401b00ec,
-		break; case NtStatus::flt_io_complete: os << TS8("flt_io_complete"); //0x001c0001,
-		break; case NtStatus::flt_buffer_too_small: os << TS8("flt_buffer_too_small"); //0x801c0001,
-		break; case NtStatus::flt_no_handler_defined: os << TS8("flt_no_handler_defined"); //0xc01c0001,
-		break; case NtStatus::flt_context_already_defined: os << TS8("flt_context_already_defined"); //0xc01c0002,
-		break; case NtStatus::flt_invalid_asynchronous_request: os << TS8("flt_invalid_asynchronous_request"); //0xc01c0003,
-		break; case NtStatus::flt_disallow_fast_io: os << TS8("flt_disallow_fast_io"); //0xc01c0004,
-		break; case NtStatus::flt_invalid_name_request: os << TS8("flt_invalid_name_request"); //0xc01c0005,
-		break; case NtStatus::flt_not_safe_to_post_operation: os << TS8("flt_not_safe_to_post_operation"); //0xc01c0006,
-		break; case NtStatus::flt_not_initialized: os << TS8("flt_not_initialized"); //0xc01c0007,
-		break; case NtStatus::flt_filter_not_ready: os << TS8("flt_filter_not_ready"); //0xc01c0008,
-		break; case NtStatus::flt_post_operation_cleanup: os << TS8("flt_post_operation_cleanup"); //0xc01c0009,
-		break; case NtStatus::flt_internal_error: os << TS8("flt_internal_error"); //0xc01c000a,
-		break; case NtStatus::flt_deleting_object: os << TS8("flt_deleting_object"); //0xc01c000b,
-		break; case NtStatus::flt_must_be_nonpaged_pool: os << TS8("flt_must_be_nonpaged_pool"); //0xc01c000c,
-		break; case NtStatus::flt_duplicate_entry: os << TS8("flt_duplicate_entry"); //0xc01c000d,
-		break; case NtStatus::flt_cbdq_disabled: os << TS8("flt_cbdq_disabled"); //0xc01c000e,
-		break; case NtStatus::flt_do_not_attach: os << TS8("flt_do_not_attach"); //0xc01c000f,
-		break; case NtStatus::flt_do_not_detach: os << TS8("flt_do_not_detach"); //0xc01c0010,
-		break; case NtStatus::flt_instance_altitude_collision: os << TS8("flt_instance_altitude_collision"); //0xc01c0011,
-		break; case NtStatus::flt_instance_name_collision: os << TS8("flt_instance_name_collision"); //0xc01c0012,
-		break; case NtStatus::flt_filter_not_found: os << TS8("flt_filter_not_found"); //0xc01c0013,
-		break; case NtStatus::flt_volume_not_found: os << TS8("flt_volume_not_found"); //0xc01c0014,
-		break; case NtStatus::flt_instance_not_found: os << TS8("flt_instance_not_found"); //0xc01c0015,
-		break; case NtStatus::flt_context_allocation_not_found: os << TS8("flt_context_allocation_not_found"); //0xc01c0016,
-		break; case NtStatus::flt_invalid_context_registration: os << TS8("flt_invalid_context_registration"); //0xc01c0017,
-		break; case NtStatus::flt_name_cache_miss: os << TS8("flt_name_cache_miss"); //0xc01c0018,
-		break; case NtStatus::flt_no_device_object: os << TS8("flt_no_device_object"); //0xc01c0019,
-		break; case NtStatus::flt_volume_already_mounted: os << TS8("flt_volume_already_mounted"); //0xc01c001a,
-		break; case NtStatus::flt_already_enlisted: os << TS8("flt_already_enlisted"); //0xc01c001b,
-		break; case NtStatus::flt_context_already_linked: os << TS8("flt_context_already_linked"); //0xc01c001c,
-		break; case NtStatus::flt_no_waiter_for_reply: os << TS8("flt_no_waiter_for_reply"); //0xc01c0020,
-		break; case NtStatus::flt_registration_busy: os << TS8("flt_registration_busy"); //0xc01c0023,
-		break; case NtStatus::flt_wcos_not_supported: os << TS8("flt_wcos_not_supported"); //0xc01c0024,
-		break; case NtStatus::monitor_no_descriptor: os << TS8("monitor_no_descriptor"); //0xc01d0001,
-		break; case NtStatus::monitor_unknown_descriptor_format: os << TS8("monitor_unknown_descriptor_format"); //0xc01d0002,
-		break; case NtStatus::monitor_invalid_descriptor_checksum: os << TS8("monitor_invalid_descriptor_checksum"); //0xc01d0003,
-		break; case NtStatus::monitor_invalid_standard_timing_block: os << TS8("monitor_invalid_standard_timing_block"); //0xc01d0004,
-		break; case NtStatus::monitor_wmi_datablock_registration_failed: os << TS8("monitor_wmi_datablock_registration_failed"); //0xc01d0005,
-		break; case NtStatus::monitor_invalid_serial_number_mondsc_block: os << TS8("monitor_invalid_serial_number_mondsc_block"); //0xc01d0006,
-		break; case NtStatus::monitor_invalid_user_friendly_mondsc_block: os << TS8("monitor_invalid_user_friendly_mondsc_block"); //0xc01d0007,
-		break; case NtStatus::monitor_no_more_descriptor_data: os << TS8("monitor_no_more_descriptor_data"); //0xc01d0008,
-		break; case NtStatus::monitor_invalid_detailed_timing_block: os << TS8("monitor_invalid_detailed_timing_block"); //0xc01d0009,
-		break; case NtStatus::monitor_invalid_manufacture_date: os << TS8("monitor_invalid_manufacture_date"); //0xc01d000a,
-		break; case NtStatus::graphics_link_configuration_in_progress: os << TS8("graphics_link_configuration_in_progress"); //0x801e0000,
-		break; case NtStatus::graphics_not_exclusive_mode_owner: os << TS8("graphics_not_exclusive_mode_owner"); //0xc01e0000,
-		break; case NtStatus::graphics_insufficient_dma_buffer: os << TS8("graphics_insufficient_dma_buffer"); //0xc01e0001,
-		break; case NtStatus::graphics_invalid_display_adapter: os << TS8("graphics_invalid_display_adapter"); //0xc01e0002,
-		break; case NtStatus::graphics_adapter_was_reset: os << TS8("graphics_adapter_was_reset"); //0xc01e0003,
-		break; case NtStatus::graphics_invalid_driver_model: os << TS8("graphics_invalid_driver_model"); //0xc01e0004,
-		break; case NtStatus::graphics_present_mode_changed: os << TS8("graphics_present_mode_changed"); //0xc01e0005,
-		break; case NtStatus::graphics_present_occluded: os << TS8("graphics_present_occluded"); //0xc01e0006,
-		break; case NtStatus::graphics_present_denied: os << TS8("graphics_present_denied"); //0xc01e0007,
-		break; case NtStatus::graphics_cannotcolorconvert: os << TS8("graphics_cannotcolorconvert"); //0xc01e0008,
-		break; case NtStatus::graphics_driver_mismatch: os << TS8("graphics_driver_mismatch"); //0xc01e0009,
-		break; case NtStatus::graphics_partial_data_populated: os << TS8("graphics_partial_data_populated"); //0x401e000a,
-		break; case NtStatus::graphics_present_redirection_disabled: os << TS8("graphics_present_redirection_disabled"); //0xc01e000b,
-		break; case NtStatus::graphics_present_unoccluded: os << TS8("graphics_present_unoccluded"); //0xc01e000c,
-		break; case NtStatus::graphics_windowdc_not_available: os << TS8("graphics_windowdc_not_available"); //0xc01e000d,
-		break; case NtStatus::graphics_windowless_present_disabled: os << TS8("graphics_windowless_present_disabled"); //0xc01e000e,
-		break; case NtStatus::graphics_present_invalid_window: os << TS8("graphics_present_invalid_window"); //0xc01e000f,
-		break; case NtStatus::graphics_present_buffer_not_bound: os << TS8("graphics_present_buffer_not_bound"); //0xc01e0010,
-		break; case NtStatus::graphics_vail_state_changed: os << TS8("graphics_vail_state_changed"); //0xc01e0011,
-		break; case NtStatus::graphics_indirect_display_abandon_swapchain: os << TS8("graphics_indirect_display_abandon_swapchain"); //0xc01e0012,
-		break; case NtStatus::graphics_indirect_display_device_stopped: os << TS8("graphics_indirect_display_device_stopped"); //0xc01e0013,
-		break; case NtStatus::graphics_mpo_allocation_unpinned: os << TS8("graphics_mpo_allocation_unpinned"); //0xc01e0018,
-		break; case NtStatus::graphics_no_video_memory: os << TS8("graphics_no_video_memory"); //0xc01e0100,
-		break; case NtStatus::graphics_cant_lock_memory: os << TS8("graphics_cant_lock_memory"); //0xc01e0101,
-		break; case NtStatus::graphics_allocation_busy: os << TS8("graphics_allocation_busy"); //0xc01e0102,
-		break; case NtStatus::graphics_too_many_references: os << TS8("graphics_too_many_references"); //0xc01e0103,
-		break; case NtStatus::graphics_try_again_later: os << TS8("graphics_try_again_later"); //0xc01e0104,
-		break; case NtStatus::graphics_try_again_now: os << TS8("graphics_try_again_now"); //0xc01e0105,
-		break; case NtStatus::graphics_allocation_invalid: os << TS8("graphics_allocation_invalid"); //0xc01e0106,
-		break; case NtStatus::graphics_unswizzling_aperture_unavailable: os << TS8("graphics_unswizzling_aperture_unavailable"); //0xc01e0107,
-		break; case NtStatus::graphics_unswizzling_aperture_unsupported: os << TS8("graphics_unswizzling_aperture_unsupported"); //0xc01e0108,
-		break; case NtStatus::graphics_cant_evict_pinned_allocation: os << TS8("graphics_cant_evict_pinned_allocation"); //0xc01e0109,
-		break; case NtStatus::graphics_invalid_allocation_usage: os << TS8("graphics_invalid_allocation_usage"); //0xc01e0110,
-		break; case NtStatus::graphics_cant_render_locked_allocation: os << TS8("graphics_cant_render_locked_allocation"); //0xc01e0111,
-		break; case NtStatus::graphics_allocation_closed: os << TS8("graphics_allocation_closed"); //0xc01e0112,
-		break; case NtStatus::graphics_invalid_allocation_instance: os << TS8("graphics_invalid_allocation_instance"); //0xc01e0113,
-		break; case NtStatus::graphics_invalid_allocation_handle: os << TS8("graphics_invalid_allocation_handle"); //0xc01e0114,
-		break; case NtStatus::graphics_wrong_allocation_device: os << TS8("graphics_wrong_allocation_device"); //0xc01e0115,
-		break; case NtStatus::graphics_allocation_content_lost: os << TS8("graphics_allocation_content_lost"); //0xc01e0116,
-		break; case NtStatus::graphics_gpu_exception_on_device: os << TS8("graphics_gpu_exception_on_device"); //0xc01e0200,
-		break; case NtStatus::graphics_skip_allocation_preparation: os << TS8("graphics_skip_allocation_preparation"); //0x401e0201,
-		break; case NtStatus::graphics_invalid_vidpn_topology: os << TS8("graphics_invalid_vidpn_topology"); //0xc01e0300,
-		break; case NtStatus::graphics_vidpn_topology_not_supported: os << TS8("graphics_vidpn_topology_not_supported"); //0xc01e0301,
-		break; case NtStatus::graphics_vidpn_topology_currently_not_supported: os << TS8("graphics_vidpn_topology_currently_not_supported"); //0xc01e0302,
-		break; case NtStatus::graphics_invalid_vidpn: os << TS8("graphics_invalid_vidpn"); //0xc01e0303,
-		break; case NtStatus::graphics_invalid_video_present_source: os << TS8("graphics_invalid_video_present_source"); //0xc01e0304,
-		break; case NtStatus::graphics_invalid_video_present_target: os << TS8("graphics_invalid_video_present_target"); //0xc01e0305,
-		break; case NtStatus::graphics_vidpn_modality_not_supported: os << TS8("graphics_vidpn_modality_not_supported"); //0xc01e0306,
-		break; case NtStatus::graphics_mode_not_pinned: os << TS8("graphics_mode_not_pinned"); //0x401e0307,
-		break; case NtStatus::graphics_invalid_vidpn_sourcemodeset: os << TS8("graphics_invalid_vidpn_sourcemodeset"); //0xc01e0308,
-		break; case NtStatus::graphics_invalid_vidpn_targetmodeset: os << TS8("graphics_invalid_vidpn_targetmodeset"); //0xc01e0309,
-		break; case NtStatus::graphics_invalid_frequency: os << TS8("graphics_invalid_frequency"); //0xc01e030a,
-		break; case NtStatus::graphics_invalid_active_region: os << TS8("graphics_invalid_active_region"); //0xc01e030b,
-		break; case NtStatus::graphics_invalid_total_region: os << TS8("graphics_invalid_total_region"); //0xc01e030c,
-		break; case NtStatus::graphics_invalid_video_present_source_mode: os << TS8("graphics_invalid_video_present_source_mode"); //0xc01e0310,
-		break; case NtStatus::graphics_invalid_video_present_target_mode: os << TS8("graphics_invalid_video_present_target_mode"); //0xc01e0311,
-		break; case NtStatus::graphics_pinned_mode_must_remain_in_set: os << TS8("graphics_pinned_mode_must_remain_in_set"); //0xc01e0312,
-		break; case NtStatus::graphics_path_already_in_topology: os << TS8("graphics_path_already_in_topology"); //0xc01e0313,
-		break; case NtStatus::graphics_mode_already_in_modeset: os << TS8("graphics_mode_already_in_modeset"); //0xc01e0314,
-		break; case NtStatus::graphics_invalid_videopresentsourceset: os << TS8("graphics_invalid_videopresentsourceset"); //0xc01e0315,
-		break; case NtStatus::graphics_invalid_videopresenttargetset: os << TS8("graphics_invalid_videopresenttargetset"); //0xc01e0316,
-		break; case NtStatus::graphics_source_already_in_set: os << TS8("graphics_source_already_in_set"); //0xc01e0317,
-		break; case NtStatus::graphics_target_already_in_set: os << TS8("graphics_target_already_in_set"); //0xc01e0318,
-		break; case NtStatus::graphics_invalid_vidpn_present_path: os << TS8("graphics_invalid_vidpn_present_path"); //0xc01e0319,
-		break; case NtStatus::graphics_no_recommended_vidpn_topology: os << TS8("graphics_no_recommended_vidpn_topology"); //0xc01e031a,
-		break; case NtStatus::graphics_invalid_monitor_frequencyrangeset: os << TS8("graphics_invalid_monitor_frequencyrangeset"); //0xc01e031b,
-		break; case NtStatus::graphics_invalid_monitor_frequencyrange: os << TS8("graphics_invalid_monitor_frequencyrange"); //0xc01e031c,
-		break; case NtStatus::graphics_frequencyrange_not_in_set: os << TS8("graphics_frequencyrange_not_in_set"); //0xc01e031d,
-		break; case NtStatus::graphics_no_preferred_mode: os << TS8("graphics_no_preferred_mode"); //0x401e031e,
-		break; case NtStatus::graphics_frequencyrange_already_in_set: os << TS8("graphics_frequencyrange_already_in_set"); //0xc01e031f,
-		break; case NtStatus::graphics_stale_modeset: os << TS8("graphics_stale_modeset"); //0xc01e0320,
-		break; case NtStatus::graphics_invalid_monitor_sourcemodeset: os << TS8("graphics_invalid_monitor_sourcemodeset"); //0xc01e0321,
-		break; case NtStatus::graphics_invalid_monitor_source_mode: os << TS8("graphics_invalid_monitor_source_mode"); //0xc01e0322,
-		break; case NtStatus::graphics_no_recommended_functional_vidpn: os << TS8("graphics_no_recommended_functional_vidpn"); //0xc01e0323,
-		break; case NtStatus::graphics_mode_id_must_be_unique: os << TS8("graphics_mode_id_must_be_unique"); //0xc01e0324,
-		break; case NtStatus::graphics_empty_adapter_monitor_mode_support_intersection: os << TS8("graphics_empty_adapter_monitor_mode_support_intersection"); //0xc01e0325,
-		break; case NtStatus::graphics_video_present_targets_less_than_sources: os << TS8("graphics_video_present_targets_less_than_sources"); //0xc01e0326,
-		break; case NtStatus::graphics_path_not_in_topology: os << TS8("graphics_path_not_in_topology"); //0xc01e0327,
-		break; case NtStatus::graphics_adapter_must_have_at_least_one_source: os << TS8("graphics_adapter_must_have_at_least_one_source"); //0xc01e0328,
-		break; case NtStatus::graphics_adapter_must_have_at_least_one_target: os << TS8("graphics_adapter_must_have_at_least_one_target"); //0xc01e0329,
-		break; case NtStatus::graphics_invalid_monitordescriptorset: os << TS8("graphics_invalid_monitordescriptorset"); //0xc01e032a,
-		break; case NtStatus::graphics_invalid_monitordescriptor: os << TS8("graphics_invalid_monitordescriptor"); //0xc01e032b,
-		break; case NtStatus::graphics_monitordescriptor_not_in_set: os << TS8("graphics_monitordescriptor_not_in_set"); //0xc01e032c,
-		break; case NtStatus::graphics_monitordescriptor_already_in_set: os << TS8("graphics_monitordescriptor_already_in_set"); //0xc01e032d,
-		break; case NtStatus::graphics_monitordescriptor_id_must_be_unique: os << TS8("graphics_monitordescriptor_id_must_be_unique"); //0xc01e032e,
-		break; case NtStatus::graphics_invalid_vidpn_target_subset_type: os << TS8("graphics_invalid_vidpn_target_subset_type"); //0xc01e032f,
-		break; case NtStatus::graphics_resources_not_related: os << TS8("graphics_resources_not_related"); //0xc01e0330,
-		break; case NtStatus::graphics_source_id_must_be_unique: os << TS8("graphics_source_id_must_be_unique"); //0xc01e0331,
-		break; case NtStatus::graphics_target_id_must_be_unique: os << TS8("graphics_target_id_must_be_unique"); //0xc01e0332,
-		break; case NtStatus::graphics_no_available_vidpn_target: os << TS8("graphics_no_available_vidpn_target"); //0xc01e0333,
-		break; case NtStatus::graphics_monitor_could_not_be_associated_with_adapter: os << TS8("graphics_monitor_could_not_be_associated_with_adapter"); //0xc01e0334,
-		break; case NtStatus::graphics_no_vidpnmgr: os << TS8("graphics_no_vidpnmgr"); //0xc01e0335,
-		break; case NtStatus::graphics_no_active_vidpn: os << TS8("graphics_no_active_vidpn"); //0xc01e0336,
-		break; case NtStatus::graphics_stale_vidpn_topology: os << TS8("graphics_stale_vidpn_topology"); //0xc01e0337,
-		break; case NtStatus::graphics_monitor_not_connected: os << TS8("graphics_monitor_not_connected"); //0xc01e0338,
-		break; case NtStatus::graphics_source_not_in_topology: os << TS8("graphics_source_not_in_topology"); //0xc01e0339,
-		break; case NtStatus::graphics_invalid_primarysurface_size: os << TS8("graphics_invalid_primarysurface_size"); //0xc01e033a,
-		break; case NtStatus::graphics_invalid_visibleregion_size: os << TS8("graphics_invalid_visibleregion_size"); //0xc01e033b,
-		break; case NtStatus::graphics_invalid_stride: os << TS8("graphics_invalid_stride"); //0xc01e033c,
-		break; case NtStatus::graphics_invalid_pixelformat: os << TS8("graphics_invalid_pixelformat"); //0xc01e033d,
-		break; case NtStatus::graphics_invalid_colorbasis: os << TS8("graphics_invalid_colorbasis"); //0xc01e033e,
-		break; case NtStatus::graphics_invalid_pixelvalueaccessmode: os << TS8("graphics_invalid_pixelvalueaccessmode"); //0xc01e033f,
-		break; case NtStatus::graphics_target_not_in_topology: os << TS8("graphics_target_not_in_topology"); //0xc01e0340,
-		break; case NtStatus::graphics_no_display_mode_management_support: os << TS8("graphics_no_display_mode_management_support"); //0xc01e0341,
-		break; case NtStatus::graphics_vidpn_source_in_use: os << TS8("graphics_vidpn_source_in_use"); //0xc01e0342,
-		break; case NtStatus::graphics_cant_access_active_vidpn: os << TS8("graphics_cant_access_active_vidpn"); //0xc01e0343,
-		break; case NtStatus::graphics_invalid_path_importance_ordinal: os << TS8("graphics_invalid_path_importance_ordinal"); //0xc01e0344,
-		break; case NtStatus::graphics_invalid_path_content_geometry_transformation: os << TS8("graphics_invalid_path_content_geometry_transformation"); //0xc01e0345,
-		break; case NtStatus::graphics_path_content_geometry_transformation_not_supported: os << TS8("graphics_path_content_geometry_transformation_not_supported"); //0xc01e0346,
-		break; case NtStatus::graphics_invalid_gamma_ramp: os << TS8("graphics_invalid_gamma_ramp"); //0xc01e0347,
-		break; case NtStatus::graphics_gamma_ramp_not_supported: os << TS8("graphics_gamma_ramp_not_supported"); //0xc01e0348,
-		break; case NtStatus::graphics_multisampling_not_supported: os << TS8("graphics_multisampling_not_supported"); //0xc01e0349,
-		break; case NtStatus::graphics_mode_not_in_modeset: os << TS8("graphics_mode_not_in_modeset"); //0xc01e034a,
-		break; case NtStatus::graphics_dataset_is_empty: os << TS8("graphics_dataset_is_empty"); //0x401e034b,
-		break; case NtStatus::graphics_no_more_elements_in_dataset: os << TS8("graphics_no_more_elements_in_dataset"); //0x401e034c,
-		break; case NtStatus::graphics_invalid_vidpn_topology_recommendation_reason: os << TS8("graphics_invalid_vidpn_topology_recommendation_reason"); //0xc01e034d,
-		break; case NtStatus::graphics_invalid_path_content_type: os << TS8("graphics_invalid_path_content_type"); //0xc01e034e,
-		break; case NtStatus::graphics_invalid_copyprotection_type: os << TS8("graphics_invalid_copyprotection_type"); //0xc01e034f,
-		break; case NtStatus::graphics_unassigned_modeset_already_exists: os << TS8("graphics_unassigned_modeset_already_exists"); //0xc01e0350,
-		break; case NtStatus::graphics_path_content_geometry_transformation_not_pinned: os << TS8("graphics_path_content_geometry_transformation_not_pinned"); //0x401e0351,
-		break; case NtStatus::graphics_invalid_scanline_ordering: os << TS8("graphics_invalid_scanline_ordering"); //0xc01e0352,
-		break; case NtStatus::graphics_topology_changes_not_allowed: os << TS8("graphics_topology_changes_not_allowed"); //0xc01e0353,
-		break; case NtStatus::graphics_no_available_importance_ordinals: os << TS8("graphics_no_available_importance_ordinals"); //0xc01e0354,
-		break; case NtStatus::graphics_incompatible_private_format: os << TS8("graphics_incompatible_private_format"); //0xc01e0355,
-		break; case NtStatus::graphics_invalid_mode_pruning_algorithm: os << TS8("graphics_invalid_mode_pruning_algorithm"); //0xc01e0356,
-		break; case NtStatus::graphics_invalid_monitor_capability_origin: os << TS8("graphics_invalid_monitor_capability_origin"); //0xc01e0357,
-		break; case NtStatus::graphics_invalid_monitor_frequencyrange_constraint: os << TS8("graphics_invalid_monitor_frequencyrange_constraint"); //0xc01e0358,
-		break; case NtStatus::graphics_max_num_paths_reached: os << TS8("graphics_max_num_paths_reached"); //0xc01e0359,
-		break; case NtStatus::graphics_cancel_vidpn_topology_augmentation: os << TS8("graphics_cancel_vidpn_topology_augmentation"); //0xc01e035a,
-		break; case NtStatus::graphics_invalid_client_type: os << TS8("graphics_invalid_client_type"); //0xc01e035b,
-		break; case NtStatus::graphics_clientvidpn_not_set: os << TS8("graphics_clientvidpn_not_set"); //0xc01e035c,
-		break; case NtStatus::graphics_specified_child_already_connected: os << TS8("graphics_specified_child_already_connected"); //0xc01e0400,
-		break; case NtStatus::graphics_child_descriptor_not_supported: os << TS8("graphics_child_descriptor_not_supported"); //0xc01e0401,
-		break; case NtStatus::graphics_unknown_child_status: os << TS8("graphics_unknown_child_status"); //0x401e042f,
-		break; case NtStatus::graphics_not_a_linked_adapter: os << TS8("graphics_not_a_linked_adapter"); //0xc01e0430,
-		break; case NtStatus::graphics_leadlink_not_enumerated: os << TS8("graphics_leadlink_not_enumerated"); //0xc01e0431,
-		break; case NtStatus::graphics_chainlinks_not_enumerated: os << TS8("graphics_chainlinks_not_enumerated"); //0xc01e0432,
-		break; case NtStatus::graphics_adapter_chain_not_ready: os << TS8("graphics_adapter_chain_not_ready"); //0xc01e0433,
-		break; case NtStatus::graphics_chainlinks_not_started: os << TS8("graphics_chainlinks_not_started"); //0xc01e0434,
-		break; case NtStatus::graphics_chainlinks_not_powered_on: os << TS8("graphics_chainlinks_not_powered_on"); //0xc01e0435,
-		break; case NtStatus::graphics_inconsistent_device_link_state: os << TS8("graphics_inconsistent_device_link_state"); //0xc01e0436,
-		break; case NtStatus::graphics_leadlink_start_deferred: os << TS8("graphics_leadlink_start_deferred"); //0x401e0437,
-		break; case NtStatus::graphics_not_post_device_driver: os << TS8("graphics_not_post_device_driver"); //0xc01e0438,
-		break; case NtStatus::graphics_polling_too_frequently: os << TS8("graphics_polling_too_frequently"); //0x401e0439,
-		break; case NtStatus::graphics_start_deferred: os << TS8("graphics_start_deferred"); //0x401e043a,
-		break; case NtStatus::graphics_adapter_access_not_excluded: os << TS8("graphics_adapter_access_not_excluded"); //0xc01e043b,
-		break; case NtStatus::graphics_dependable_child_status: os << TS8("graphics_dependable_child_status"); //0x401e043c,
-		break; case NtStatus::graphics_opm_not_supported: os << TS8("graphics_opm_not_supported"); //0xc01e0500,
-		break; case NtStatus::graphics_copp_not_supported: os << TS8("graphics_copp_not_supported"); //0xc01e0501,
-		break; case NtStatus::graphics_uab_not_supported: os << TS8("graphics_uab_not_supported"); //0xc01e0502,
-		break; case NtStatus::graphics_opm_invalid_encrypted_parameters: os << TS8("graphics_opm_invalid_encrypted_parameters"); //0xc01e0503,
-		break; case NtStatus::graphics_opm_no_protected_outputs_exist: os << TS8("graphics_opm_no_protected_outputs_exist"); //0xc01e0505,
-		break; case NtStatus::graphics_opm_internal_error: os << TS8("graphics_opm_internal_error"); //0xc01e050b,
-		break; case NtStatus::graphics_opm_invalid_handle: os << TS8("graphics_opm_invalid_handle"); //0xc01e050c,
-		break; case NtStatus::graphics_pvp_invalid_certificate_length: os << TS8("graphics_pvp_invalid_certificate_length"); //0xc01e050e,
-		break; case NtStatus::graphics_opm_spanning_mode_enabled: os << TS8("graphics_opm_spanning_mode_enabled"); //0xc01e050f,
-		break; case NtStatus::graphics_opm_theater_mode_enabled: os << TS8("graphics_opm_theater_mode_enabled"); //0xc01e0510,
-		break; case NtStatus::graphics_pvp_hfs_failed: os << TS8("graphics_pvp_hfs_failed"); //0xc01e0511,
-		break; case NtStatus::graphics_opm_invalid_srm: os << TS8("graphics_opm_invalid_srm"); //0xc01e0512,
-		break; case NtStatus::graphics_opm_output_does_not_support_hdcp: os << TS8("graphics_opm_output_does_not_support_hdcp"); //0xc01e0513,
-		break; case NtStatus::graphics_opm_output_does_not_support_acp: os << TS8("graphics_opm_output_does_not_support_acp"); //0xc01e0514,
-		break; case NtStatus::graphics_opm_output_does_not_support_cgmsa: os << TS8("graphics_opm_output_does_not_support_cgmsa"); //0xc01e0515,
-		break; case NtStatus::graphics_opm_hdcp_srm_never_set: os << TS8("graphics_opm_hdcp_srm_never_set"); //0xc01e0516,
-		break; case NtStatus::graphics_opm_resolution_too_high: os << TS8("graphics_opm_resolution_too_high"); //0xc01e0517,
-		break; case NtStatus::graphics_opm_all_hdcp_hardware_already_in_use: os << TS8("graphics_opm_all_hdcp_hardware_already_in_use"); //0xc01e0518,
-		break; case NtStatus::graphics_opm_protected_output_no_longer_exists: os << TS8("graphics_opm_protected_output_no_longer_exists"); //0xc01e051a,
-		break; case NtStatus::graphics_opm_protected_output_does_not_have_copp_semantics: os << TS8("graphics_opm_protected_output_does_not_have_copp_semantics"); //0xc01e051c,
-		break; case NtStatus::graphics_opm_invalid_information_request: os << TS8("graphics_opm_invalid_information_request"); //0xc01e051d,
-		break; case NtStatus::graphics_opm_driver_internal_error: os << TS8("graphics_opm_driver_internal_error"); //0xc01e051e,
-		break; case NtStatus::graphics_opm_protected_output_does_not_have_opm_semantics: os << TS8("graphics_opm_protected_output_does_not_have_opm_semantics"); //0xc01e051f,
-		break; case NtStatus::graphics_opm_signaling_not_supported: os << TS8("graphics_opm_signaling_not_supported"); //0xc01e0520,
-		break; case NtStatus::graphics_opm_invalid_configuration_request: os << TS8("graphics_opm_invalid_configuration_request"); //0xc01e0521,
-		break; case NtStatus::graphics_i2c_not_supported: os << TS8("graphics_i2c_not_supported"); //0xc01e0580,
-		break; case NtStatus::graphics_i2c_device_does_not_exist: os << TS8("graphics_i2c_device_does_not_exist"); //0xc01e0581,
-		break; case NtStatus::graphics_i2c_error_transmitting_data: os << TS8("graphics_i2c_error_transmitting_data"); //0xc01e0582,
-		break; case NtStatus::graphics_i2c_error_receiving_data: os << TS8("graphics_i2c_error_receiving_data"); //0xc01e0583,
-		break; case NtStatus::graphics_ddcci_vcp_not_supported: os << TS8("graphics_ddcci_vcp_not_supported"); //0xc01e0584,
-		break; case NtStatus::graphics_ddcci_invalid_data: os << TS8("graphics_ddcci_invalid_data"); //0xc01e0585,
-		break; case NtStatus::graphics_ddcci_monitor_returned_invalid_timing_status_byte: os << TS8("graphics_ddcci_monitor_returned_invalid_timing_status_byte"); //0xc01e0586,
-		break; case NtStatus::graphics_ddcci_invalid_capabilities_string: os << TS8("graphics_ddcci_invalid_capabilities_string"); //0xc01e0587,
-		break; case NtStatus::graphics_mca_internal_error: os << TS8("graphics_mca_internal_error"); //0xc01e0588,
-		break; case NtStatus::graphics_ddcci_invalid_message_command: os << TS8("graphics_ddcci_invalid_message_command"); //0xc01e0589,
-		break; case NtStatus::graphics_ddcci_invalid_message_length: os << TS8("graphics_ddcci_invalid_message_length"); //0xc01e058a,
-		break; case NtStatus::graphics_ddcci_invalid_message_checksum: os << TS8("graphics_ddcci_invalid_message_checksum"); //0xc01e058b,
-		break; case NtStatus::graphics_invalid_physical_monitor_handle: os << TS8("graphics_invalid_physical_monitor_handle"); //0xc01e058c,
-		break; case NtStatus::graphics_monitor_no_longer_exists: os << TS8("graphics_monitor_no_longer_exists"); //0xc01e058d,
-		break; case NtStatus::graphics_only_console_session_supported: os << TS8("graphics_only_console_session_supported"); //0xc01e05e0,
-		break; case NtStatus::graphics_no_display_device_corresponds_to_name: os << TS8("graphics_no_display_device_corresponds_to_name"); //0xc01e05e1,
-		break; case NtStatus::graphics_display_device_not_attached_to_desktop: os << TS8("graphics_display_device_not_attached_to_desktop"); //0xc01e05e2,
-		break; case NtStatus::graphics_mirroring_devices_not_supported: os << TS8("graphics_mirroring_devices_not_supported"); //0xc01e05e3,
-		break; case NtStatus::graphics_invalid_pointer: os << TS8("graphics_invalid_pointer"); //0xc01e05e4,
-		break; case NtStatus::graphics_no_monitors_correspond_to_display_device: os << TS8("graphics_no_monitors_correspond_to_display_device"); //0xc01e05e5,
-		break; case NtStatus::graphics_parameter_array_too_small: os << TS8("graphics_parameter_array_too_small"); //0xc01e05e6,
-		break; case NtStatus::graphics_internal_error: os << TS8("graphics_internal_error"); //0xc01e05e7,
-		break; case NtStatus::graphics_session_type_change_in_progress: os << TS8("graphics_session_type_change_in_progress"); //0xc01e05e8,
-		break; case NtStatus::fve_locked_volume: os << TS8("fve_locked_volume"); //0xc0210000,
-		break; case NtStatus::fve_partial_metadata: os << TS8("fve_partial_metadata"); //0x80210001,
-		break; case NtStatus::fve_not_encrypted: os << TS8("fve_not_encrypted"); //0xc0210001,
-		break; case NtStatus::fve_transient_state: os << TS8("fve_transient_state"); //0x80210002,
-		break; case NtStatus::fve_bad_information: os << TS8("fve_bad_information"); //0xc0210002,
-		break; case NtStatus::fve_too_small: os << TS8("fve_too_small"); //0xc0210003,
-		break; case NtStatus::fve_failed_wrong_fs: os << TS8("fve_failed_wrong_fs"); //0xc0210004,
-		break; case NtStatus::fve_bad_partition_size: os << TS8("fve_bad_partition_size"); //0xc0210005,
-		break; case NtStatus::fve_fs_not_extended: os << TS8("fve_fs_not_extended"); //0xc0210006,
-		break; case NtStatus::fve_fs_mounted: os << TS8("fve_fs_mounted"); //0xc0210007,
-		break; case NtStatus::fve_no_license: os << TS8("fve_no_license"); //0xc0210008,
-		break; case NtStatus::fve_action_not_allowed: os << TS8("fve_action_not_allowed"); //0xc0210009,
-		break; case NtStatus::fve_bad_data: os << TS8("fve_bad_data"); //0xc021000a,
-		break; case NtStatus::fve_volume_not_bound: os << TS8("fve_volume_not_bound"); //0xc021000b,
-		break; case NtStatus::fve_not_data_volume: os << TS8("fve_not_data_volume"); //0xc021000c,
-		break; case NtStatus::fve_conv_read_error: os << TS8("fve_conv_read_error"); //0xc021000d,
-		break; case NtStatus::fve_conv_write_error: os << TS8("fve_conv_write_error"); //0xc021000e,
-		break; case NtStatus::fve_overlapped_update: os << TS8("fve_overlapped_update"); //0xc021000f,
-		break; case NtStatus::fve_failed_sector_size: os << TS8("fve_failed_sector_size"); //0xc0210010,
-		break; case NtStatus::fve_failed_authentication: os << TS8("fve_failed_authentication"); //0xc0210011,
-		break; case NtStatus::fve_not_os_volume: os << TS8("fve_not_os_volume"); //0xc0210012,
-		break; case NtStatus::fve_keyfile_not_found: os << TS8("fve_keyfile_not_found"); //0xc0210013,
-		break; case NtStatus::fve_keyfile_invalid: os << TS8("fve_keyfile_invalid"); //0xc0210014,
-		break; case NtStatus::fve_keyfile_no_vmk: os << TS8("fve_keyfile_no_vmk"); //0xc0210015,
-		break; case NtStatus::fve_tpm_disabled: os << TS8("fve_tpm_disabled"); //0xc0210016,
-		break; case NtStatus::fve_tpm_srk_auth_not_zero: os << TS8("fve_tpm_srk_auth_not_zero"); //0xc0210017,
-		break; case NtStatus::fve_tpm_invalid_pcr: os << TS8("fve_tpm_invalid_pcr"); //0xc0210018,
-		break; case NtStatus::fve_tpm_no_vmk: os << TS8("fve_tpm_no_vmk"); //0xc0210019,
-		break; case NtStatus::fve_pin_invalid: os << TS8("fve_pin_invalid"); //0xc021001a,
-		break; case NtStatus::fve_auth_invalid_application: os << TS8("fve_auth_invalid_application"); //0xc021001b,
-		break; case NtStatus::fve_auth_invalid_config: os << TS8("fve_auth_invalid_config"); //0xc021001c,
-		break; case NtStatus::fve_debugger_enabled: os << TS8("fve_debugger_enabled"); //0xc021001d,
-		break; case NtStatus::fve_dry_run_failed: os << TS8("fve_dry_run_failed"); //0xc021001e,
-		break; case NtStatus::fve_bad_metadata_pointer: os << TS8("fve_bad_metadata_pointer"); //0xc021001f,
-		break; case NtStatus::fve_old_metadata_copy: os << TS8("fve_old_metadata_copy"); //0xc0210020,
-		break; case NtStatus::fve_reboot_required: os << TS8("fve_reboot_required"); //0xc0210021,
-		break; case NtStatus::fve_raw_access: os << TS8("fve_raw_access"); //0xc0210022,
-		break; case NtStatus::fve_raw_blocked: os << TS8("fve_raw_blocked"); //0xc0210023,
-		break; case NtStatus::fve_no_autounlock_master_key: os << TS8("fve_no_autounlock_master_key"); //0xc0210024,
-		break; case NtStatus::fve_mor_failed: os << TS8("fve_mor_failed"); //0xc0210025,
-		break; case NtStatus::fve_no_feature_license: os << TS8("fve_no_feature_license"); //0xc0210026,
-		break; case NtStatus::fve_policy_user_disable_rdv_not_allowed: os << TS8("fve_policy_user_disable_rdv_not_allowed"); //0xc0210027,
-		break; case NtStatus::fve_conv_recovery_failed: os << TS8("fve_conv_recovery_failed"); //0xc0210028,
-		break; case NtStatus::fve_virtualized_space_too_big: os << TS8("fve_virtualized_space_too_big"); //0xc0210029,
-		break; case NtStatus::fve_invalid_datum_type: os << TS8("fve_invalid_datum_type"); //0xc021002a,
-		break; case NtStatus::fve_volume_too_small: os << TS8("fve_volume_too_small"); //0xc0210030,
-		break; case NtStatus::fve_enh_pin_invalid: os << TS8("fve_enh_pin_invalid"); //0xc0210031,
-		break; case NtStatus::fve_full_encryption_not_allowed_on_tp_storage: os << TS8("fve_full_encryption_not_allowed_on_tp_storage"); //0xc0210032,
-		break; case NtStatus::fve_wipe_not_allowed_on_tp_storage: os << TS8("fve_wipe_not_allowed_on_tp_storage"); //0xc0210033,
-		break; case NtStatus::fve_not_allowed_on_csv_stack: os << TS8("fve_not_allowed_on_csv_stack"); //0xc0210034,
-		break; case NtStatus::fve_not_allowed_on_cluster: os << TS8("fve_not_allowed_on_cluster"); //0xc0210035,
-		break; case NtStatus::fve_not_allowed_to_upgrade_while_converting: os << TS8("fve_not_allowed_to_upgrade_while_converting"); //0xc0210036,
-		break; case NtStatus::fve_wipe_cancel_not_applicable: os << TS8("fve_wipe_cancel_not_applicable"); //0xc0210037,
-		break; case NtStatus::fve_edrive_dry_run_failed: os << TS8("fve_edrive_dry_run_failed"); //0xc0210038,
-		break; case NtStatus::fve_secureboot_disabled: os << TS8("fve_secureboot_disabled"); //0xc0210039,
-		break; case NtStatus::fve_secureboot_config_change: os << TS8("fve_secureboot_config_change"); //0xc021003a,
-		break; case NtStatus::fve_device_lockedout: os << TS8("fve_device_lockedout"); //0xc021003b,
-		break; case NtStatus::fve_volume_extend_prevents_eow_decrypt: os << TS8("fve_volume_extend_prevents_eow_decrypt"); //0xc021003c,
-		break; case NtStatus::fve_not_de_volume: os << TS8("fve_not_de_volume"); //0xc021003d,
-		break; case NtStatus::fve_protection_disabled: os << TS8("fve_protection_disabled"); //0xc021003e,
-		break; case NtStatus::fve_protection_cannot_be_disabled: os << TS8("fve_protection_cannot_be_disabled"); //0xc021003f,
-		break; case NtStatus::fve_osv_ksr_not_allowed: os << TS8("fve_osv_ksr_not_allowed"); //0xc0210040,
-		break; case NtStatus::fve_edrive_band_enumeration_failed: os << TS8("fve_edrive_band_enumeration_failed"); //0xc0210041,
-		break; case NtStatus::fve_policy_on_rdv_exclusion_list: os << TS8("fve_policy_on_rdv_exclusion_list"); //0xc0210042,
-		break; case NtStatus::fve_dataset_full: os << TS8("fve_dataset_full"); //0xc0210043,
-		break; case NtStatus::fve_metadata_full: os << TS8("fve_metadata_full"); //0xc0210044,
-		break; case NtStatus::fwp_callout_not_found: os << TS8("fwp_callout_not_found"); //0xc0220001,
-		break; case NtStatus::fwp_condition_not_found: os << TS8("fwp_condition_not_found"); //0xc0220002,
-		break; case NtStatus::fwp_filter_not_found: os << TS8("fwp_filter_not_found"); //0xc0220003,
-		break; case NtStatus::fwp_layer_not_found: os << TS8("fwp_layer_not_found"); //0xc0220004,
-		break; case NtStatus::fwp_provider_not_found: os << TS8("fwp_provider_not_found"); //0xc0220005,
-		break; case NtStatus::fwp_provider_context_not_found: os << TS8("fwp_provider_context_not_found"); //0xc0220006,
-		break; case NtStatus::fwp_sublayer_not_found: os << TS8("fwp_sublayer_not_found"); //0xc0220007,
-		break; case NtStatus::fwp_not_found: os << TS8("fwp_not_found"); //0xc0220008,
-		break; case NtStatus::fwp_already_exists: os << TS8("fwp_already_exists"); //0xc0220009,
-		break; case NtStatus::fwp_in_use: os << TS8("fwp_in_use"); //0xc022000a,
-		break; case NtStatus::fwp_dynamic_session_in_progress: os << TS8("fwp_dynamic_session_in_progress"); //0xc022000b,
-		break; case NtStatus::fwp_wrong_session: os << TS8("fwp_wrong_session"); //0xc022000c,
-		break; case NtStatus::fwp_no_txn_in_progress: os << TS8("fwp_no_txn_in_progress"); //0xc022000d,
-		break; case NtStatus::fwp_txn_in_progress: os << TS8("fwp_txn_in_progress"); //0xc022000e,
-		break; case NtStatus::fwp_txn_aborted: os << TS8("fwp_txn_aborted"); //0xc022000f,
-		break; case NtStatus::fwp_session_aborted: os << TS8("fwp_session_aborted"); //0xc0220010,
-		break; case NtStatus::fwp_incompatible_txn: os << TS8("fwp_incompatible_txn"); //0xc0220011,
-		break; case NtStatus::fwp_timeout: os << TS8("fwp_timeout"); //0xc0220012,
-		break; case NtStatus::fwp_net_events_disabled: os << TS8("fwp_net_events_disabled"); //0xc0220013,
-		break; case NtStatus::fwp_incompatible_layer: os << TS8("fwp_incompatible_layer"); //0xc0220014,
-		break; case NtStatus::fwp_km_clients_only: os << TS8("fwp_km_clients_only"); //0xc0220015,
-		break; case NtStatus::fwp_lifetime_mismatch: os << TS8("fwp_lifetime_mismatch"); //0xc0220016,
-		break; case NtStatus::fwp_builtin_object: os << TS8("fwp_builtin_object"); //0xc0220017,
-		break; case NtStatus::fwp_too_many_callouts: os << TS8("fwp_too_many_callouts"); //0xc0220018,
-		break; case NtStatus::fwp_notification_dropped: os << TS8("fwp_notification_dropped"); //0xc0220019,
-		break; case NtStatus::fwp_traffic_mismatch: os << TS8("fwp_traffic_mismatch"); //0xc022001a,
-		break; case NtStatus::fwp_incompatible_sa_state: os << TS8("fwp_incompatible_sa_state"); //0xc022001b,
-		break; case NtStatus::fwp_null_pointer: os << TS8("fwp_null_pointer"); //0xc022001c,
-		break; case NtStatus::fwp_invalid_enumerator: os << TS8("fwp_invalid_enumerator"); //0xc022001d,
-		break; case NtStatus::fwp_invalid_flags: os << TS8("fwp_invalid_flags"); //0xc022001e,
-		break; case NtStatus::fwp_invalid_net_mask: os << TS8("fwp_invalid_net_mask"); //0xc022001f,
-		break; case NtStatus::fwp_invalid_range: os << TS8("fwp_invalid_range"); //0xc0220020,
-		break; case NtStatus::fwp_invalid_interval: os << TS8("fwp_invalid_interval"); //0xc0220021,
-		break; case NtStatus::fwp_zero_length_array: os << TS8("fwp_zero_length_array"); //0xc0220022,
-		break; case NtStatus::fwp_null_display_name: os << TS8("fwp_null_display_name"); //0xc0220023,
-		break; case NtStatus::fwp_invalid_action_type: os << TS8("fwp_invalid_action_type"); //0xc0220024,
-		break; case NtStatus::fwp_invalid_weight: os << TS8("fwp_invalid_weight"); //0xc0220025,
-		break; case NtStatus::fwp_match_type_mismatch: os << TS8("fwp_match_type_mismatch"); //0xc0220026,
-		break; case NtStatus::fwp_type_mismatch: os << TS8("fwp_type_mismatch"); //0xc0220027,
-		break; case NtStatus::fwp_out_of_bounds: os << TS8("fwp_out_of_bounds"); //0xc0220028,
-		break; case NtStatus::fwp_reserved: os << TS8("fwp_reserved"); //0xc0220029,
-		break; case NtStatus::fwp_duplicate_condition: os << TS8("fwp_duplicate_condition"); //0xc022002a,
-		break; case NtStatus::fwp_duplicate_keymod: os << TS8("fwp_duplicate_keymod"); //0xc022002b,
-		break; case NtStatus::fwp_action_incompatible_with_layer: os << TS8("fwp_action_incompatible_with_layer"); //0xc022002c,
-		break; case NtStatus::fwp_action_incompatible_with_sublayer: os << TS8("fwp_action_incompatible_with_sublayer"); //0xc022002d,
-		break; case NtStatus::fwp_context_incompatible_with_layer: os << TS8("fwp_context_incompatible_with_layer"); //0xc022002e,
-		break; case NtStatus::fwp_context_incompatible_with_callout: os << TS8("fwp_context_incompatible_with_callout"); //0xc022002f,
-		break; case NtStatus::fwp_incompatible_auth_method: os << TS8("fwp_incompatible_auth_method"); //0xc0220030,
-		break; case NtStatus::fwp_incompatible_dh_group: os << TS8("fwp_incompatible_dh_group"); //0xc0220031,
-		break; case NtStatus::fwp_em_not_supported: os << TS8("fwp_em_not_supported"); //0xc0220032,
-		break; case NtStatus::fwp_never_match: os << TS8("fwp_never_match"); //0xc0220033,
-		break; case NtStatus::fwp_provider_context_mismatch: os << TS8("fwp_provider_context_mismatch"); //0xc0220034,
-		break; case NtStatus::fwp_invalid_parameter: os << TS8("fwp_invalid_parameter"); //0xc0220035,
-		break; case NtStatus::fwp_too_many_sublayers: os << TS8("fwp_too_many_sublayers"); //0xc0220036,
-		break; case NtStatus::fwp_callout_notification_failed: os << TS8("fwp_callout_notification_failed"); //0xc0220037,
-		break; case NtStatus::fwp_invalid_auth_transform: os << TS8("fwp_invalid_auth_transform"); //0xc0220038,
-		break; case NtStatus::fwp_invalid_cipher_transform: os << TS8("fwp_invalid_cipher_transform"); //0xc0220039,
-		break; case NtStatus::fwp_incompatible_cipher_transform: os << TS8("fwp_incompatible_cipher_transform"); //0xc022003a,
-		break; case NtStatus::fwp_invalid_transform_combination: os << TS8("fwp_invalid_transform_combination"); //0xc022003b,
-		break; case NtStatus::fwp_duplicate_auth_method: os << TS8("fwp_duplicate_auth_method"); //0xc022003c,
-		break; case NtStatus::fwp_invalid_tunnel_endpoint: os << TS8("fwp_invalid_tunnel_endpoint"); //0xc022003d,
-		break; case NtStatus::fwp_l2_driver_not_ready: os << TS8("fwp_l2_driver_not_ready"); //0xc022003e,
-		break; case NtStatus::fwp_key_dictator_already_registered: os << TS8("fwp_key_dictator_already_registered"); //0xc022003f,
-		break; case NtStatus::fwp_key_dictation_invalid_keying_material: os << TS8("fwp_key_dictation_invalid_keying_material"); //0xc0220040,
-		break; case NtStatus::fwp_connections_disabled: os << TS8("fwp_connections_disabled"); //0xc0220041,
-		break; case NtStatus::fwp_invalid_dns_name: os << TS8("fwp_invalid_dns_name"); //0xc0220042,
-		break; case NtStatus::fwp_still_on: os << TS8("fwp_still_on"); //0xc0220043,
-		break; case NtStatus::fwp_ikeext_not_running: os << TS8("fwp_ikeext_not_running"); //0xc0220044,
-		break; case NtStatus::fwp_tcpip_not_ready: os << TS8("fwp_tcpip_not_ready"); //0xc0220100,
-		break; case NtStatus::fwp_inject_handle_closing: os << TS8("fwp_inject_handle_closing"); //0xc0220101,
-		break; case NtStatus::fwp_inject_handle_stale: os << TS8("fwp_inject_handle_stale"); //0xc0220102,
-		break; case NtStatus::fwp_cannot_pend: os << TS8("fwp_cannot_pend"); //0xc0220103,
-		break; case NtStatus::fwp_drop_noicmp: os << TS8("fwp_drop_noicmp"); //0xc0220104,
-		break; case NtStatus::ndis_indication_required: os << TS8("ndis_indication_required"); //0x40230001,
-		break; case NtStatus::ndis_closing: os << TS8("ndis_closing"); //0xc0230002,
-		break; case NtStatus::ndis_bad_version: os << TS8("ndis_bad_version"); //0xc0230004,
-		break; case NtStatus::ndis_bad_characteristics: os << TS8("ndis_bad_characteristics"); //0xc0230005,
-		break; case NtStatus::ndis_adapter_not_found: os << TS8("ndis_adapter_not_found"); //0xc0230006,
-		break; case NtStatus::ndis_open_failed: os << TS8("ndis_open_failed"); //0xc0230007,
-		break; case NtStatus::ndis_device_failed: os << TS8("ndis_device_failed"); //0xc0230008,
-		break; case NtStatus::ndis_multicast_full: os << TS8("ndis_multicast_full"); //0xc0230009,
-		break; case NtStatus::ndis_multicast_exists: os << TS8("ndis_multicast_exists"); //0xc023000a,
-		break; case NtStatus::ndis_multicast_not_found: os << TS8("ndis_multicast_not_found"); //0xc023000b,
-		break; case NtStatus::ndis_request_aborted: os << TS8("ndis_request_aborted"); //0xc023000c,
-		break; case NtStatus::ndis_reset_in_progress: os << TS8("ndis_reset_in_progress"); //0xc023000d,
-		break; case NtStatus::ndis_invalid_packet: os << TS8("ndis_invalid_packet"); //0xc023000f,
-		break; case NtStatus::ndis_invalid_device_request: os << TS8("ndis_invalid_device_request"); //0xc0230010,
-		break; case NtStatus::ndis_adapter_not_ready: os << TS8("ndis_adapter_not_ready"); //0xc0230011,
-		break; case NtStatus::ndis_invalid_length: os << TS8("ndis_invalid_length"); //0xc0230014,
-		break; case NtStatus::ndis_invalid_data: os << TS8("ndis_invalid_data"); //0xc0230015,
-		break; case NtStatus::ndis_buffer_too_short: os << TS8("ndis_buffer_too_short"); //0xc0230016,
-		break; case NtStatus::ndis_invalid_oid: os << TS8("ndis_invalid_oid"); //0xc0230017,
-		break; case NtStatus::ndis_adapter_removed: os << TS8("ndis_adapter_removed"); //0xc0230018,
-		break; case NtStatus::ndis_unsupported_media: os << TS8("ndis_unsupported_media"); //0xc0230019,
-		break; case NtStatus::ndis_group_address_in_use: os << TS8("ndis_group_address_in_use"); //0xc023001a,
-		break; case NtStatus::ndis_file_not_found: os << TS8("ndis_file_not_found"); //0xc023001b,
-		break; case NtStatus::ndis_error_reading_file: os << TS8("ndis_error_reading_file"); //0xc023001c,
-		break; case NtStatus::ndis_already_mapped: os << TS8("ndis_already_mapped"); //0xc023001d,
-		break; case NtStatus::ndis_resource_conflict: os << TS8("ndis_resource_conflict"); //0xc023001e,
-		break; case NtStatus::ndis_media_disconnected: os << TS8("ndis_media_disconnected"); //0xc023001f,
-		break; case NtStatus::ndis_invalid_address: os << TS8("ndis_invalid_address"); //0xc0230022,
-		break; case NtStatus::ndis_paused: os << TS8("ndis_paused"); //0xc023002a,
-		break; case NtStatus::ndis_interface_not_found: os << TS8("ndis_interface_not_found"); //0xc023002b,
-		break; case NtStatus::ndis_unsupported_revision: os << TS8("ndis_unsupported_revision"); //0xc023002c,
-		break; case NtStatus::ndis_invalid_port: os << TS8("ndis_invalid_port"); //0xc023002d,
-		break; case NtStatus::ndis_invalid_port_state: os << TS8("ndis_invalid_port_state"); //0xc023002e,
-		break; case NtStatus::ndis_low_power_state: os << TS8("ndis_low_power_state"); //0xc023002f,
-		break; case NtStatus::ndis_reinit_required: os << TS8("ndis_reinit_required"); //0xc0230030,
-		break; case NtStatus::ndis_no_queues: os << TS8("ndis_no_queues"); //0xc0230031,
-		break; case NtStatus::ndis_not_supported: os << TS8("ndis_not_supported"); //0xc02300bb,
-		break; case NtStatus::ndis_offload_policy: os << TS8("ndis_offload_policy"); //0xc023100f,
-		break; case NtStatus::ndis_offload_connection_rejected: os << TS8("ndis_offload_connection_rejected"); //0xc0231012,
-		break; case NtStatus::ndis_offload_path_rejected: os << TS8("ndis_offload_path_rejected"); //0xc0231013,
-		break; case NtStatus::ndis_dot11_auto_config_enabled: os << TS8("ndis_dot11_auto_config_enabled"); //0xc0232000,
-		break; case NtStatus::ndis_dot11_media_in_use: os << TS8("ndis_dot11_media_in_use"); //0xc0232001,
-		break; case NtStatus::ndis_dot11_power_state_invalid: os << TS8("ndis_dot11_power_state_invalid"); //0xc0232002,
-		break; case NtStatus::ndis_pm_wol_pattern_list_full: os << TS8("ndis_pm_wol_pattern_list_full"); //0xc0232003,
-		break; case NtStatus::ndis_pm_protocol_offload_list_full: os << TS8("ndis_pm_protocol_offload_list_full"); //0xc0232004,
-		break; case NtStatus::ndis_dot11_ap_channel_currently_not_available: os << TS8("ndis_dot11_ap_channel_currently_not_available"); //0xc0232005,
-		break; case NtStatus::ndis_dot11_ap_band_currently_not_available: os << TS8("ndis_dot11_ap_band_currently_not_available"); //0xc0232006,
-		break; case NtStatus::ndis_dot11_ap_channel_not_allowed: os << TS8("ndis_dot11_ap_channel_not_allowed"); //0xc0232007,
-		break; case NtStatus::ndis_dot11_ap_band_not_allowed: os << TS8("ndis_dot11_ap_band_not_allowed"); //0xc0232008,
-		break; case NtStatus::quic_handshake_failure: os << TS8("quic_handshake_failure"); //0xc0240000,
-		break; case NtStatus::quic_ver_neg_failure: os << TS8("quic_ver_neg_failure"); //0xc0240001,
-		break; case NtStatus::quic_user_canceled: os << TS8("quic_user_canceled"); //0xc0240002,
-		break; case NtStatus::quic_internal_error: os << TS8("quic_internal_error"); //0xc0240003,
-		break; case NtStatus::quic_protocol_violation: os << TS8("quic_protocol_violation"); //0xc0240004,
-		break; case NtStatus::quic_connection_idle: os << TS8("quic_connection_idle"); //0xc0240005,
-		break; case NtStatus::quic_connection_timeout: os << TS8("quic_connection_timeout"); //0xc0240006,
-		break; case NtStatus::quic_alpn_neg_failure: os << TS8("quic_alpn_neg_failure"); //0xc0240007,
-		break; case NtStatus::tpm_error_mask: os << TS8("tpm_error_mask"); //0xc0290000,
-		break; case NtStatus::tpm_authfail: os << TS8("tpm_authfail"); //0xc0290001,
-		break; case NtStatus::tpm_badindex: os << TS8("tpm_badindex"); //0xc0290002,
-		break; case NtStatus::tpm_bad_parameter: os << TS8("tpm_bad_parameter"); //0xc0290003,
-		break; case NtStatus::tpm_auditfailure: os << TS8("tpm_auditfailure"); //0xc0290004,
-		break; case NtStatus::tpm_clear_disabled: os << TS8("tpm_clear_disabled"); //0xc0290005,
-		break; case NtStatus::tpm_deactivated: os << TS8("tpm_deactivated"); //0xc0290006,
-		break; case NtStatus::tpm_disabled: os << TS8("tpm_disabled"); //0xc0290007,
-		break; case NtStatus::tpm_disabled_cmd: os << TS8("tpm_disabled_cmd"); //0xc0290008,
-		break; case NtStatus::tpm_fail: os << TS8("tpm_fail"); //0xc0290009,
-		break; case NtStatus::tpm_bad_ordinal: os << TS8("tpm_bad_ordinal"); //0xc029000a,
-		break; case NtStatus::tpm_install_disabled: os << TS8("tpm_install_disabled"); //0xc029000b,
-		break; case NtStatus::tpm_invalid_keyhandle: os << TS8("tpm_invalid_keyhandle"); //0xc029000c,
-		break; case NtStatus::tpm_keynotfound: os << TS8("tpm_keynotfound"); //0xc029000d,
-		break; case NtStatus::tpm_inappropriate_enc: os << TS8("tpm_inappropriate_enc"); //0xc029000e,
-		break; case NtStatus::tpm_migratefail: os << TS8("tpm_migratefail"); //0xc029000f,
-		break; case NtStatus::tpm_invalid_pcr_info: os << TS8("tpm_invalid_pcr_info"); //0xc0290010,
-		break; case NtStatus::tpm_nospace: os << TS8("tpm_nospace"); //0xc0290011,
-		break; case NtStatus::tpm_nosrk: os << TS8("tpm_nosrk"); //0xc0290012,
-		break; case NtStatus::tpm_notsealed_blob: os << TS8("tpm_notsealed_blob"); //0xc0290013,
-		break; case NtStatus::tpm_owner_set: os << TS8("tpm_owner_set"); //0xc0290014,
-		break; case NtStatus::tpm_resources: os << TS8("tpm_resources"); //0xc0290015,
-		break; case NtStatus::tpm_shortrandom: os << TS8("tpm_shortrandom"); //0xc0290016,
-		break; case NtStatus::tpm_size: os << TS8("tpm_size"); //0xc0290017,
-		break; case NtStatus::tpm_wrongpcrval: os << TS8("tpm_wrongpcrval"); //0xc0290018,
-		break; case NtStatus::tpm_bad_param_size: os << TS8("tpm_bad_param_size"); //0xc0290019,
-		break; case NtStatus::tpm_sha_thread: os << TS8("tpm_sha_thread"); //0xc029001a,
-		break; case NtStatus::tpm_sha_error: os << TS8("tpm_sha_error"); //0xc029001b,
-		break; case NtStatus::tpm_failedselftest: os << TS8("tpm_failedselftest"); //0xc029001c,
-		break; case NtStatus::tpm_auth2fail: os << TS8("tpm_auth2fail"); //0xc029001d,
-		break; case NtStatus::tpm_badtag: os << TS8("tpm_badtag"); //0xc029001e,
-		break; case NtStatus::tpm_ioerror: os << TS8("tpm_ioerror"); //0xc029001f,
-		break; case NtStatus::tpm_encrypt_error: os << TS8("tpm_encrypt_error"); //0xc0290020,
-		break; case NtStatus::tpm_decrypt_error: os << TS8("tpm_decrypt_error"); //0xc0290021,
-		break; case NtStatus::tpm_invalid_authhandle: os << TS8("tpm_invalid_authhandle"); //0xc0290022,
-		break; case NtStatus::tpm_no_endorsement: os << TS8("tpm_no_endorsement"); //0xc0290023,
-		break; case NtStatus::tpm_invalid_keyusage: os << TS8("tpm_invalid_keyusage"); //0xc0290024,
-		break; case NtStatus::tpm_wrong_entitytype: os << TS8("tpm_wrong_entitytype"); //0xc0290025,
-		break; case NtStatus::tpm_invalid_postinit: os << TS8("tpm_invalid_postinit"); //0xc0290026,
-		break; case NtStatus::tpm_inappropriate_sig: os << TS8("tpm_inappropriate_sig"); //0xc0290027,
-		break; case NtStatus::tpm_bad_key_property: os << TS8("tpm_bad_key_property"); //0xc0290028,
-		break; case NtStatus::tpm_bad_migration: os << TS8("tpm_bad_migration"); //0xc0290029,
-		break; case NtStatus::tpm_bad_scheme: os << TS8("tpm_bad_scheme"); //0xc029002a,
-		break; case NtStatus::tpm_bad_datasize: os << TS8("tpm_bad_datasize"); //0xc029002b,
-		break; case NtStatus::tpm_bad_mode: os << TS8("tpm_bad_mode"); //0xc029002c,
-		break; case NtStatus::tpm_bad_presence: os << TS8("tpm_bad_presence"); //0xc029002d,
-		break; case NtStatus::tpm_bad_version: os << TS8("tpm_bad_version"); //0xc029002e,
-		break; case NtStatus::tpm_no_wrap_transport: os << TS8("tpm_no_wrap_transport"); //0xc029002f,
-		break; case NtStatus::tpm_auditfail_unsuccessful: os << TS8("tpm_auditfail_unsuccessful"); //0xc0290030,
-		break; case NtStatus::tpm_auditfail_successful: os << TS8("tpm_auditfail_successful"); //0xc0290031,
-		break; case NtStatus::tpm_notresetable: os << TS8("tpm_notresetable"); //0xc0290032,
-		break; case NtStatus::tpm_notlocal: os << TS8("tpm_notlocal"); //0xc0290033,
-		break; case NtStatus::tpm_bad_type: os << TS8("tpm_bad_type"); //0xc0290034,
-		break; case NtStatus::tpm_invalid_resource: os << TS8("tpm_invalid_resource"); //0xc0290035,
-		break; case NtStatus::tpm_notfips: os << TS8("tpm_notfips"); //0xc0290036,
-		break; case NtStatus::tpm_invalid_family: os << TS8("tpm_invalid_family"); //0xc0290037,
-		break; case NtStatus::tpm_no_nv_permission: os << TS8("tpm_no_nv_permission"); //0xc0290038,
-		break; case NtStatus::tpm_requires_sign: os << TS8("tpm_requires_sign"); //0xc0290039,
-		break; case NtStatus::tpm_key_notsupported: os << TS8("tpm_key_notsupported"); //0xc029003a,
-		break; case NtStatus::tpm_auth_conflict: os << TS8("tpm_auth_conflict"); //0xc029003b,
-		break; case NtStatus::tpm_area_locked: os << TS8("tpm_area_locked"); //0xc029003c,
-		break; case NtStatus::tpm_bad_locality: os << TS8("tpm_bad_locality"); //0xc029003d,
-		break; case NtStatus::tpm_read_only: os << TS8("tpm_read_only"); //0xc029003e,
-		break; case NtStatus::tpm_per_nowrite: os << TS8("tpm_per_nowrite"); //0xc029003f,
-		break; case NtStatus::tpm_familycount: os << TS8("tpm_familycount"); //0xc0290040,
-		break; case NtStatus::tpm_write_locked: os << TS8("tpm_write_locked"); //0xc0290041,
-		break; case NtStatus::tpm_bad_attributes: os << TS8("tpm_bad_attributes"); //0xc0290042,
-		break; case NtStatus::tpm_invalid_structure: os << TS8("tpm_invalid_structure"); //0xc0290043,
-		break; case NtStatus::tpm_key_owner_control: os << TS8("tpm_key_owner_control"); //0xc0290044,
-		break; case NtStatus::tpm_bad_counter: os << TS8("tpm_bad_counter"); //0xc0290045,
-		break; case NtStatus::tpm_not_fullwrite: os << TS8("tpm_not_fullwrite"); //0xc0290046,
-		break; case NtStatus::tpm_context_gap: os << TS8("tpm_context_gap"); //0xc0290047,
-		break; case NtStatus::tpm_maxnvwrites: os << TS8("tpm_maxnvwrites"); //0xc0290048,
-		break; case NtStatus::tpm_nooperator: os << TS8("tpm_nooperator"); //0xc0290049,
-		break; case NtStatus::tpm_resourcemissing: os << TS8("tpm_resourcemissing"); //0xc029004a,
-		break; case NtStatus::tpm_delegate_lock: os << TS8("tpm_delegate_lock"); //0xc029004b,
-		break; case NtStatus::tpm_delegate_family: os << TS8("tpm_delegate_family"); //0xc029004c,
-		break; case NtStatus::tpm_delegate_admin: os << TS8("tpm_delegate_admin"); //0xc029004d,
-		break; case NtStatus::tpm_transport_notexclusive: os << TS8("tpm_transport_notexclusive"); //0xc029004e,
-		break; case NtStatus::tpm_owner_control: os << TS8("tpm_owner_control"); //0xc029004f,
-		break; case NtStatus::tpm_daa_resources: os << TS8("tpm_daa_resources"); //0xc0290050,
-		break; case NtStatus::tpm_daa_input_data0: os << TS8("tpm_daa_input_data0"); //0xc0290051,
-		break; case NtStatus::tpm_daa_input_data1: os << TS8("tpm_daa_input_data1"); //0xc0290052,
-		break; case NtStatus::tpm_daa_issuer_settings: os << TS8("tpm_daa_issuer_settings"); //0xc0290053,
-		break; case NtStatus::tpm_daa_tpm_settings: os << TS8("tpm_daa_tpm_settings"); //0xc0290054,
-		break; case NtStatus::tpm_daa_stage: os << TS8("tpm_daa_stage"); //0xc0290055,
-		break; case NtStatus::tpm_daa_issuer_validity: os << TS8("tpm_daa_issuer_validity"); //0xc0290056,
-		break; case NtStatus::tpm_daa_wrong_w: os << TS8("tpm_daa_wrong_w"); //0xc0290057,
-		break; case NtStatus::tpm_bad_handle: os << TS8("tpm_bad_handle"); //0xc0290058,
-		break; case NtStatus::tpm_bad_delegate: os << TS8("tpm_bad_delegate"); //0xc0290059,
-		break; case NtStatus::tpm_badcontext: os << TS8("tpm_badcontext"); //0xc029005a,
-		break; case NtStatus::tpm_toomanycontexts: os << TS8("tpm_toomanycontexts"); //0xc029005b,
-		break; case NtStatus::tpm_ma_ticket_signature: os << TS8("tpm_ma_ticket_signature"); //0xc029005c,
-		break; case NtStatus::tpm_ma_destination: os << TS8("tpm_ma_destination"); //0xc029005d,
-		break; case NtStatus::tpm_ma_source: os << TS8("tpm_ma_source"); //0xc029005e,
-		break; case NtStatus::tpm_ma_authority: os << TS8("tpm_ma_authority"); //0xc029005f,
-		break; case NtStatus::tpm_permanentek: os << TS8("tpm_permanentek"); //0xc0290061,
-		break; case NtStatus::tpm_bad_signature: os << TS8("tpm_bad_signature"); //0xc0290062,
-		break; case NtStatus::tpm_nocontextspace: os << TS8("tpm_nocontextspace"); //0xc0290063,
-		break; case NtStatus::tpm_20_e_asymmetric: os << TS8("tpm_20_e_asymmetric"); //0xc0290081,
-		break; case NtStatus::tpm_20_e_attributes: os << TS8("tpm_20_e_attributes"); //0xc0290082,
-		break; case NtStatus::tpm_20_e_hash: os << TS8("tpm_20_e_hash"); //0xc0290083,
-		break; case NtStatus::tpm_20_e_value: os << TS8("tpm_20_e_value"); //0xc0290084,
-		break; case NtStatus::tpm_20_e_hierarchy: os << TS8("tpm_20_e_hierarchy"); //0xc0290085,
-		break; case NtStatus::tpm_20_e_key_size: os << TS8("tpm_20_e_key_size"); //0xc0290087,
-		break; case NtStatus::tpm_20_e_mgf: os << TS8("tpm_20_e_mgf"); //0xc0290088,
-		break; case NtStatus::tpm_20_e_mode: os << TS8("tpm_20_e_mode"); //0xc0290089,
-		break; case NtStatus::tpm_20_e_type: os << TS8("tpm_20_e_type"); //0xc029008a,
-		break; case NtStatus::tpm_20_e_handle: os << TS8("tpm_20_e_handle"); //0xc029008b,
-		break; case NtStatus::tpm_20_e_kdf: os << TS8("tpm_20_e_kdf"); //0xc029008c,
-		break; case NtStatus::tpm_20_e_range: os << TS8("tpm_20_e_range"); //0xc029008d,
-		break; case NtStatus::tpm_20_e_auth_fail: os << TS8("tpm_20_e_auth_fail"); //0xc029008e,
-		break; case NtStatus::tpm_20_e_nonce: os << TS8("tpm_20_e_nonce"); //0xc029008f,
-		break; case NtStatus::tpm_20_e_pp: os << TS8("tpm_20_e_pp"); //0xc0290090,
-		break; case NtStatus::tpm_20_e_scheme: os << TS8("tpm_20_e_scheme"); //0xc0290092,
-		break; case NtStatus::tpm_20_e_size: os << TS8("tpm_20_e_size"); //0xc0290095,
-		break; case NtStatus::tpm_20_e_symmetric: os << TS8("tpm_20_e_symmetric"); //0xc0290096,
-		break; case NtStatus::tpm_20_e_tag: os << TS8("tpm_20_e_tag"); //0xc0290097,
-		break; case NtStatus::tpm_20_e_selector: os << TS8("tpm_20_e_selector"); //0xc0290098,
-		break; case NtStatus::tpm_20_e_insufficient: os << TS8("tpm_20_e_insufficient"); //0xc029009a,
-		break; case NtStatus::tpm_20_e_signature: os << TS8("tpm_20_e_signature"); //0xc029009b,
-		break; case NtStatus::tpm_20_e_key: os << TS8("tpm_20_e_key"); //0xc029009c,
-		break; case NtStatus::tpm_20_e_policy_fail: os << TS8("tpm_20_e_policy_fail"); //0xc029009d,
-		break; case NtStatus::tpm_20_e_integrity: os << TS8("tpm_20_e_integrity"); //0xc029009f,
-		break; case NtStatus::tpm_20_e_ticket: os << TS8("tpm_20_e_ticket"); //0xc02900a0,
-		break; case NtStatus::tpm_20_e_reserved_bits: os << TS8("tpm_20_e_reserved_bits"); //0xc02900a1,
-		break; case NtStatus::tpm_20_e_bad_auth: os << TS8("tpm_20_e_bad_auth"); //0xc02900a2,
-		break; case NtStatus::tpm_20_e_expired: os << TS8("tpm_20_e_expired"); //0xc02900a3,
-		break; case NtStatus::tpm_20_e_policy_cc: os << TS8("tpm_20_e_policy_cc"); //0xc02900a4,
-		break; case NtStatus::tpm_20_e_binding: os << TS8("tpm_20_e_binding"); //0xc02900a5,
-		break; case NtStatus::tpm_20_e_curve: os << TS8("tpm_20_e_curve"); //0xc02900a6,
-		break; case NtStatus::tpm_20_e_ecc_point: os << TS8("tpm_20_e_ecc_point"); //0xc02900a7,
-		break; case NtStatus::tpm_20_e_initialize: os << TS8("tpm_20_e_initialize"); //0xc0290100,
-		break; case NtStatus::tpm_20_e_failure: os << TS8("tpm_20_e_failure"); //0xc0290101,
-		break; case NtStatus::tpm_20_e_sequence: os << TS8("tpm_20_e_sequence"); //0xc0290103,
-		break; case NtStatus::tpm_20_e_private: os << TS8("tpm_20_e_private"); //0xc029010b,
-		break; case NtStatus::tpm_20_e_hmac: os << TS8("tpm_20_e_hmac"); //0xc0290119,
-		break; case NtStatus::tpm_20_e_disabled: os << TS8("tpm_20_e_disabled"); //0xc0290120,
-		break; case NtStatus::tpm_20_e_exclusive: os << TS8("tpm_20_e_exclusive"); //0xc0290121,
-		break; case NtStatus::tpm_20_e_ecc_curve: os << TS8("tpm_20_e_ecc_curve"); //0xc0290123,
-		break; case NtStatus::tpm_20_e_auth_type: os << TS8("tpm_20_e_auth_type"); //0xc0290124,
-		break; case NtStatus::tpm_20_e_auth_missing: os << TS8("tpm_20_e_auth_missing"); //0xc0290125,
-		break; case NtStatus::tpm_20_e_policy: os << TS8("tpm_20_e_policy"); //0xc0290126,
-		break; case NtStatus::tpm_20_e_pcr: os << TS8("tpm_20_e_pcr"); //0xc0290127,
-		break; case NtStatus::tpm_20_e_pcr_changed: os << TS8("tpm_20_e_pcr_changed"); //0xc0290128,
-		break; case NtStatus::tpm_20_e_upgrade: os << TS8("tpm_20_e_upgrade"); //0xc029012d,
-		break; case NtStatus::tpm_20_e_too_many_contexts: os << TS8("tpm_20_e_too_many_contexts"); //0xc029012e,
-		break; case NtStatus::tpm_20_e_auth_unavailable: os << TS8("tpm_20_e_auth_unavailable"); //0xc029012f,
-		break; case NtStatus::tpm_20_e_reboot: os << TS8("tpm_20_e_reboot"); //0xc0290130,
-		break; case NtStatus::tpm_20_e_unbalanced: os << TS8("tpm_20_e_unbalanced"); //0xc0290131,
-		break; case NtStatus::tpm_20_e_command_size: os << TS8("tpm_20_e_command_size"); //0xc0290142,
-		break; case NtStatus::tpm_20_e_command_code: os << TS8("tpm_20_e_command_code"); //0xc0290143,
-		break; case NtStatus::tpm_20_e_authsize: os << TS8("tpm_20_e_authsize"); //0xc0290144,
-		break; case NtStatus::tpm_20_e_auth_context: os << TS8("tpm_20_e_auth_context"); //0xc0290145,
-		break; case NtStatus::tpm_20_e_nv_range: os << TS8("tpm_20_e_nv_range"); //0xc0290146,
-		break; case NtStatus::tpm_20_e_nv_size: os << TS8("tpm_20_e_nv_size"); //0xc0290147,
-		break; case NtStatus::tpm_20_e_nv_locked: os << TS8("tpm_20_e_nv_locked"); //0xc0290148,
-		break; case NtStatus::tpm_20_e_nv_authorization: os << TS8("tpm_20_e_nv_authorization"); //0xc0290149,
-		break; case NtStatus::tpm_20_e_nv_uninitialized: os << TS8("tpm_20_e_nv_uninitialized"); //0xc029014a,
-		break; case NtStatus::tpm_20_e_nv_space: os << TS8("tpm_20_e_nv_space"); //0xc029014b,
-		break; case NtStatus::tpm_20_e_nv_defined: os << TS8("tpm_20_e_nv_defined"); //0xc029014c,
-		break; case NtStatus::tpm_20_e_bad_context: os << TS8("tpm_20_e_bad_context"); //0xc0290150,
-		break; case NtStatus::tpm_20_e_cphash: os << TS8("tpm_20_e_cphash"); //0xc0290151,
-		break; case NtStatus::tpm_20_e_parent: os << TS8("tpm_20_e_parent"); //0xc0290152,
-		break; case NtStatus::tpm_20_e_needs_test: os << TS8("tpm_20_e_needs_test"); //0xc0290153,
-		break; case NtStatus::tpm_20_e_no_result: os << TS8("tpm_20_e_no_result"); //0xc0290154,
-		break; case NtStatus::tpm_20_e_sensitive: os << TS8("tpm_20_e_sensitive"); //0xc0290155,
-		break; case NtStatus::tpm_command_blocked: os << TS8("tpm_command_blocked"); //0xc0290400,
-		break; case NtStatus::tpm_invalid_handle: os << TS8("tpm_invalid_handle"); //0xc0290401,
-		break; case NtStatus::tpm_duplicate_vhandle: os << TS8("tpm_duplicate_vhandle"); //0xc0290402,
-		break; case NtStatus::tpm_embedded_command_blocked: os << TS8("tpm_embedded_command_blocked"); //0xc0290403,
-		break; case NtStatus::tpm_embedded_command_unsupported: os << TS8("tpm_embedded_command_unsupported"); //0xc0290404,
-		break; case NtStatus::tpm_retry: os << TS8("tpm_retry"); //0xc0290800,
-		break; case NtStatus::tpm_needs_selftest: os << TS8("tpm_needs_selftest"); //0xc0290801,
-		break; case NtStatus::tpm_doing_selftest: os << TS8("tpm_doing_selftest"); //0xc0290802,
-		break; case NtStatus::tpm_defend_lock_running: os << TS8("tpm_defend_lock_running"); //0xc0290803,
-		break; case NtStatus::tpm_command_canceled: os << TS8("tpm_command_canceled"); //0xc0291001,
-		break; case NtStatus::tpm_too_many_contexts: os << TS8("tpm_too_many_contexts"); //0xc0291002,
-		break; case NtStatus::tpm_not_found: os << TS8("tpm_not_found"); //0xc0291003,
-		break; case NtStatus::tpm_access_denied: os << TS8("tpm_access_denied"); //0xc0291004,
-		break; case NtStatus::tpm_insufficient_buffer: os << TS8("tpm_insufficient_buffer"); //0xc0291005,
-		break; case NtStatus::tpm_ppi_function_unsupported: os << TS8("tpm_ppi_function_unsupported"); //0xc0291006,
-		break; case NtStatus::pcp_error_mask: os << TS8("pcp_error_mask"); //0xc0292000,
-		break; case NtStatus::pcp_device_not_ready: os << TS8("pcp_device_not_ready"); //0xc0292001,
-		break; case NtStatus::pcp_invalid_handle: os << TS8("pcp_invalid_handle"); //0xc0292002,
-		break; case NtStatus::pcp_invalid_parameter: os << TS8("pcp_invalid_parameter"); //0xc0292003,
-		break; case NtStatus::pcp_flag_not_supported: os << TS8("pcp_flag_not_supported"); //0xc0292004,
-		break; case NtStatus::pcp_not_supported: os << TS8("pcp_not_supported"); //0xc0292005,
-		break; case NtStatus::pcp_buffer_too_small: os << TS8("pcp_buffer_too_small"); //0xc0292006,
-		break; case NtStatus::pcp_internal_error: os << TS8("pcp_internal_error"); //0xc0292007,
-		break; case NtStatus::pcp_authentication_failed: os << TS8("pcp_authentication_failed"); //0xc0292008,
-		break; case NtStatus::pcp_authentication_ignored: os << TS8("pcp_authentication_ignored"); //0xc0292009,
-		break; case NtStatus::pcp_policy_not_found: os << TS8("pcp_policy_not_found"); //0xc029200a,
-		break; case NtStatus::pcp_profile_not_found: os << TS8("pcp_profile_not_found"); //0xc029200b,
-		break; case NtStatus::pcp_validation_failed: os << TS8("pcp_validation_failed"); //0xc029200c,
-		break; case NtStatus::pcp_device_not_found: os << TS8("pcp_device_not_found"); //0xc029200d,
-		break; case NtStatus::pcp_wrong_parent: os << TS8("pcp_wrong_parent"); //0xc029200e,
-		break; case NtStatus::pcp_key_not_loaded: os << TS8("pcp_key_not_loaded"); //0xc029200f,
-		break; case NtStatus::pcp_no_key_certification: os << TS8("pcp_no_key_certification"); //0xc0292010,
-		break; case NtStatus::pcp_key_not_finalized: os << TS8("pcp_key_not_finalized"); //0xc0292011,
-		break; case NtStatus::pcp_attestation_challenge_not_set: os << TS8("pcp_attestation_challenge_not_set"); //0xc0292012,
-		break; case NtStatus::pcp_not_pcr_bound: os << TS8("pcp_not_pcr_bound"); //0xc0292013,
-		break; case NtStatus::pcp_key_already_finalized: os << TS8("pcp_key_already_finalized"); //0xc0292014,
-		break; case NtStatus::pcp_key_usage_policy_not_supported: os << TS8("pcp_key_usage_policy_not_supported"); //0xc0292015,
-		break; case NtStatus::pcp_key_usage_policy_invalid: os << TS8("pcp_key_usage_policy_invalid"); //0xc0292016,
-		break; case NtStatus::pcp_soft_key_error: os << TS8("pcp_soft_key_error"); //0xc0292017,
-		break; case NtStatus::pcp_key_not_authenticated: os << TS8("pcp_key_not_authenticated"); //0xc0292018,
-		break; case NtStatus::pcp_key_not_aik: os << TS8("pcp_key_not_aik"); //0xc0292019,
-		break; case NtStatus::pcp_key_not_signing_key: os << TS8("pcp_key_not_signing_key"); //0xc029201a,
-		break; case NtStatus::pcp_locked_out: os << TS8("pcp_locked_out"); //0xc029201b,
-		break; case NtStatus::pcp_claim_type_not_supported: os << TS8("pcp_claim_type_not_supported"); //0xc029201c,
-		break; case NtStatus::pcp_tpm_version_not_supported: os << TS8("pcp_tpm_version_not_supported"); //0xc029201d,
-		break; case NtStatus::pcp_buffer_length_mismatch: os << TS8("pcp_buffer_length_mismatch"); //0xc029201e,
-		break; case NtStatus::pcp_ifx_rsa_key_creation_blocked: os << TS8("pcp_ifx_rsa_key_creation_blocked"); //0xc029201f,
-		break; case NtStatus::pcp_ticket_missing: os << TS8("pcp_ticket_missing"); //0xc0292020,
-		break; case NtStatus::pcp_raw_policy_not_supported: os << TS8("pcp_raw_policy_not_supported"); //0xc0292021,
-		break; case NtStatus::pcp_key_handle_invalidated: os << TS8("pcp_key_handle_invalidated"); //0xc0292022,
-		break; case NtStatus::pcp_unsupported_pss_salt: os << TS8("pcp_unsupported_pss_salt"); //0x40292023,
-		break; case NtStatus::rtpm_context_continue: os << TS8("rtpm_context_continue"); //0x00293000,
-		break; case NtStatus::rtpm_context_complete: os << TS8("rtpm_context_complete"); //0x00293001,
-		break; case NtStatus::rtpm_no_result: os << TS8("rtpm_no_result"); //0xc0293002,
-		break; case NtStatus::rtpm_pcr_read_incomplete: os << TS8("rtpm_pcr_read_incomplete"); //0xc0293003,
-		break; case NtStatus::rtpm_invalid_context: os << TS8("rtpm_invalid_context"); //0xc0293004,
-		break; case NtStatus::rtpm_unsupported_cmd: os << TS8("rtpm_unsupported_cmd"); //0xc0293005,
-		break; case NtStatus::tpm_zero_exhaust_enabled: os << TS8("tpm_zero_exhaust_enabled"); //0xc0294000,
-		break; case NtStatus::hv_invalid_hypercall_code: os << TS8("hv_invalid_hypercall_code"); //0xc0350002,
-		break; case NtStatus::hv_invalid_hypercall_input: os << TS8("hv_invalid_hypercall_input"); //0xc0350003,
-		break; case NtStatus::hv_invalid_alignment: os << TS8("hv_invalid_alignment"); //0xc0350004,
-		break; case NtStatus::hv_invalid_parameter: os << TS8("hv_invalid_parameter"); //0xc0350005,
-		break; case NtStatus::hv_access_denied: os << TS8("hv_access_denied"); //0xc0350006,
-		break; case NtStatus::hv_invalid_partition_state: os << TS8("hv_invalid_partition_state"); //0xc0350007,
-		break; case NtStatus::hv_operation_denied: os << TS8("hv_operation_denied"); //0xc0350008,
-		break; case NtStatus::hv_unknown_property: os << TS8("hv_unknown_property"); //0xc0350009,
-		break; case NtStatus::hv_property_value_out_of_range: os << TS8("hv_property_value_out_of_range"); //0xc035000a,
-		break; case NtStatus::hv_insufficient_memory: os << TS8("hv_insufficient_memory"); //0xc035000b,
-		break; case NtStatus::hv_partition_too_deep: os << TS8("hv_partition_too_deep"); //0xc035000c,
-		break; case NtStatus::hv_invalid_partition_id: os << TS8("hv_invalid_partition_id"); //0xc035000d,
-		break; case NtStatus::hv_invalid_vp_index: os << TS8("hv_invalid_vp_index"); //0xc035000e,
-		break; case NtStatus::hv_invalid_port_id: os << TS8("hv_invalid_port_id"); //0xc0350011,
-		break; case NtStatus::hv_invalid_connection_id: os << TS8("hv_invalid_connection_id"); //0xc0350012,
-		break; case NtStatus::hv_insufficient_buffers: os << TS8("hv_insufficient_buffers"); //0xc0350013,
-		break; case NtStatus::hv_not_acknowledged: os << TS8("hv_not_acknowledged"); //0xc0350014,
-		break; case NtStatus::hv_invalid_vp_state: os << TS8("hv_invalid_vp_state"); //0xc0350015,
-		break; case NtStatus::hv_acknowledged: os << TS8("hv_acknowledged"); //0xc0350016,
-		break; case NtStatus::hv_invalid_save_restore_state: os << TS8("hv_invalid_save_restore_state"); //0xc0350017,
-		break; case NtStatus::hv_invalid_synic_state: os << TS8("hv_invalid_synic_state"); //0xc0350018,
-		break; case NtStatus::hv_object_in_use: os << TS8("hv_object_in_use"); //0xc0350019,
-		break; case NtStatus::hv_invalid_proximity_domain_info: os << TS8("hv_invalid_proximity_domain_info"); //0xc035001a,
-		break; case NtStatus::hv_no_data: os << TS8("hv_no_data"); //0xc035001b,
-		break; case NtStatus::hv_inactive: os << TS8("hv_inactive"); //0xc035001c,
-		break; case NtStatus::hv_no_resources: os << TS8("hv_no_resources"); //0xc035001d,
-		break; case NtStatus::hv_feature_unavailable: os << TS8("hv_feature_unavailable"); //0xc035001e,
-		break; case NtStatus::hv_insufficient_buffer: os << TS8("hv_insufficient_buffer"); //0xc0350033,
-		break; case NtStatus::hv_insufficient_device_domains: os << TS8("hv_insufficient_device_domains"); //0xc0350038,
-		break; case NtStatus::hv_cpuid_feature_validation_error: os << TS8("hv_cpuid_feature_validation_error"); //0xc035003c,
-		break; case NtStatus::hv_cpuid_xsave_feature_validation_error: os << TS8("hv_cpuid_xsave_feature_validation_error"); //0xc035003d,
-		break; case NtStatus::hv_processor_startup_timeout: os << TS8("hv_processor_startup_timeout"); //0xc035003e,
-		break; case NtStatus::hv_smx_enabled: os << TS8("hv_smx_enabled"); //0xc035003f,
-		break; case NtStatus::hv_invalid_lp_index: os << TS8("hv_invalid_lp_index"); //0xc0350041,
-		break; case NtStatus::hv_invalid_register_value: os << TS8("hv_invalid_register_value"); //0xc0350050,
-		break; case NtStatus::hv_invalid_vtl_state: os << TS8("hv_invalid_vtl_state"); //0xc0350051,
-		break; case NtStatus::hv_nx_not_detected: os << TS8("hv_nx_not_detected"); //0xc0350055,
-		break; case NtStatus::hv_invalid_device_id: os << TS8("hv_invalid_device_id"); //0xc0350057,
-		break; case NtStatus::hv_invalid_device_state: os << TS8("hv_invalid_device_state"); //0xc0350058,
-		break; case NtStatus::hv_pending_page_requests: os << TS8("hv_pending_page_requests"); //0x00350059,
-		break; case NtStatus::hv_page_request_invalid: os << TS8("hv_page_request_invalid"); //0xc0350060,
-		break; case NtStatus::hv_invalid_cpu_group_id: os << TS8("hv_invalid_cpu_group_id"); //0xc035006f,
-		break; case NtStatus::hv_invalid_cpu_group_state: os << TS8("hv_invalid_cpu_group_state"); //0xc0350070,
-		break; case NtStatus::hv_operation_failed: os << TS8("hv_operation_failed"); //0xc0350071,
-		break; case NtStatus::hv_not_allowed_with_nested_virt_active: os << TS8("hv_not_allowed_with_nested_virt_active"); //0xc0350072,
-		break; case NtStatus::hv_insufficient_root_memory: os << TS8("hv_insufficient_root_memory"); //0xc0350073,
-		break; case NtStatus::hv_event_buffer_already_freed: os << TS8("hv_event_buffer_already_freed"); //0xc0350074,
-		break; case NtStatus::hv_insufficient_contiguous_memory: os << TS8("hv_insufficient_contiguous_memory"); //0xc0350075,
-		break; case NtStatus::hv_device_not_in_domain: os << TS8("hv_device_not_in_domain"); //0xc0350076,
-		break; case NtStatus::hv_nested_vm_exit: os << TS8("hv_nested_vm_exit"); //0xc0350077,
-		break; case NtStatus::hv_call_pending: os << TS8("hv_call_pending"); //0xc0350079,
-		break; case NtStatus::hv_msr_access_failed: os << TS8("hv_msr_access_failed"); //0xc0350080,
-		break; case NtStatus::hv_insufficient_memory_mirroring: os << TS8("hv_insufficient_memory_mirroring"); //0xc0350081,
-		break; case NtStatus::hv_insufficient_contiguous_memory_mirroring: os << TS8("hv_insufficient_contiguous_memory_mirroring"); //0xc0350082,
-		break; case NtStatus::hv_insufficient_contiguous_root_memory: os << TS8("hv_insufficient_contiguous_root_memory"); //0xc0350083,
-		break; case NtStatus::hv_insufficient_root_memory_mirroring: os << TS8("hv_insufficient_root_memory_mirroring"); //0xc0350084,
-		break; case NtStatus::hv_insufficient_contiguous_root_memory_mirroring: os << TS8("hv_insufficient_contiguous_root_memory_mirroring"); //0xc0350085,
-		break; case NtStatus::hv_not_present: os << TS8("hv_not_present"); //0xc0351000,
-		break; case NtStatus::ipsec_bad_spi: os << TS8("ipsec_bad_spi"); //0xc0360001,
-		break; case NtStatus::ipsec_sa_lifetime_expired: os << TS8("ipsec_sa_lifetime_expired"); //0xc0360002,
-		break; case NtStatus::ipsec_wrong_sa: os << TS8("ipsec_wrong_sa"); //0xc0360003,
-		break; case NtStatus::ipsec_replay_check_failed: os << TS8("ipsec_replay_check_failed"); //0xc0360004,
-		break; case NtStatus::ipsec_invalid_packet: os << TS8("ipsec_invalid_packet"); //0xc0360005,
-		break; case NtStatus::ipsec_integrity_check_failed: os << TS8("ipsec_integrity_check_failed"); //0xc0360006,
-		break; case NtStatus::ipsec_clear_text_drop: os << TS8("ipsec_clear_text_drop"); //0xc0360007,
-		break; case NtStatus::ipsec_auth_firewall_drop: os << TS8("ipsec_auth_firewall_drop"); //0xc0360008,
-		break; case NtStatus::ipsec_throttle_drop: os << TS8("ipsec_throttle_drop"); //0xc0360009,
-		break; case NtStatus::ipsec_dosp_block: os << TS8("ipsec_dosp_block"); //0xc0368000,
-		break; case NtStatus::ipsec_dosp_received_multicast: os << TS8("ipsec_dosp_received_multicast"); //0xc0368001,
-		break; case NtStatus::ipsec_dosp_invalid_packet: os << TS8("ipsec_dosp_invalid_packet"); //0xc0368002,
-		break; case NtStatus::ipsec_dosp_state_lookup_failed: os << TS8("ipsec_dosp_state_lookup_failed"); //0xc0368003,
-		break; case NtStatus::ipsec_dosp_max_entries: os << TS8("ipsec_dosp_max_entries"); //0xc0368004,
-		break; case NtStatus::ipsec_dosp_keymod_not_allowed: os << TS8("ipsec_dosp_keymod_not_allowed"); //0xc0368005,
-		break; case NtStatus::ipsec_dosp_max_per_ip_ratelimit_queues: os << TS8("ipsec_dosp_max_per_ip_ratelimit_queues"); //0xc0368006,
-		break; case NtStatus::vid_remote_node_parent_gpa_pages_used: os << TS8("vid_remote_node_parent_gpa_pages_used"); //0x80370001,
-		break; case NtStatus::vid_duplicate_handler: os << TS8("vid_duplicate_handler"); //0xc0370001,
-		break; case NtStatus::vid_too_many_handlers: os << TS8("vid_too_many_handlers"); //0xc0370002,
-		break; case NtStatus::vid_queue_full: os << TS8("vid_queue_full"); //0xc0370003,
-		break; case NtStatus::vid_handler_not_present: os << TS8("vid_handler_not_present"); //0xc0370004,
-		break; case NtStatus::vid_invalid_object_name: os << TS8("vid_invalid_object_name"); //0xc0370005,
-		break; case NtStatus::vid_partition_name_too_long: os << TS8("vid_partition_name_too_long"); //0xc0370006,
-		break; case NtStatus::vid_message_queue_name_too_long: os << TS8("vid_message_queue_name_too_long"); //0xc0370007,
-		break; case NtStatus::vid_partition_already_exists: os << TS8("vid_partition_already_exists"); //0xc0370008,
-		break; case NtStatus::vid_partition_does_not_exist: os << TS8("vid_partition_does_not_exist"); //0xc0370009,
-		break; case NtStatus::vid_partition_name_not_found: os << TS8("vid_partition_name_not_found"); //0xc037000a,
-		break; case NtStatus::vid_message_queue_already_exists: os << TS8("vid_message_queue_already_exists"); //0xc037000b,
-		break; case NtStatus::vid_exceeded_mbp_entry_map_limit: os << TS8("vid_exceeded_mbp_entry_map_limit"); //0xc037000c,
-		break; case NtStatus::vid_mb_still_referenced: os << TS8("vid_mb_still_referenced"); //0xc037000d,
-		break; case NtStatus::vid_child_gpa_page_set_corrupted: os << TS8("vid_child_gpa_page_set_corrupted"); //0xc037000e,
-		break; case NtStatus::vid_invalid_numa_settings: os << TS8("vid_invalid_numa_settings"); //0xc037000f,
-		break; case NtStatus::vid_invalid_numa_node_index: os << TS8("vid_invalid_numa_node_index"); //0xc0370010,
-		break; case NtStatus::vid_notification_queue_already_associated: os << TS8("vid_notification_queue_already_associated"); //0xc0370011,
-		break; case NtStatus::vid_invalid_memory_block_handle: os << TS8("vid_invalid_memory_block_handle"); //0xc0370012,
-		break; case NtStatus::vid_page_range_overflow: os << TS8("vid_page_range_overflow"); //0xc0370013,
-		break; case NtStatus::vid_invalid_message_queue_handle: os << TS8("vid_invalid_message_queue_handle"); //0xc0370014,
-		break; case NtStatus::vid_invalid_gpa_range_handle: os << TS8("vid_invalid_gpa_range_handle"); //0xc0370015,
-		break; case NtStatus::vid_no_memory_block_notification_queue: os << TS8("vid_no_memory_block_notification_queue"); //0xc0370016,
-		break; case NtStatus::vid_memory_block_lock_count_exceeded: os << TS8("vid_memory_block_lock_count_exceeded"); //0xc0370017,
-		break; case NtStatus::vid_invalid_ppm_handle: os << TS8("vid_invalid_ppm_handle"); //0xc0370018,
-		break; case NtStatus::vid_mbps_are_locked: os << TS8("vid_mbps_are_locked"); //0xc0370019,
-		break; case NtStatus::vid_message_queue_closed: os << TS8("vid_message_queue_closed"); //0xc037001a,
-		break; case NtStatus::vid_virtual_processor_limit_exceeded: os << TS8("vid_virtual_processor_limit_exceeded"); //0xc037001b,
-		break; case NtStatus::vid_stop_pending: os << TS8("vid_stop_pending"); //0xc037001c,
-		break; case NtStatus::vid_invalid_processor_state: os << TS8("vid_invalid_processor_state"); //0xc037001d,
-		break; case NtStatus::vid_exceeded_km_context_count_limit: os << TS8("vid_exceeded_km_context_count_limit"); //0xc037001e,
-		break; case NtStatus::vid_km_interface_already_initialized: os << TS8("vid_km_interface_already_initialized"); //0xc037001f,
-		break; case NtStatus::vid_mb_property_already_set_reset: os << TS8("vid_mb_property_already_set_reset"); //0xc0370020,
-		break; case NtStatus::vid_mmio_range_destroyed: os << TS8("vid_mmio_range_destroyed"); //0xc0370021,
-		break; case NtStatus::vid_invalid_child_gpa_page_set: os << TS8("vid_invalid_child_gpa_page_set"); //0xc0370022,
-		break; case NtStatus::vid_reserve_page_set_is_being_used: os << TS8("vid_reserve_page_set_is_being_used"); //0xc0370023,
-		break; case NtStatus::vid_reserve_page_set_too_small: os << TS8("vid_reserve_page_set_too_small"); //0xc0370024,
-		break; case NtStatus::vid_mbp_already_locked_using_reserved_page: os << TS8("vid_mbp_already_locked_using_reserved_page"); //0xc0370025,
-		break; case NtStatus::vid_mbp_count_exceeded_limit: os << TS8("vid_mbp_count_exceeded_limit"); //0xc0370026,
-		break; case NtStatus::vid_saved_state_corrupt: os << TS8("vid_saved_state_corrupt"); //0xc0370027,
-		break; case NtStatus::vid_saved_state_unrecognized_item: os << TS8("vid_saved_state_unrecognized_item"); //0xc0370028,
-		break; case NtStatus::vid_saved_state_incompatible: os << TS8("vid_saved_state_incompatible"); //0xc0370029,
-		break; case NtStatus::vid_vtl_access_denied: os << TS8("vid_vtl_access_denied"); //0xc037002a,
-		break; case NtStatus::vid_insufficient_resources_reserve: os << TS8("vid_insufficient_resources_reserve"); //0xc037002b,
-		break; case NtStatus::vid_insufficient_resources_physical_buffer: os << TS8("vid_insufficient_resources_physical_buffer"); //0xc037002c,
-		break; case NtStatus::vid_insufficient_resources_hv_deposit: os << TS8("vid_insufficient_resources_hv_deposit"); //0xc037002d,
-		break; case NtStatus::vid_memory_type_not_supported: os << TS8("vid_memory_type_not_supported"); //0xc037002e,
-		break; case NtStatus::vid_insufficient_resources_withdraw: os << TS8("vid_insufficient_resources_withdraw"); //0xc037002f,
-		break; case NtStatus::vid_process_already_set: os << TS8("vid_process_already_set"); //0xc0370030,
-		break; case NtStatus::dm_operation_limit_exceeded: os << TS8("dm_operation_limit_exceeded"); //0xc0370600,
-		break; case NtStatus::volmgr_incomplete_regeneration: os << TS8("volmgr_incomplete_regeneration"); //0x80380001,
-		break; case NtStatus::volmgr_database_full: os << TS8("volmgr_database_full"); //0xc0380001,
-		break; case NtStatus::volmgr_incomplete_disk_migration: os << TS8("volmgr_incomplete_disk_migration"); //0x80380002,
-		break; case NtStatus::volmgr_disk_configuration_corrupted: os << TS8("volmgr_disk_configuration_corrupted"); //0xc0380002,
-		break; case NtStatus::volmgr_disk_configuration_not_in_sync: os << TS8("volmgr_disk_configuration_not_in_sync"); //0xc0380003,
-		break; case NtStatus::volmgr_pack_config_update_failed: os << TS8("volmgr_pack_config_update_failed"); //0xc0380004,
-		break; case NtStatus::volmgr_disk_contains_non_simple_volume: os << TS8("volmgr_disk_contains_non_simple_volume"); //0xc0380005,
-		break; case NtStatus::volmgr_disk_duplicate: os << TS8("volmgr_disk_duplicate"); //0xc0380006,
-		break; case NtStatus::volmgr_disk_dynamic: os << TS8("volmgr_disk_dynamic"); //0xc0380007,
-		break; case NtStatus::volmgr_disk_id_invalid: os << TS8("volmgr_disk_id_invalid"); //0xc0380008,
-		break; case NtStatus::volmgr_disk_invalid: os << TS8("volmgr_disk_invalid"); //0xc0380009,
-		break; case NtStatus::volmgr_disk_last_voter: os << TS8("volmgr_disk_last_voter"); //0xc038000a,
-		break; case NtStatus::volmgr_disk_layout_invalid: os << TS8("volmgr_disk_layout_invalid"); //0xc038000b,
-		break; case NtStatus::volmgr_disk_layout_non_basic_between_basic_partitions: os << TS8("volmgr_disk_layout_non_basic_between_basic_partitions"); //0xc038000c,
-		break; case NtStatus::volmgr_disk_layout_not_cylinder_aligned: os << TS8("volmgr_disk_layout_not_cylinder_aligned"); //0xc038000d,
-		break; case NtStatus::volmgr_disk_layout_partitions_too_small: os << TS8("volmgr_disk_layout_partitions_too_small"); //0xc038000e,
-		break; case NtStatus::volmgr_disk_layout_primary_between_logical_partitions: os << TS8("volmgr_disk_layout_primary_between_logical_partitions"); //0xc038000f,
-		break; case NtStatus::volmgr_disk_layout_too_many_partitions: os << TS8("volmgr_disk_layout_too_many_partitions"); //0xc0380010,
-		break; case NtStatus::volmgr_disk_missing: os << TS8("volmgr_disk_missing"); //0xc0380011,
-		break; case NtStatus::volmgr_disk_not_empty: os << TS8("volmgr_disk_not_empty"); //0xc0380012,
-		break; case NtStatus::volmgr_disk_not_enough_space: os << TS8("volmgr_disk_not_enough_space"); //0xc0380013,
-		break; case NtStatus::volmgr_disk_revectoring_failed: os << TS8("volmgr_disk_revectoring_failed"); //0xc0380014,
-		break; case NtStatus::volmgr_disk_sector_size_invalid: os << TS8("volmgr_disk_sector_size_invalid"); //0xc0380015,
-		break; case NtStatus::volmgr_disk_set_not_contained: os << TS8("volmgr_disk_set_not_contained"); //0xc0380016,
-		break; case NtStatus::volmgr_disk_used_by_multiple_members: os << TS8("volmgr_disk_used_by_multiple_members"); //0xc0380017,
-		break; case NtStatus::volmgr_disk_used_by_multiple_plexes: os << TS8("volmgr_disk_used_by_multiple_plexes"); //0xc0380018,
-		break; case NtStatus::volmgr_dynamic_disk_not_supported: os << TS8("volmgr_dynamic_disk_not_supported"); //0xc0380019,
-		break; case NtStatus::volmgr_extent_already_used: os << TS8("volmgr_extent_already_used"); //0xc038001a,
-		break; case NtStatus::volmgr_extent_not_contiguous: os << TS8("volmgr_extent_not_contiguous"); //0xc038001b,
-		break; case NtStatus::volmgr_extent_not_in_public_region: os << TS8("volmgr_extent_not_in_public_region"); //0xc038001c,
-		break; case NtStatus::volmgr_extent_not_sector_aligned: os << TS8("volmgr_extent_not_sector_aligned"); //0xc038001d,
-		break; case NtStatus::volmgr_extent_overlaps_ebr_partition: os << TS8("volmgr_extent_overlaps_ebr_partition"); //0xc038001e,
-		break; case NtStatus::volmgr_extent_volume_lengths_do_not_match: os << TS8("volmgr_extent_volume_lengths_do_not_match"); //0xc038001f,
-		break; case NtStatus::volmgr_fault_tolerant_not_supported: os << TS8("volmgr_fault_tolerant_not_supported"); //0xc0380020,
-		break; case NtStatus::volmgr_interleave_length_invalid: os << TS8("volmgr_interleave_length_invalid"); //0xc0380021,
-		break; case NtStatus::volmgr_maximum_registered_users: os << TS8("volmgr_maximum_registered_users"); //0xc0380022,
-		break; case NtStatus::volmgr_member_in_sync: os << TS8("volmgr_member_in_sync"); //0xc0380023,
-		break; case NtStatus::volmgr_member_index_duplicate: os << TS8("volmgr_member_index_duplicate"); //0xc0380024,
-		break; case NtStatus::volmgr_member_index_invalid: os << TS8("volmgr_member_index_invalid"); //0xc0380025,
-		break; case NtStatus::volmgr_member_missing: os << TS8("volmgr_member_missing"); //0xc0380026,
-		break; case NtStatus::volmgr_member_not_detached: os << TS8("volmgr_member_not_detached"); //0xc0380027,
-		break; case NtStatus::volmgr_member_regenerating: os << TS8("volmgr_member_regenerating"); //0xc0380028,
-		break; case NtStatus::volmgr_all_disks_failed: os << TS8("volmgr_all_disks_failed"); //0xc0380029,
-		break; case NtStatus::volmgr_no_registered_users: os << TS8("volmgr_no_registered_users"); //0xc038002a,
-		break; case NtStatus::volmgr_no_such_user: os << TS8("volmgr_no_such_user"); //0xc038002b,
-		break; case NtStatus::volmgr_notification_reset: os << TS8("volmgr_notification_reset"); //0xc038002c,
-		break; case NtStatus::volmgr_number_of_members_invalid: os << TS8("volmgr_number_of_members_invalid"); //0xc038002d,
-		break; case NtStatus::volmgr_number_of_plexes_invalid: os << TS8("volmgr_number_of_plexes_invalid"); //0xc038002e,
-		break; case NtStatus::volmgr_pack_duplicate: os << TS8("volmgr_pack_duplicate"); //0xc038002f,
-		break; case NtStatus::volmgr_pack_id_invalid: os << TS8("volmgr_pack_id_invalid"); //0xc0380030,
-		break; case NtStatus::volmgr_pack_invalid: os << TS8("volmgr_pack_invalid"); //0xc0380031,
-		break; case NtStatus::volmgr_pack_name_invalid: os << TS8("volmgr_pack_name_invalid"); //0xc0380032,
-		break; case NtStatus::volmgr_pack_offline: os << TS8("volmgr_pack_offline"); //0xc0380033,
-		break; case NtStatus::volmgr_pack_has_quorum: os << TS8("volmgr_pack_has_quorum"); //0xc0380034,
-		break; case NtStatus::volmgr_pack_without_quorum: os << TS8("volmgr_pack_without_quorum"); //0xc0380035,
-		break; case NtStatus::volmgr_partition_style_invalid: os << TS8("volmgr_partition_style_invalid"); //0xc0380036,
-		break; case NtStatus::volmgr_partition_update_failed: os << TS8("volmgr_partition_update_failed"); //0xc0380037,
-		break; case NtStatus::volmgr_plex_in_sync: os << TS8("volmgr_plex_in_sync"); //0xc0380038,
-		break; case NtStatus::volmgr_plex_index_duplicate: os << TS8("volmgr_plex_index_duplicate"); //0xc0380039,
-		break; case NtStatus::volmgr_plex_index_invalid: os << TS8("volmgr_plex_index_invalid"); //0xc038003a,
-		break; case NtStatus::volmgr_plex_last_active: os << TS8("volmgr_plex_last_active"); //0xc038003b,
-		break; case NtStatus::volmgr_plex_missing: os << TS8("volmgr_plex_missing"); //0xc038003c,
-		break; case NtStatus::volmgr_plex_regenerating: os << TS8("volmgr_plex_regenerating"); //0xc038003d,
-		break; case NtStatus::volmgr_plex_type_invalid: os << TS8("volmgr_plex_type_invalid"); //0xc038003e,
-		break; case NtStatus::volmgr_plex_not_raid5: os << TS8("volmgr_plex_not_raid5"); //0xc038003f,
-		break; case NtStatus::volmgr_plex_not_simple: os << TS8("volmgr_plex_not_simple"); //0xc0380040,
-		break; case NtStatus::volmgr_structure_size_invalid: os << TS8("volmgr_structure_size_invalid"); //0xc0380041,
-		break; case NtStatus::volmgr_too_many_notification_requests: os << TS8("volmgr_too_many_notification_requests"); //0xc0380042,
-		break; case NtStatus::volmgr_transaction_in_progress: os << TS8("volmgr_transaction_in_progress"); //0xc0380043,
-		break; case NtStatus::volmgr_unexpected_disk_layout_change: os << TS8("volmgr_unexpected_disk_layout_change"); //0xc0380044,
-		break; case NtStatus::volmgr_volume_contains_missing_disk: os << TS8("volmgr_volume_contains_missing_disk"); //0xc0380045,
-		break; case NtStatus::volmgr_volume_id_invalid: os << TS8("volmgr_volume_id_invalid"); //0xc0380046,
-		break; case NtStatus::volmgr_volume_length_invalid: os << TS8("volmgr_volume_length_invalid"); //0xc0380047,
-		break; case NtStatus::volmgr_volume_length_not_sector_size_multiple: os << TS8("volmgr_volume_length_not_sector_size_multiple"); //0xc0380048,
-		break; case NtStatus::volmgr_volume_not_mirrored: os << TS8("volmgr_volume_not_mirrored"); //0xc0380049,
-		break; case NtStatus::volmgr_volume_not_retained: os << TS8("volmgr_volume_not_retained"); //0xc038004a,
-		break; case NtStatus::volmgr_volume_offline: os << TS8("volmgr_volume_offline"); //0xc038004b,
-		break; case NtStatus::volmgr_volume_retained: os << TS8("volmgr_volume_retained"); //0xc038004c,
-		break; case NtStatus::volmgr_number_of_extents_invalid: os << TS8("volmgr_number_of_extents_invalid"); //0xc038004d,
-		break; case NtStatus::volmgr_different_sector_size: os << TS8("volmgr_different_sector_size"); //0xc038004e,
-		break; case NtStatus::volmgr_bad_boot_disk: os << TS8("volmgr_bad_boot_disk"); //0xc038004f,
-		break; case NtStatus::volmgr_pack_config_offline: os << TS8("volmgr_pack_config_offline"); //0xc0380050,
-		break; case NtStatus::volmgr_pack_config_online: os << TS8("volmgr_pack_config_online"); //0xc0380051,
-		break; case NtStatus::volmgr_not_primary_pack: os << TS8("volmgr_not_primary_pack"); //0xc0380052,
-		break; case NtStatus::volmgr_pack_log_update_failed: os << TS8("volmgr_pack_log_update_failed"); //0xc0380053,
-		break; case NtStatus::volmgr_number_of_disks_in_plex_invalid: os << TS8("volmgr_number_of_disks_in_plex_invalid"); //0xc0380054,
-		break; case NtStatus::volmgr_number_of_disks_in_member_invalid: os << TS8("volmgr_number_of_disks_in_member_invalid"); //0xc0380055,
-		break; case NtStatus::volmgr_volume_mirrored: os << TS8("volmgr_volume_mirrored"); //0xc0380056,
-		break; case NtStatus::volmgr_plex_not_simple_spanned: os << TS8("volmgr_plex_not_simple_spanned"); //0xc0380057,
-		break; case NtStatus::volmgr_no_valid_log_copies: os << TS8("volmgr_no_valid_log_copies"); //0xc0380058,
-		break; case NtStatus::volmgr_primary_pack_present: os << TS8("volmgr_primary_pack_present"); //0xc0380059,
-		break; case NtStatus::volmgr_number_of_disks_invalid: os << TS8("volmgr_number_of_disks_invalid"); //0xc038005a,
-		break; case NtStatus::volmgr_mirror_not_supported: os << TS8("volmgr_mirror_not_supported"); //0xc038005b,
-		break; case NtStatus::volmgr_raid5_not_supported: os << TS8("volmgr_raid5_not_supported"); //0xc038005c,
-		break; case NtStatus::bcd_not_all_entries_imported: os << TS8("bcd_not_all_entries_imported"); //0x80390001,
-		break; case NtStatus::bcd_too_many_elements: os << TS8("bcd_too_many_elements"); //0xc0390002,
-		break; case NtStatus::bcd_not_all_entries_synchronized: os << TS8("bcd_not_all_entries_synchronized"); //0x80390003,
-		break; case NtStatus::query_storage_error: os << TS8("query_storage_error"); //0x803a0001,
-		break; case NtStatus::vhd_drive_footer_missing: os << TS8("vhd_drive_footer_missing"); //0xc03a0001,
-		break; case NtStatus::vhd_drive_footer_checksum_mismatch: os << TS8("vhd_drive_footer_checksum_mismatch"); //0xc03a0002,
-		break; case NtStatus::vhd_drive_footer_corrupt: os << TS8("vhd_drive_footer_corrupt"); //0xc03a0003,
-		break; case NtStatus::vhd_format_unknown: os << TS8("vhd_format_unknown"); //0xc03a0004,
-		break; case NtStatus::vhd_format_unsupported_version: os << TS8("vhd_format_unsupported_version"); //0xc03a0005,
-		break; case NtStatus::vhd_sparse_header_checksum_mismatch: os << TS8("vhd_sparse_header_checksum_mismatch"); //0xc03a0006,
-		break; case NtStatus::vhd_sparse_header_unsupported_version: os << TS8("vhd_sparse_header_unsupported_version"); //0xc03a0007,
-		break; case NtStatus::vhd_sparse_header_corrupt: os << TS8("vhd_sparse_header_corrupt"); //0xc03a0008,
-		break; case NtStatus::vhd_block_allocation_failure: os << TS8("vhd_block_allocation_failure"); //0xc03a0009,
-		break; case NtStatus::vhd_block_allocation_table_corrupt: os << TS8("vhd_block_allocation_table_corrupt"); //0xc03a000a,
-		break; case NtStatus::vhd_invalid_block_size: os << TS8("vhd_invalid_block_size"); //0xc03a000b,
-		break; case NtStatus::vhd_bitmap_mismatch: os << TS8("vhd_bitmap_mismatch"); //0xc03a000c,
-		break; case NtStatus::vhd_parent_vhd_not_found: os << TS8("vhd_parent_vhd_not_found"); //0xc03a000d,
-		break; case NtStatus::vhd_child_parent_id_mismatch: os << TS8("vhd_child_parent_id_mismatch"); //0xc03a000e,
-		break; case NtStatus::vhd_child_parent_timestamp_mismatch: os << TS8("vhd_child_parent_timestamp_mismatch"); //0xc03a000f,
-		break; case NtStatus::vhd_metadata_read_failure: os << TS8("vhd_metadata_read_failure"); //0xc03a0010,
-		break; case NtStatus::vhd_metadata_write_failure: os << TS8("vhd_metadata_write_failure"); //0xc03a0011,
-		break; case NtStatus::vhd_invalid_size: os << TS8("vhd_invalid_size"); //0xc03a0012,
-		break; case NtStatus::vhd_invalid_file_size: os << TS8("vhd_invalid_file_size"); //0xc03a0013,
-		break; case NtStatus::virtdisk_provider_not_found: os << TS8("virtdisk_provider_not_found"); //0xc03a0014,
-		break; case NtStatus::virtdisk_not_virtual_disk: os << TS8("virtdisk_not_virtual_disk"); //0xc03a0015,
-		break; case NtStatus::vhd_parent_vhd_access_denied: os << TS8("vhd_parent_vhd_access_denied"); //0xc03a0016,
-		break; case NtStatus::vhd_child_parent_size_mismatch: os << TS8("vhd_child_parent_size_mismatch"); //0xc03a0017,
-		break; case NtStatus::vhd_differencing_chain_cycle_detected: os << TS8("vhd_differencing_chain_cycle_detected"); //0xc03a0018,
-		break; case NtStatus::vhd_differencing_chain_error_in_parent: os << TS8("vhd_differencing_chain_error_in_parent"); //0xc03a0019,
-		break; case NtStatus::virtual_disk_limitation: os << TS8("virtual_disk_limitation"); //0xc03a001a,
-		break; case NtStatus::vhd_invalid_type: os << TS8("vhd_invalid_type"); //0xc03a001b,
-		break; case NtStatus::vhd_invalid_state: os << TS8("vhd_invalid_state"); //0xc03a001c,
-		break; case NtStatus::virtdisk_unsupported_disk_sector_size: os << TS8("virtdisk_unsupported_disk_sector_size"); //0xc03a001d,
-		break; case NtStatus::virtdisk_disk_already_owned: os << TS8("virtdisk_disk_already_owned"); //0xc03a001e,
-		break; case NtStatus::virtdisk_disk_online_and_writable: os << TS8("virtdisk_disk_online_and_writable"); //0xc03a001f,
-		break; case NtStatus::ctlog_tracking_not_initialized: os << TS8("ctlog_tracking_not_initialized"); //0xc03a0020,
-		break; case NtStatus::ctlog_logfile_size_exceeded_maxsize: os << TS8("ctlog_logfile_size_exceeded_maxsize"); //0xc03a0021,
-		break; case NtStatus::ctlog_vhd_changed_offline: os << TS8("ctlog_vhd_changed_offline"); //0xc03a0022,
-		break; case NtStatus::ctlog_invalid_tracking_state: os << TS8("ctlog_invalid_tracking_state"); //0xc03a0023,
-		break; case NtStatus::ctlog_inconsistent_tracking_file: os << TS8("ctlog_inconsistent_tracking_file"); //0xc03a0024,
-		break; case NtStatus::vhd_metadata_full: os << TS8("vhd_metadata_full"); //0xc03a0028,
-		break; case NtStatus::vhd_invalid_change_tracking_id: os << TS8("vhd_invalid_change_tracking_id"); //0xc03a0029,
-		break; case NtStatus::vhd_change_tracking_disabled: os << TS8("vhd_change_tracking_disabled"); //0xc03a002a,
-		break; case NtStatus::vhd_missing_change_tracking_information: os << TS8("vhd_missing_change_tracking_information"); //0xc03a0030,
-		break; case NtStatus::vhd_resize_would_truncate_data: os << TS8("vhd_resize_would_truncate_data"); //0xc03a0031,
-		break; case NtStatus::vhd_could_not_compute_minimum_virtual_size: os << TS8("vhd_could_not_compute_minimum_virtual_size"); //0xc03a0032,
-		break; case NtStatus::vhd_already_at_or_below_minimum_virtual_size: os << TS8("vhd_already_at_or_below_minimum_virtual_size"); //0xc03a0033,
-		break; case NtStatus::gdi_handle_leak: os << TS8("gdi_handle_leak"); //0x803f0001,
-		break; case NtStatus::rkf_key_not_found: os << TS8("rkf_key_not_found"); //0xc0400001,
-		break; case NtStatus::rkf_duplicate_key: os << TS8("rkf_duplicate_key"); //0xc0400002,
-		break; case NtStatus::rkf_blob_full: os << TS8("rkf_blob_full"); //0xc0400003,
-		break; case NtStatus::rkf_store_full: os << TS8("rkf_store_full"); //0xc0400004,
-		break; case NtStatus::rkf_file_blocked: os << TS8("rkf_file_blocked"); //0xc0400005,
-		break; case NtStatus::rkf_active_key: os << TS8("rkf_active_key"); //0xc0400006,
-		break; case NtStatus::rdbss_restart_operation: os << TS8("rdbss_restart_operation"); //0xc0410001,
-		break; case NtStatus::rdbss_continue_operation: os << TS8("rdbss_continue_operation"); //0xc0410002,
-		break; case NtStatus::rdbss_post_operation: os << TS8("rdbss_post_operation"); //0xc0410003,
-		break; case NtStatus::rdbss_retry_lookup: os << TS8("rdbss_retry_lookup"); //0xc0410004,
-		break; case NtStatus::bth_att_invalid_handle: os << TS8("bth_att_invalid_handle"); //0xc0420001,
-		break; case NtStatus::bth_att_read_not_permitted: os << TS8("bth_att_read_not_permitted"); //0xc0420002,
-		break; case NtStatus::bth_att_write_not_permitted: os << TS8("bth_att_write_not_permitted"); //0xc0420003,
-		break; case NtStatus::bth_att_invalid_pdu: os << TS8("bth_att_invalid_pdu"); //0xc0420004,
-		break; case NtStatus::bth_att_insufficient_authentication: os << TS8("bth_att_insufficient_authentication"); //0xc0420005,
-		break; case NtStatus::bth_att_request_not_supported: os << TS8("bth_att_request_not_supported"); //0xc0420006,
-		break; case NtStatus::bth_att_invalid_offset: os << TS8("bth_att_invalid_offset"); //0xc0420007,
-		break; case NtStatus::bth_att_insufficient_authorization: os << TS8("bth_att_insufficient_authorization"); //0xc0420008,
-		break; case NtStatus::bth_att_prepare_queue_full: os << TS8("bth_att_prepare_queue_full"); //0xc0420009,
-		break; case NtStatus::bth_att_attribute_not_found: os << TS8("bth_att_attribute_not_found"); //0xc042000a,
-		break; case NtStatus::bth_att_attribute_not_long: os << TS8("bth_att_attribute_not_long"); //0xc042000b,
-		break; case NtStatus::bth_att_insufficient_encryption_key_size: os << TS8("bth_att_insufficient_encryption_key_size"); //0xc042000c,
-		break; case NtStatus::bth_att_invalid_attribute_value_length: os << TS8("bth_att_invalid_attribute_value_length"); //0xc042000d,
-		break; case NtStatus::bth_att_unlikely: os << TS8("bth_att_unlikely"); //0xc042000e,
-		break; case NtStatus::bth_att_insufficient_encryption: os << TS8("bth_att_insufficient_encryption"); //0xc042000f,
-		break; case NtStatus::bth_att_unsupported_group_type: os << TS8("bth_att_unsupported_group_type"); //0xc0420010,
-		break; case NtStatus::bth_att_insufficient_resources: os << TS8("bth_att_insufficient_resources"); //0xc0420011,
-		break; case NtStatus::bth_att_unknown_error: os << TS8("bth_att_unknown_error"); //0xc0421000,
-		break; case NtStatus::secureboot_rollback_detected: os << TS8("secureboot_rollback_detected"); //0xc0430001,
-		break; case NtStatus::secureboot_policy_violation: os << TS8("secureboot_policy_violation"); //0xc0430002,
-		break; case NtStatus::secureboot_invalid_policy: os << TS8("secureboot_invalid_policy"); //0xc0430003,
-		break; case NtStatus::secureboot_policy_publisher_not_found: os << TS8("secureboot_policy_publisher_not_found"); //0xc0430004,
-		break; case NtStatus::secureboot_policy_not_signed: os << TS8("secureboot_policy_not_signed"); //0xc0430005,
-		break; case NtStatus::secureboot_not_enabled: os << TS8("secureboot_not_enabled"); //0x80430006,
-		break; case NtStatus::secureboot_file_replaced: os << TS8("secureboot_file_replaced"); //0xc0430007,
-		break; case NtStatus::secureboot_policy_not_authorized: os << TS8("secureboot_policy_not_authorized"); //0xc0430008,
-		break; case NtStatus::secureboot_policy_unknown: os << TS8("secureboot_policy_unknown"); //0xc0430009,
-		break; case NtStatus::secureboot_policy_missing_antirollbackversion: os << TS8("secureboot_policy_missing_antirollbackversion"); //0xc043000a,
-		break; case NtStatus::secureboot_platform_id_mismatch: os << TS8("secureboot_platform_id_mismatch"); //0xc043000b,
-		break; case NtStatus::secureboot_policy_rollback_detected: os << TS8("secureboot_policy_rollback_detected"); //0xc043000c,
-		break; case NtStatus::secureboot_policy_upgrade_mismatch: os << TS8("secureboot_policy_upgrade_mismatch"); //0xc043000d,
-		break; case NtStatus::secureboot_required_policy_file_missing: os << TS8("secureboot_required_policy_file_missing"); //0xc043000e,
-		break; case NtStatus::secureboot_not_base_policy: os << TS8("secureboot_not_base_policy"); //0xc043000f,
-		break; case NtStatus::secureboot_not_supplemental_policy: os << TS8("secureboot_not_supplemental_policy"); //0xc0430010,
-		break; case NtStatus::audio_engine_node_not_found: os << TS8("audio_engine_node_not_found"); //0xc0440001,
-		break; case NtStatus::hdaudio_empty_connection_list: os << TS8("hdaudio_empty_connection_list"); //0xc0440002,
-		break; case NtStatus::hdaudio_connection_list_not_supported: os << TS8("hdaudio_connection_list_not_supported"); //0xc0440003,
-		break; case NtStatus::hdaudio_no_logical_devices_created: os << TS8("hdaudio_no_logical_devices_created"); //0xc0440004,
-		break; case NtStatus::hdaudio_null_linked_list_entry: os << TS8("hdaudio_null_linked_list_entry"); //0xc0440005,
-		break; case NtStatus::vsm_not_initialized: os << TS8("vsm_not_initialized"); //0xc0450000,
-		break; case NtStatus::vsm_dma_protection_not_in_use: os << TS8("vsm_dma_protection_not_in_use"); //0xc0450001,
-		break; case NtStatus::ioring_required_flag_not_supported: os << TS8("ioring_required_flag_not_supported"); //0xc0460001,
-		break; case NtStatus::ioring_submission_queue_full: os << TS8("ioring_submission_queue_full"); //0xc0460002,
-		break; case NtStatus::ioring_version_not_supported: os << TS8("ioring_version_not_supported"); //0xc0460003,
-		break; case NtStatus::ioring_submission_queue_too_big: os << TS8("ioring_submission_queue_too_big"); //0xc0460004,
-		break; case NtStatus::ioring_completion_queue_too_big: os << TS8("ioring_completion_queue_too_big"); //0xc0460005,
-		break; case NtStatus::ioring_submit_in_progress: os << TS8("ioring_submit_in_progress"); //0xc0460006,
-		break; case NtStatus::ioring_corrupt: os << TS8("ioring_corrupt"); //0xc0460007,
-		break; case NtStatus::ioring_completion_queue_too_full: os << TS8("ioring_completion_queue_too_full"); //0xc0460008,
-		break; case NtStatus::volsnap_bootfile_not_valid: os << TS8("volsnap_bootfile_not_valid"); //0xc0500003,
-		break; case NtStatus::volsnap_activation_timeout: os << TS8("volsnap_activation_timeout"); //0xc0500004,
-		break; case NtStatus::volsnap_no_bypassio_with_snapshot: os << TS8("volsnap_no_bypassio_with_snapshot"); //0xc0500005,
-		break; case NtStatus::io_preempted: os << TS8("io_preempted"); //0xc0510001,
-		break; case NtStatus::svhdx_error_stored: os << TS8("svhdx_error_stored"); //0xc05c0000,
-		break; case NtStatus::svhdx_error_not_available: os << TS8("svhdx_error_not_available"); //0xc05cff00,
-		break; case NtStatus::svhdx_unit_attention_available: os << TS8("svhdx_unit_attention_available"); //0xc05cff01,
-		break; case NtStatus::svhdx_unit_attention_capacity_data_changed: os << TS8("svhdx_unit_attention_capacity_data_changed"); //0xc05cff02,
-		break; case NtStatus::svhdx_unit_attention_reservations_preempted: os << TS8("svhdx_unit_attention_reservations_preempted"); //0xc05cff03,
-		break; case NtStatus::svhdx_unit_attention_reservations_released: os << TS8("svhdx_unit_attention_reservations_released"); //0xc05cff04,
-		break; case NtStatus::svhdx_unit_attention_registrations_preempted: os << TS8("svhdx_unit_attention_registrations_preempted"); //0xc05cff05,
-		break; case NtStatus::svhdx_unit_attention_operating_definition_changed: os << TS8("svhdx_unit_attention_operating_definition_changed"); //0xc05cff06,
-		break; case NtStatus::svhdx_reservation_conflict: os << TS8("svhdx_reservation_conflict"); //0xc05cff07,
-		break; case NtStatus::svhdx_wrong_file_type: os << TS8("svhdx_wrong_file_type"); //0xc05cff08,
-		break; case NtStatus::svhdx_version_mismatch: os << TS8("svhdx_version_mismatch"); //0xc05cff09,
-		break; case NtStatus::vhd_shared: os << TS8("vhd_shared"); //0xc05cff0a,
-		break; case NtStatus::svhdx_no_initiator: os << TS8("svhdx_no_initiator"); //0xc05cff0b,
-		break; case NtStatus::vhdset_backing_storage_not_found: os << TS8("vhdset_backing_storage_not_found"); //0xc05cff0c,
-		break; case NtStatus::smb_no_preauth_integrity_hash_overlap: os << TS8("smb_no_preauth_integrity_hash_overlap"); //0xc05d0000,
-		break; case NtStatus::smb_bad_cluster_dialect: os << TS8("smb_bad_cluster_dialect"); //0xc05d0001,
-		break; case NtStatus::smb_guest_logon_blocked: os << TS8("smb_guest_logon_blocked"); //0xc05d0002,
-		break; case NtStatus::smb_no_signing_algorithm_overlap: os << TS8("smb_no_signing_algorithm_overlap"); //0xc05d0003,
-		break; case NtStatus::network_authentication_prompt_canceled: os << TS8("network_authentication_prompt_canceled"); //0xc05d0004,
-		break; case NtStatus::spaces_repaired: os << TS8("spaces_repaired"); //0x00e70000,
-		break; case NtStatus::spaces_pause: os << TS8("spaces_pause"); //0x00e70001,
-		break; case NtStatus::spaces_fault_domain_type_invalid: os << TS8("spaces_fault_domain_type_invalid"); //0xc0e70001,
-		break; case NtStatus::spaces_complete: os << TS8("spaces_complete"); //0x00e70002,
-		break; case NtStatus::spaces_redirect: os << TS8("spaces_redirect"); //0x00e70003,
-		break; case NtStatus::spaces_resiliency_type_invalid: os << TS8("spaces_resiliency_type_invalid"); //0xc0e70003,
-		break; case NtStatus::spaces_drive_sector_size_invalid: os << TS8("spaces_drive_sector_size_invalid"); //0xc0e70004,
-		break; case NtStatus::spaces_drive_redundancy_invalid: os << TS8("spaces_drive_redundancy_invalid"); //0xc0e70006,
-		break; case NtStatus::spaces_number_of_data_copies_invalid: os << TS8("spaces_number_of_data_copies_invalid"); //0xc0e70007,
-		break; case NtStatus::spaces_interleave_length_invalid: os << TS8("spaces_interleave_length_invalid"); //0xc0e70009,
-		break; case NtStatus::spaces_number_of_columns_invalid: os << TS8("spaces_number_of_columns_invalid"); //0xc0e7000a,
-		break; case NtStatus::spaces_not_enough_drives: os << TS8("spaces_not_enough_drives"); //0xc0e7000b,
-		break; case NtStatus::spaces_extended_error: os << TS8("spaces_extended_error"); //0xc0e7000c,
-		break; case NtStatus::spaces_provisioning_type_invalid: os << TS8("spaces_provisioning_type_invalid"); //0xc0e7000d,
-		break; case NtStatus::spaces_allocation_size_invalid: os << TS8("spaces_allocation_size_invalid"); //0xc0e7000e,
-		break; case NtStatus::spaces_enclosure_aware_invalid: os << TS8("spaces_enclosure_aware_invalid"); //0xc0e7000f,
-		break; case NtStatus::spaces_write_cache_size_invalid: os << TS8("spaces_write_cache_size_invalid"); //0xc0e70010,
-		break; case NtStatus::spaces_number_of_groups_invalid: os << TS8("spaces_number_of_groups_invalid"); //0xc0e70011,
-		break; case NtStatus::spaces_drive_operational_state_invalid: os << TS8("spaces_drive_operational_state_invalid"); //0xc0e70012,
-		break; case NtStatus::spaces_update_column_state: os << TS8("spaces_update_column_state"); //0xc0e70013,
-		break; case NtStatus::spaces_map_required: os << TS8("spaces_map_required"); //0xc0e70014,
-		break; case NtStatus::spaces_unsupported_version: os << TS8("spaces_unsupported_version"); //0xc0e70015,
-		break; case NtStatus::spaces_corrupt_metadata: os << TS8("spaces_corrupt_metadata"); //0xc0e70016,
-		break; case NtStatus::spaces_drt_full: os << TS8("spaces_drt_full"); //0xc0e70017,
-		break; case NtStatus::spaces_inconsistency: os << TS8("spaces_inconsistency"); //0xc0e70018,
-		break; case NtStatus::spaces_log_not_ready: os << TS8("spaces_log_not_ready"); //0xc0e70019,
-		break; case NtStatus::spaces_no_redundancy: os << TS8("spaces_no_redundancy"); //0xc0e7001a,
-		break; case NtStatus::spaces_drive_not_ready: os << TS8("spaces_drive_not_ready"); //0xc0e7001b,
-		break; case NtStatus::spaces_drive_split: os << TS8("spaces_drive_split"); //0xc0e7001c,
-		break; case NtStatus::spaces_drive_lost_data: os << TS8("spaces_drive_lost_data"); //0xc0e7001d,
-		break; case NtStatus::spaces_entry_incomplete: os << TS8("spaces_entry_incomplete"); //0xc0e7001e,
-		break; case NtStatus::spaces_entry_invalid: os << TS8("spaces_entry_invalid"); //0xc0e7001f,
-		break; case NtStatus::spaces_mark_dirty: os << TS8("spaces_mark_dirty"); //0xc0e70020,
-		break; case NtStatus::spaces_pd_not_found: os << TS8("spaces_pd_not_found"); //0xc0e70021,
-		break; case NtStatus::spaces_pd_length_mismatch: os << TS8("spaces_pd_length_mismatch"); //0xc0e70022,
-		break; case NtStatus::spaces_pd_unsupported_version: os << TS8("spaces_pd_unsupported_version"); //0xc0e70023,
-		break; case NtStatus::spaces_pd_invalid_data: os << TS8("spaces_pd_invalid_data"); //0xc0e70024,
-		break; case NtStatus::spaces_flush_metadata: os << TS8("spaces_flush_metadata"); //0xc0e70025,
-		break; case NtStatus::spaces_cache_full: os << TS8("spaces_cache_full"); //0xc0e70026,
-		break; case NtStatus::spaces_repair_in_progress: os << TS8("spaces_repair_in_progress"); //0xc0e70027,
-		break; case NtStatus::seccore_invalid_command: os << TS8("seccore_invalid_command"); //0xc0e80000,
-		break; case NtStatus::system_integrity_rollback_detected: os << TS8("system_integrity_rollback_detected"); //0xc0e90001,
-		break; case NtStatus::system_integrity_policy_violation: os << TS8("system_integrity_policy_violation"); //0xc0e90002,
-		break; case NtStatus::system_integrity_invalid_policy: os << TS8("system_integrity_invalid_policy"); //0xc0e90003,
-		break; case NtStatus::system_integrity_policy_not_signed: os << TS8("system_integrity_policy_not_signed"); //0xc0e90004,
-		break; case NtStatus::system_integrity_too_many_policies: os << TS8("system_integrity_too_many_policies"); //0xc0e90005,
-		break; case NtStatus::system_integrity_supplemental_policy_not_authorized: os << TS8("system_integrity_supplemental_policy_not_authorized"); //0xc0e90006,
-		break; case NtStatus::system_integrity_reputation_malicious: os << TS8("system_integrity_reputation_malicious"); //0xc0e90007,
-		break; case NtStatus::system_integrity_reputation_pua: os << TS8("system_integrity_reputation_pua"); //0xc0e90008,
-		break; case NtStatus::system_integrity_reputation_dangerous_ext: os << TS8("system_integrity_reputation_dangerous_ext"); //0xc0e90009,
-		break; case NtStatus::system_integrity_reputation_offline: os << TS8("system_integrity_reputation_offline"); //0xc0e9000a,
-		break; case NtStatus::system_integrity_reputation_unfriendly_file: os << TS8("system_integrity_reputation_unfriendly_file"); //0xc0e9000b,
-		break; case NtStatus::system_integrity_reputation_unattainable: os << TS8("system_integrity_reputation_unattainable"); //0xc0e9000c,
-		break; case NtStatus::system_integrity_reputation_explicit_deny_file: os << TS8("system_integrity_reputation_explicit_deny_file"); //0xc0e9000d,
-		break; case NtStatus::no_applicable_app_licenses_found: os << TS8("no_applicable_app_licenses_found"); //0xc0ea0001,
-		break; case NtStatus::clip_license_not_found: os << TS8("clip_license_not_found"); //0xc0ea0002,
-		break; case NtStatus::clip_device_license_missing: os << TS8("clip_device_license_missing"); //0xc0ea0003,
-		break; case NtStatus::clip_license_invalid_signature: os << TS8("clip_license_invalid_signature"); //0xc0ea0004,
-		break; case NtStatus::clip_keyholder_license_missing_or_invalid: os << TS8("clip_keyholder_license_missing_or_invalid"); //0xc0ea0005,
-		break; case NtStatus::clip_license_expired: os << TS8("clip_license_expired"); //0xc0ea0006,
-		break; case NtStatus::clip_license_signed_by_unknown_source: os << TS8("clip_license_signed_by_unknown_source"); //0xc0ea0007,
-		break; case NtStatus::clip_license_not_signed: os << TS8("clip_license_not_signed"); //0xc0ea0008,
-		break; case NtStatus::clip_license_hardware_id_out_of_tolerance: os << TS8("clip_license_hardware_id_out_of_tolerance"); //0xc0ea0009,
-		break; case NtStatus::clip_license_device_id_mismatch: os << TS8("clip_license_device_id_mismatch"); //0xc0ea000a,
-		break; case NtStatus::platform_manifest_not_authorized: os << TS8("platform_manifest_not_authorized"); //0xc0eb0001,
-		break; case NtStatus::platform_manifest_invalid: os << TS8("platform_manifest_invalid"); //0xc0eb0002,
-		break; case NtStatus::platform_manifest_file_not_authorized: os << TS8("platform_manifest_file_not_authorized"); //0xc0eb0003,
-		break; case NtStatus::platform_manifest_catalog_not_authorized: os << TS8("platform_manifest_catalog_not_authorized"); //0xc0eb0004,
-		break; case NtStatus::platform_manifest_binary_id_not_found: os << TS8("platform_manifest_binary_id_not_found"); //0xc0eb0005,
-		break; case NtStatus::platform_manifest_not_active: os << TS8("platform_manifest_not_active"); //0xc0eb0006,
-		break; case NtStatus::platform_manifest_not_signed: os << TS8("platform_manifest_not_signed"); //0xc0eb0007,
-		break; case NtStatus::appexec_condition_not_satisfied: os << TS8("appexec_condition_not_satisfied"); //0xc0ec0000,
-		break; case NtStatus::appexec_handle_invalidated: os << TS8("appexec_handle_invalidated"); //0xc0ec0001,
-		break; case NtStatus::appexec_invalid_host_generation: os << TS8("appexec_invalid_host_generation"); //0xc0ec0002,
-		break; case NtStatus::appexec_unexpected_process_registration: os << TS8("appexec_unexpected_process_registration"); //0xc0ec0003,
-		break; case NtStatus::appexec_invalid_host_state: os << TS8("appexec_invalid_host_state"); //0xc0ec0004,
-		break; case NtStatus::appexec_no_donor: os << TS8("appexec_no_donor"); //0xc0ec0005,
-		break; case NtStatus::appexec_host_id_mismatch: os << TS8("appexec_host_id_mismatch"); //0xc0ec0006,
-		break; case NtStatus::appexec_unknown_user: os << TS8("appexec_unknown_user"); //0xc0ec0007,
-		break; case NtStatus::appexec_app_compat_block: os << TS8("appexec_app_compat_block"); //0xc0ec0008,
-		break; case NtStatus::appexec_caller_wait_timeout: os << TS8("appexec_caller_wait_timeout"); //0xc0ec0009,
-		break; case NtStatus::appexec_caller_wait_timeout_termination: os << TS8("appexec_caller_wait_timeout_termination"); //0xc0ec000a,
-		break; case NtStatus::appexec_caller_wait_timeout_licensing: os << TS8("appexec_caller_wait_timeout_licensing"); //0xc0ec000b,
-		break; case NtStatus::appexec_caller_wait_timeout_resources: os << TS8("appexec_caller_wait_timeout_resources"); //0xc0ec000c
+		break; case NtStatus::success: os << TS("success"); //0x00000000,
+		//break; case NtStatus::severity_success: os << TS("severity_success"); //0x00000000,
+		break; case NtStatus::severity_informational: os << TS("severity_informational"); //0x00000001,
+		break; case NtStatus::severity_warning: os << TS("severity_warning"); //0x00000002,
+		break; case NtStatus::severity_error: os << TS("severity_error"); //0x00000003,
+		//break; case NtStatus::wait_0: os << TS("wait_0"); //0x00000000,
+		//break; case NtStatus::wait_1: os << TS("wait_1"); //0x00000001,
+		//break; case NtStatus::wait_2: os << TS("wait_2"); //0x00000002,
+		//break; case NtStatus::wait_3: os << TS("wait_3"); //0x00000003,
+		break; case NtStatus::wait_63: os << TS("wait_63"); //0x0000003f,
+		break; case NtStatus::abandoned: os << TS("abandoned"); //0x00000080,
+		//break; case NtStatus::abandoned_wait_0: os << TS("abandoned_wait_0"); //0x00000080,
+		break; case NtStatus::abandoned_wait_63: os << TS("abandoned_wait_63"); //0x000000bf,
+		break; case NtStatus::user_apc: os << TS("user_apc"); //0x000000c0,
+		break; case NtStatus::already_complete: os << TS("already_complete"); //0x000000ff,
+		break; case NtStatus::kernel_apc: os << TS("kernel_apc"); //0x00000100,
+		break; case NtStatus::alerted: os << TS("alerted"); //0x00000101,
+		break; case NtStatus::timeout: os << TS("timeout"); //0x00000102,
+		break; case NtStatus::pending: os << TS("pending"); //0x00000103,
+		break; case NtStatus::reparse: os << TS("reparse"); //0x00000104,
+		break; case NtStatus::more_entries: os << TS("more_entries"); //0x00000105,
+		break; case NtStatus::not_all_assigned: os << TS("not_all_assigned"); //0x00000106,
+		break; case NtStatus::some_not_mapped: os << TS("some_not_mapped"); //0x00000107,
+		break; case NtStatus::oplock_break_in_progress: os << TS("oplock_break_in_progress"); //0x00000108,
+		break; case NtStatus::volume_mounted: os << TS("volume_mounted"); //0x00000109,
+		break; case NtStatus::rxact_committed: os << TS("rxact_committed"); //0x0000010a,
+		break; case NtStatus::notify_cleanup: os << TS("notify_cleanup"); //0x0000010b,
+		break; case NtStatus::notify_enum_dir: os << TS("notify_enum_dir"); //0x0000010c,
+		break; case NtStatus::no_quotas_for_account: os << TS("no_quotas_for_account"); //0x0000010d,
+		break; case NtStatus::primary_transport_connect_failed: os << TS("primary_transport_connect_failed"); //0x0000010e,
+		break; case NtStatus::page_fault_transition: os << TS("page_fault_transition"); //0x00000110,
+		break; case NtStatus::page_fault_demand_zero: os << TS("page_fault_demand_zero"); //0x00000111,
+		break; case NtStatus::page_fault_copy_on_write: os << TS("page_fault_copy_on_write"); //0x00000112,
+		break; case NtStatus::page_fault_guard_page: os << TS("page_fault_guard_page"); //0x00000113,
+		break; case NtStatus::page_fault_paging_file: os << TS("page_fault_paging_file"); //0x00000114,
+		break; case NtStatus::cache_page_locked: os << TS("cache_page_locked"); //0x00000115,
+		break; case NtStatus::crash_dump: os << TS("crash_dump"); //0x00000116,
+		break; case NtStatus::buffer_all_zeros: os << TS("buffer_all_zeros"); //0x00000117,
+		break; case NtStatus::reparse_object: os << TS("reparse_object"); //0x00000118,
+		break; case NtStatus::resource_requirements_changed: os << TS("resource_requirements_changed"); //0x00000119,
+		break; case NtStatus::translation_complete: os << TS("translation_complete"); //0x00000120,
+		break; case NtStatus::ds_membership_evaluated_locally: os << TS("ds_membership_evaluated_locally"); //0x00000121,
+		break; case NtStatus::nothing_to_terminate: os << TS("nothing_to_terminate"); //0x00000122,
+		break; case NtStatus::process_not_in_job: os << TS("process_not_in_job"); //0x00000123,
+		break; case NtStatus::process_in_job: os << TS("process_in_job"); //0x00000124,
+		break; case NtStatus::volsnap_hibernate_ready: os << TS("volsnap_hibernate_ready"); //0x00000125,
+		break; case NtStatus::fsfilter_op_completed_successfully: os << TS("fsfilter_op_completed_successfully"); //0x00000126,
+		break; case NtStatus::interrupt_vector_already_connected: os << TS("interrupt_vector_already_connected"); //0x00000127,
+		break; case NtStatus::interrupt_still_connected: os << TS("interrupt_still_connected"); //0x00000128,
+		break; case NtStatus::process_cloned: os << TS("process_cloned"); //0x00000129,
+		break; case NtStatus::file_locked_with_only_readers: os << TS("file_locked_with_only_readers"); //0x0000012a,
+		break; case NtStatus::file_locked_with_writers: os << TS("file_locked_with_writers"); //0x0000012b,
+		break; case NtStatus::valid_image_hash: os << TS("valid_image_hash"); //0x0000012c,
+		break; case NtStatus::valid_catalog_hash: os << TS("valid_catalog_hash"); //0x0000012d,
+		break; case NtStatus::valid_strong_code_hash: os << TS("valid_strong_code_hash"); //0x0000012e,
+		break; case NtStatus::ghosted: os << TS("ghosted"); //0x0000012f,
+		break; case NtStatus::data_overwritten: os << TS("data_overwritten"); //0x00000130,
+		break; case NtStatus::resourcemanager_read_only: os << TS("resourcemanager_read_only"); //0x00000202,
+		break; case NtStatus::ring_previously_empty: os << TS("ring_previously_empty"); //0x00000210,
+		break; case NtStatus::ring_previously_full: os << TS("ring_previously_full"); //0x00000211,
+		break; case NtStatus::ring_previously_above_quota: os << TS("ring_previously_above_quota"); //0x00000212,
+		break; case NtStatus::ring_newly_empty: os << TS("ring_newly_empty"); //0x00000213,
+		break; case NtStatus::ring_signal_opposite_endpoint: os << TS("ring_signal_opposite_endpoint"); //0x00000214,
+		break; case NtStatus::oplock_switched_to_new_handle: os << TS("oplock_switched_to_new_handle"); //0x00000215,
+		break; case NtStatus::oplock_handle_closed: os << TS("oplock_handle_closed"); //0x00000216,
+		break; case NtStatus::wait_for_oplock: os << TS("wait_for_oplock"); //0x00000367,
+		break; case NtStatus::reparse_global: os << TS("reparse_global"); //0x00000368,
+		break; case NtStatus::page_fault_retry: os << TS("page_fault_retry"); //0x00000369,
+		break; case NtStatus::object_name_exists: os << TS("object_name_exists"); //0x40000000,
+		break; case NtStatus::thread_was_suspended: os << TS("thread_was_suspended"); //0x40000001,
+		break; case NtStatus::working_set_limit_range: os << TS("working_set_limit_range"); //0x40000002,
+		break; case NtStatus::image_not_at_base: os << TS("image_not_at_base"); //0x40000003,
+		break; case NtStatus::rxact_state_created: os << TS("rxact_state_created"); //0x40000004,
+		break; case NtStatus::segment_notification: os << TS("segment_notification"); //0x40000005,
+		break; case NtStatus::local_user_session_key: os << TS("local_user_session_key"); //0x40000006,
+		break; case NtStatus::bad_current_directory: os << TS("bad_current_directory"); //0x40000007,
+		break; case NtStatus::serial_more_writes: os << TS("serial_more_writes"); //0x40000008,
+		break; case NtStatus::registry_recovered: os << TS("registry_recovered"); //0x40000009,
+		break; case NtStatus::ft_read_recovery_from_backup: os << TS("ft_read_recovery_from_backup"); //0x4000000a,
+		break; case NtStatus::ft_write_recovery: os << TS("ft_write_recovery"); //0x4000000b,
+		break; case NtStatus::serial_counter_timeout: os << TS("serial_counter_timeout"); //0x4000000c,
+		break; case NtStatus::null_lm_password: os << TS("null_lm_password"); //0x4000000d,
+		break; case NtStatus::image_machine_type_mismatch: os << TS("image_machine_type_mismatch"); //0x4000000e,
+		break; case NtStatus::receive_partial: os << TS("receive_partial"); //0x4000000f,
+		break; case NtStatus::receive_expedited: os << TS("receive_expedited"); //0x40000010,
+		break; case NtStatus::receive_partial_expedited: os << TS("receive_partial_expedited"); //0x40000011,
+		break; case NtStatus::event_done: os << TS("event_done"); //0x40000012,
+		break; case NtStatus::event_pending: os << TS("event_pending"); //0x40000013,
+		break; case NtStatus::checking_file_system: os << TS("checking_file_system"); //0x40000014,
+		break; case NtStatus::fatal_app_exit: os << TS("fatal_app_exit"); //0x40000015,
+		break; case NtStatus::predefined_handle: os << TS("predefined_handle"); //0x40000016,
+		break; case NtStatus::was_unlocked: os << TS("was_unlocked"); //0x40000017,
+		break; case NtStatus::service_notification: os << TS("service_notification"); //0x40000018,
+		break; case NtStatus::was_locked: os << TS("was_locked"); //0x40000019,
+		break; case NtStatus::log_hard_error: os << TS("log_hard_error"); //0x4000001a,
+		break; case NtStatus::already_win32: os << TS("already_win32"); //0x4000001b,
+		break; case NtStatus::wx86_unsimulate: os << TS("wx86_unsimulate"); //0x4000001c,
+		break; case NtStatus::wx86_continue: os << TS("wx86_continue"); //0x4000001d,
+		break; case NtStatus::wx86_single_step: os << TS("wx86_single_step"); //0x4000001e,
+		break; case NtStatus::wx86_breakpoint: os << TS("wx86_breakpoint"); //0x4000001f,
+		break; case NtStatus::wx86_exception_continue: os << TS("wx86_exception_continue"); //0x40000020,
+		break; case NtStatus::wx86_exception_lastchance: os << TS("wx86_exception_lastchance"); //0x40000021,
+		break; case NtStatus::wx86_exception_chain: os << TS("wx86_exception_chain"); //0x40000022,
+		break; case NtStatus::image_machine_type_mismatch_exe: os << TS("image_machine_type_mismatch_exe"); //0x40000023,
+		break; case NtStatus::no_yield_performed: os << TS("no_yield_performed"); //0x40000024,
+		break; case NtStatus::timer_resume_ignored: os << TS("timer_resume_ignored"); //0x40000025,
+		break; case NtStatus::arbitration_unhandled: os << TS("arbitration_unhandled"); //0x40000026,
+		break; case NtStatus::cardbus_not_supported: os << TS("cardbus_not_supported"); //0x40000027,
+		break; case NtStatus::wx86_createwx86tib: os << TS("wx86_createwx86tib"); //0x40000028,
+		break; case NtStatus::mp_processor_mismatch: os << TS("mp_processor_mismatch"); //0x40000029,
+		break; case NtStatus::hibernated: os << TS("hibernated"); //0x4000002a,
+		break; case NtStatus::resume_hibernation: os << TS("resume_hibernation"); //0x4000002b,
+		break; case NtStatus::firmware_updated: os << TS("firmware_updated"); //0x4000002c,
+		break; case NtStatus::drivers_leaking_locked_pages: os << TS("drivers_leaking_locked_pages"); //0x4000002d,
+		break; case NtStatus::message_retrieved: os << TS("message_retrieved"); //0x4000002e,
+		break; case NtStatus::system_powerstate_transition: os << TS("system_powerstate_transition"); //0x4000002f,
+		break; case NtStatus::alpc_check_completion_list: os << TS("alpc_check_completion_list"); //0x40000030,
+		break; case NtStatus::system_powerstate_complex_transition: os << TS("system_powerstate_complex_transition"); //0x40000031,
+		break; case NtStatus::access_audit_by_policy: os << TS("access_audit_by_policy"); //0x40000032,
+		break; case NtStatus::abandon_hiberfile: os << TS("abandon_hiberfile"); //0x40000033,
+		break; case NtStatus::bizrules_not_enabled: os << TS("bizrules_not_enabled"); //0x40000034,
+		break; case NtStatus::ft_read_from_copy: os << TS("ft_read_from_copy"); //0x40000035,
+		break; case NtStatus::image_at_different_base: os << TS("image_at_different_base"); //0x40000036,
+		break; case NtStatus::patch_deferred: os << TS("patch_deferred"); //0x40000037,
+		break; case NtStatus::emulation_breakpoint: os << TS("emulation_breakpoint"); //0x40000038,
+		break; case NtStatus::emulation_syscall: os << TS("emulation_syscall"); //0x40000039,
+		break; case NtStatus::wake_system: os << TS("wake_system"); //0x40000294,
+		break; case NtStatus::ds_shutting_down: os << TS("ds_shutting_down"); //0x40000370,
+		break; case NtStatus::disk_repair_redirected: os << TS("disk_repair_redirected"); //0x40000807,
+		break; case NtStatus::services_failed_autostart: os << TS("services_failed_autostart"); //0x4000a144,
+		break; case NtStatus::guard_page_violation: os << TS("guard_page_violation"); //0x80000001,
+		break; case NtStatus::datatype_misalignment: os << TS("datatype_misalignment"); //0x80000002,
+		break; case NtStatus::breakpoint: os << TS("breakpoint"); //0x80000003,
+		break; case NtStatus::single_step: os << TS("single_step"); //0x80000004,
+		break; case NtStatus::buffer_overflow: os << TS("buffer_overflow"); //0x80000005,
+		break; case NtStatus::no_more_files: os << TS("no_more_files"); //0x80000006,
+		break; case NtStatus::wake_system_debugger: os << TS("wake_system_debugger"); //0x80000007,
+		break; case NtStatus::handles_closed: os << TS("handles_closed"); //0x8000000a,
+		break; case NtStatus::no_inheritance: os << TS("no_inheritance"); //0x8000000b,
+		break; case NtStatus::guid_substitution_made: os << TS("guid_substitution_made"); //0x8000000c,
+		break; case NtStatus::partial_copy: os << TS("partial_copy"); //0x8000000d,
+		break; case NtStatus::device_paper_empty: os << TS("device_paper_empty"); //0x8000000e,
+		break; case NtStatus::device_powered_off: os << TS("device_powered_off"); //0x8000000f,
+		break; case NtStatus::device_off_line: os << TS("device_off_line"); //0x80000010,
+		break; case NtStatus::device_busy: os << TS("device_busy"); //0x80000011,
+		break; case NtStatus::no_more_eas: os << TS("no_more_eas"); //0x80000012,
+		break; case NtStatus::invalid_ea_name: os << TS("invalid_ea_name"); //0x80000013,
+		break; case NtStatus::ea_list_inconsistent: os << TS("ea_list_inconsistent"); //0x80000014,
+		break; case NtStatus::invalid_ea_flag: os << TS("invalid_ea_flag"); //0x80000015,
+		break; case NtStatus::verify_required: os << TS("verify_required"); //0x80000016,
+		break; case NtStatus::extraneous_information: os << TS("extraneous_information"); //0x80000017,
+		break; case NtStatus::rxact_commit_necessary: os << TS("rxact_commit_necessary"); //0x80000018,
+		break; case NtStatus::no_more_entries: os << TS("no_more_entries"); //0x8000001a,
+		break; case NtStatus::filemark_detected: os << TS("filemark_detected"); //0x8000001b,
+		break; case NtStatus::media_changed: os << TS("media_changed"); //0x8000001c,
+		break; case NtStatus::bus_reset: os << TS("bus_reset"); //0x8000001d,
+		break; case NtStatus::end_of_media: os << TS("end_of_media"); //0x8000001e,
+		break; case NtStatus::beginning_of_media: os << TS("beginning_of_media"); //0x8000001f,
+		break; case NtStatus::media_check: os << TS("media_check"); //0x80000020,
+		break; case NtStatus::setmark_detected: os << TS("setmark_detected"); //0x80000021,
+		break; case NtStatus::no_data_detected: os << TS("no_data_detected"); //0x80000022,
+		break; case NtStatus::redirector_has_open_handles: os << TS("redirector_has_open_handles"); //0x80000023,
+		break; case NtStatus::server_has_open_handles: os << TS("server_has_open_handles"); //0x80000024,
+		break; case NtStatus::already_disconnected: os << TS("already_disconnected"); //0x80000025,
+		break; case NtStatus::longjump: os << TS("longjump"); //0x80000026,
+		break; case NtStatus::cleaner_cartridge_installed: os << TS("cleaner_cartridge_installed"); //0x80000027,
+		break; case NtStatus::plugplay_query_vetoed: os << TS("plugplay_query_vetoed"); //0x80000028,
+		break; case NtStatus::unwind_consolidate: os << TS("unwind_consolidate"); //0x80000029,
+		break; case NtStatus::registry_hive_recovered: os << TS("registry_hive_recovered"); //0x8000002a,
+		break; case NtStatus::dll_might_be_insecure: os << TS("dll_might_be_insecure"); //0x8000002b,
+		break; case NtStatus::dll_might_be_incompatible: os << TS("dll_might_be_incompatible"); //0x8000002c,
+		break; case NtStatus::stopped_on_symlink: os << TS("stopped_on_symlink"); //0x8000002d,
+		break; case NtStatus::cannot_grant_requested_oplock: os << TS("cannot_grant_requested_oplock"); //0x8000002e,
+		break; case NtStatus::no_ace_condition: os << TS("no_ace_condition"); //0x8000002f,
+		break; case NtStatus::device_support_in_progress: os << TS("device_support_in_progress"); //0x80000030,
+		break; case NtStatus::device_power_cycle_required: os << TS("device_power_cycle_required"); //0x80000031,
+		break; case NtStatus::no_work_done: os << TS("no_work_done"); //0x80000032,
+		break; case NtStatus::return_address_hijack_attempt: os << TS("return_address_hijack_attempt"); //0x80000033,
+		break; case NtStatus::recoverable_bugcheck: os << TS("recoverable_bugcheck"); //0x80000034,
+		break; case NtStatus::device_reset_required: os << TS("device_reset_required"); //0x800001b6,
+		break; case NtStatus::device_requires_cleaning: os << TS("device_requires_cleaning"); //0x80000288,
+		break; case NtStatus::device_door_open: os << TS("device_door_open"); //0x80000289,
+		break; case NtStatus::data_lost_repair: os << TS("data_lost_repair"); //0x80000803,
+		break; case NtStatus::gpio_interrupt_already_unmasked: os << TS("gpio_interrupt_already_unmasked"); //0x8000a127,
+		break; case NtStatus::cloud_file_property_blob_checksum_mismatch: os << TS("cloud_file_property_blob_checksum_mismatch"); //0x8000cf00,
+		break; case NtStatus::cloud_file_property_blob_too_large: os << TS("cloud_file_property_blob_too_large"); //0x8000cf04,
+		break; case NtStatus::cloud_file_too_many_property_blobs: os << TS("cloud_file_too_many_property_blobs"); //0x8000cf05,
+		break; case NtStatus::unsuccessful: os << TS("unsuccessful"); //0xc0000001,
+		break; case NtStatus::not_implemented: os << TS("not_implemented"); //0xc0000002,
+		break; case NtStatus::invalid_info_class: os << TS("invalid_info_class"); //0xc0000003,
+		break; case NtStatus::info_length_mismatch: os << TS("info_length_mismatch"); //0xc0000004,
+		break; case NtStatus::access_violation: os << TS("access_violation"); //0xc0000005,
+		break; case NtStatus::in_page_error: os << TS("in_page_error"); //0xc0000006,
+		break; case NtStatus::pagefile_quota: os << TS("pagefile_quota"); //0xc0000007,
+		break; case NtStatus::invalid_handle: os << TS("invalid_handle"); //0xc0000008,
+		break; case NtStatus::bad_initial_stack: os << TS("bad_initial_stack"); //0xc0000009,
+		break; case NtStatus::bad_initial_pc: os << TS("bad_initial_pc"); //0xc000000a,
+		break; case NtStatus::invalid_cid: os << TS("invalid_cid"); //0xc000000b,
+		break; case NtStatus::timer_not_canceled: os << TS("timer_not_canceled"); //0xc000000c,
+		break; case NtStatus::invalid_parameter: os << TS("invalid_parameter"); //0xc000000d,
+		break; case NtStatus::no_such_device: os << TS("no_such_device"); //0xc000000e,
+		break; case NtStatus::no_such_file: os << TS("no_such_file"); //0xc000000f,
+		break; case NtStatus::invalid_device_request: os << TS("invalid_device_request"); //0xc0000010,
+		break; case NtStatus::end_of_file: os << TS("end_of_file"); //0xc0000011,
+		break; case NtStatus::wrong_volume: os << TS("wrong_volume"); //0xc0000012,
+		break; case NtStatus::no_media_in_device: os << TS("no_media_in_device"); //0xc0000013,
+		break; case NtStatus::unrecognized_media: os << TS("unrecognized_media"); //0xc0000014,
+		break; case NtStatus::nonexistent_sector: os << TS("nonexistent_sector"); //0xc0000015,
+		break; case NtStatus::more_processing_required: os << TS("more_processing_required"); //0xc0000016,
+		break; case NtStatus::no_memory: os << TS("no_memory"); //0xc0000017,
+		break; case NtStatus::conflicting_addresses: os << TS("conflicting_addresses"); //0xc0000018,
+		break; case NtStatus::not_mapped_view: os << TS("not_mapped_view"); //0xc0000019,
+		break; case NtStatus::unable_to_free_vm: os << TS("unable_to_free_vm"); //0xc000001a,
+		break; case NtStatus::unable_to_delete_section: os << TS("unable_to_delete_section"); //0xc000001b,
+		break; case NtStatus::invalid_system_service: os << TS("invalid_system_service"); //0xc000001c,
+		break; case NtStatus::illegal_instruction: os << TS("illegal_instruction"); //0xc000001d,
+		break; case NtStatus::invalid_lock_sequence: os << TS("invalid_lock_sequence"); //0xc000001e,
+		break; case NtStatus::invalid_view_size: os << TS("invalid_view_size"); //0xc000001f,
+		break; case NtStatus::invalid_file_for_section: os << TS("invalid_file_for_section"); //0xc0000020,
+		break; case NtStatus::already_committed: os << TS("already_committed"); //0xc0000021,
+		break; case NtStatus::access_denied: os << TS("access_denied"); //0xc0000022,
+		break; case NtStatus::buffer_too_small: os << TS("buffer_too_small"); //0xc0000023,
+		break; case NtStatus::object_type_mismatch: os << TS("object_type_mismatch"); //0xc0000024,
+		break; case NtStatus::noncontinuable_exception: os << TS("noncontinuable_exception"); //0xc0000025,
+		break; case NtStatus::invalid_disposition: os << TS("invalid_disposition"); //0xc0000026,
+		break; case NtStatus::unwind: os << TS("unwind"); //0xc0000027,
+		break; case NtStatus::bad_stack: os << TS("bad_stack"); //0xc0000028,
+		break; case NtStatus::invalid_unwind_target: os << TS("invalid_unwind_target"); //0xc0000029,
+		break; case NtStatus::not_locked: os << TS("not_locked"); //0xc000002a,
+		break; case NtStatus::parity_error: os << TS("parity_error"); //0xc000002b,
+		break; case NtStatus::unable_to_decommit_vm: os << TS("unable_to_decommit_vm"); //0xc000002c,
+		break; case NtStatus::not_committed: os << TS("not_committed"); //0xc000002d,
+		break; case NtStatus::invalid_port_attributes: os << TS("invalid_port_attributes"); //0xc000002e,
+		break; case NtStatus::port_message_too_long: os << TS("port_message_too_long"); //0xc000002f,
+		break; case NtStatus::invalid_parameter_mix: os << TS("invalid_parameter_mix"); //0xc0000030,
+		break; case NtStatus::invalid_quota_lower: os << TS("invalid_quota_lower"); //0xc0000031,
+		break; case NtStatus::disk_corrupt_error: os << TS("disk_corrupt_error"); //0xc0000032,
+		break; case NtStatus::object_name_invalid: os << TS("object_name_invalid"); //0xc0000033,
+		break; case NtStatus::object_name_not_found: os << TS("object_name_not_found"); //0xc0000034,
+		break; case NtStatus::object_name_collision: os << TS("object_name_collision"); //0xc0000035,
+		break; case NtStatus::port_do_not_disturb: os << TS("port_do_not_disturb"); //0xc0000036,
+		break; case NtStatus::port_disconnected: os << TS("port_disconnected"); //0xc0000037,
+		break; case NtStatus::device_already_attached: os << TS("device_already_attached"); //0xc0000038,
+		break; case NtStatus::object_path_invalid: os << TS("object_path_invalid"); //0xc0000039,
+		break; case NtStatus::object_path_not_found: os << TS("object_path_not_found"); //0xc000003a,
+		break; case NtStatus::object_path_syntax_bad: os << TS("object_path_syntax_bad"); //0xc000003b,
+		break; case NtStatus::data_overrun: os << TS("data_overrun"); //0xc000003c,
+		break; case NtStatus::data_late_error: os << TS("data_late_error"); //0xc000003d,
+		break; case NtStatus::data_error: os << TS("data_error"); //0xc000003e,
+		break; case NtStatus::crc_error: os << TS("crc_error"); //0xc000003f,
+		break; case NtStatus::section_too_big: os << TS("section_too_big"); //0xc0000040,
+		break; case NtStatus::port_connection_refused: os << TS("port_connection_refused"); //0xc0000041,
+		break; case NtStatus::invalid_port_handle: os << TS("invalid_port_handle"); //0xc0000042,
+		break; case NtStatus::sharing_violation: os << TS("sharing_violation"); //0xc0000043,
+		break; case NtStatus::quota_exceeded: os << TS("quota_exceeded"); //0xc0000044,
+		break; case NtStatus::invalid_page_protection: os << TS("invalid_page_protection"); //0xc0000045,
+		break; case NtStatus::mutant_not_owned: os << TS("mutant_not_owned"); //0xc0000046,
+		break; case NtStatus::semaphore_limit_exceeded: os << TS("semaphore_limit_exceeded"); //0xc0000047,
+		break; case NtStatus::port_already_set: os << TS("port_already_set"); //0xc0000048,
+		break; case NtStatus::section_not_image: os << TS("section_not_image"); //0xc0000049,
+		break; case NtStatus::suspend_count_exceeded: os << TS("suspend_count_exceeded"); //0xc000004a,
+		break; case NtStatus::thread_is_terminating: os << TS("thread_is_terminating"); //0xc000004b,
+		break; case NtStatus::bad_working_set_limit: os << TS("bad_working_set_limit"); //0xc000004c,
+		break; case NtStatus::incompatible_file_map: os << TS("incompatible_file_map"); //0xc000004d,
+		break; case NtStatus::section_protection: os << TS("section_protection"); //0xc000004e,
+		break; case NtStatus::eas_not_supported: os << TS("eas_not_supported"); //0xc000004f,
+		break; case NtStatus::ea_too_large: os << TS("ea_too_large"); //0xc0000050,
+		break; case NtStatus::nonexistent_ea_entry: os << TS("nonexistent_ea_entry"); //0xc0000051,
+		break; case NtStatus::no_eas_on_file: os << TS("no_eas_on_file"); //0xc0000052,
+		break; case NtStatus::ea_corrupt_error: os << TS("ea_corrupt_error"); //0xc0000053,
+		break; case NtStatus::file_lock_conflict: os << TS("file_lock_conflict"); //0xc0000054,
+		break; case NtStatus::lock_not_granted: os << TS("lock_not_granted"); //0xc0000055,
+		break; case NtStatus::delete_pending: os << TS("delete_pending"); //0xc0000056,
+		break; case NtStatus::ctl_file_not_supported: os << TS("ctl_file_not_supported"); //0xc0000057,
+		break; case NtStatus::unknown_revision: os << TS("unknown_revision"); //0xc0000058,
+		break; case NtStatus::revision_mismatch: os << TS("revision_mismatch"); //0xc0000059,
+		break; case NtStatus::invalid_owner: os << TS("invalid_owner"); //0xc000005a,
+		break; case NtStatus::invalid_primary_group: os << TS("invalid_primary_group"); //0xc000005b,
+		break; case NtStatus::no_impersonation_token: os << TS("no_impersonation_token"); //0xc000005c,
+		break; case NtStatus::cant_disable_mandatory: os << TS("cant_disable_mandatory"); //0xc000005d,
+		break; case NtStatus::no_logon_servers: os << TS("no_logon_servers"); //0xc000005e,
+		break; case NtStatus::no_such_logon_session: os << TS("no_such_logon_session"); //0xc000005f,
+		break; case NtStatus::no_such_privilege: os << TS("no_such_privilege"); //0xc0000060,
+		break; case NtStatus::privilege_not_held: os << TS("privilege_not_held"); //0xc0000061,
+		break; case NtStatus::invalid_account_name: os << TS("invalid_account_name"); //0xc0000062,
+		break; case NtStatus::user_exists: os << TS("user_exists"); //0xc0000063,
+		break; case NtStatus::no_such_user: os << TS("no_such_user"); //0xc0000064,
+		break; case NtStatus::group_exists: os << TS("group_exists"); //0xc0000065,
+		break; case NtStatus::no_such_group: os << TS("no_such_group"); //0xc0000066,
+		break; case NtStatus::member_in_group: os << TS("member_in_group"); //0xc0000067,
+		break; case NtStatus::member_not_in_group: os << TS("member_not_in_group"); //0xc0000068,
+		break; case NtStatus::last_admin: os << TS("last_admin"); //0xc0000069,
+		break; case NtStatus::wrong_password: os << TS("wrong_password"); //0xc000006a,
+		break; case NtStatus::ill_formed_password: os << TS("ill_formed_password"); //0xc000006b,
+		break; case NtStatus::password_restriction: os << TS("password_restriction"); //0xc000006c,
+		break; case NtStatus::logon_failure: os << TS("logon_failure"); //0xc000006d,
+		break; case NtStatus::account_restriction: os << TS("account_restriction"); //0xc000006e,
+		break; case NtStatus::invalid_logon_hours: os << TS("invalid_logon_hours"); //0xc000006f,
+		break; case NtStatus::invalid_workstation: os << TS("invalid_workstation"); //0xc0000070,
+		break; case NtStatus::password_expired: os << TS("password_expired"); //0xc0000071,
+		break; case NtStatus::account_disabled: os << TS("account_disabled"); //0xc0000072,
+		break; case NtStatus::none_mapped: os << TS("none_mapped"); //0xc0000073,
+		break; case NtStatus::too_many_luids_requested: os << TS("too_many_luids_requested"); //0xc0000074,
+		break; case NtStatus::luids_exhausted: os << TS("luids_exhausted"); //0xc0000075,
+		break; case NtStatus::invalid_sub_authority: os << TS("invalid_sub_authority"); //0xc0000076,
+		break; case NtStatus::invalid_acl: os << TS("invalid_acl"); //0xc0000077,
+		break; case NtStatus::invalid_sid: os << TS("invalid_sid"); //0xc0000078,
+		break; case NtStatus::invalid_security_descr: os << TS("invalid_security_descr"); //0xc0000079,
+		break; case NtStatus::procedure_not_found: os << TS("procedure_not_found"); //0xc000007a,
+		break; case NtStatus::invalid_image_format: os << TS("invalid_image_format"); //0xc000007b,
+		break; case NtStatus::no_token: os << TS("no_token"); //0xc000007c,
+		break; case NtStatus::bad_inheritance_acl: os << TS("bad_inheritance_acl"); //0xc000007d,
+		break; case NtStatus::range_not_locked: os << TS("range_not_locked"); //0xc000007e,
+		break; case NtStatus::disk_full: os << TS("disk_full"); //0xc000007f,
+		break; case NtStatus::server_disabled: os << TS("server_disabled"); //0xc0000080,
+		break; case NtStatus::server_not_disabled: os << TS("server_not_disabled"); //0xc0000081,
+		break; case NtStatus::too_many_guids_requested: os << TS("too_many_guids_requested"); //0xc0000082,
+		break; case NtStatus::guids_exhausted: os << TS("guids_exhausted"); //0xc0000083,
+		break; case NtStatus::invalid_id_authority: os << TS("invalid_id_authority"); //0xc0000084,
+		break; case NtStatus::agents_exhausted: os << TS("agents_exhausted"); //0xc0000085,
+		break; case NtStatus::invalid_volume_label: os << TS("invalid_volume_label"); //0xc0000086,
+		break; case NtStatus::section_not_extended: os << TS("section_not_extended"); //0xc0000087,
+		break; case NtStatus::not_mapped_data: os << TS("not_mapped_data"); //0xc0000088,
+		break; case NtStatus::resource_data_not_found: os << TS("resource_data_not_found"); //0xc0000089,
+		break; case NtStatus::resource_type_not_found: os << TS("resource_type_not_found"); //0xc000008a,
+		break; case NtStatus::resource_name_not_found: os << TS("resource_name_not_found"); //0xc000008b,
+		break; case NtStatus::array_bounds_exceeded: os << TS("array_bounds_exceeded"); //0xc000008c,
+		break; case NtStatus::float_denormal_operand: os << TS("float_denormal_operand"); //0xc000008d,
+		break; case NtStatus::float_divide_by_zero: os << TS("float_divide_by_zero"); //0xc000008e,
+		break; case NtStatus::float_inexact_result: os << TS("float_inexact_result"); //0xc000008f,
+		break; case NtStatus::float_invalid_operation: os << TS("float_invalid_operation"); //0xc0000090,
+		break; case NtStatus::float_overflow: os << TS("float_overflow"); //0xc0000091,
+		break; case NtStatus::float_stack_check: os << TS("float_stack_check"); //0xc0000092,
+		break; case NtStatus::float_underflow: os << TS("float_underflow"); //0xc0000093,
+		break; case NtStatus::integer_divide_by_zero: os << TS("integer_divide_by_zero"); //0xc0000094,
+		break; case NtStatus::integer_overflow: os << TS("integer_overflow"); //0xc0000095,
+		break; case NtStatus::privileged_instruction: os << TS("privileged_instruction"); //0xc0000096,
+		break; case NtStatus::too_many_paging_files: os << TS("too_many_paging_files"); //0xc0000097,
+		break; case NtStatus::file_invalid: os << TS("file_invalid"); //0xc0000098,
+		break; case NtStatus::allotted_space_exceeded: os << TS("allotted_space_exceeded"); //0xc0000099,
+		break; case NtStatus::insufficient_resources: os << TS("insufficient_resources"); //0xc000009a,
+		break; case NtStatus::dfs_exit_path_found: os << TS("dfs_exit_path_found"); //0xc000009b,
+		break; case NtStatus::device_data_error: os << TS("device_data_error"); //0xc000009c,
+		break; case NtStatus::device_not_connected: os << TS("device_not_connected"); //0xc000009d,
+		break; case NtStatus::device_power_failure: os << TS("device_power_failure"); //0xc000009e,
+		break; case NtStatus::free_vm_not_at_base: os << TS("free_vm_not_at_base"); //0xc000009f,
+		break; case NtStatus::memory_not_allocated: os << TS("memory_not_allocated"); //0xc00000a0,
+		break; case NtStatus::working_set_quota: os << TS("working_set_quota"); //0xc00000a1,
+		break; case NtStatus::media_write_protected: os << TS("media_write_protected"); //0xc00000a2,
+		break; case NtStatus::device_not_ready: os << TS("device_not_ready"); //0xc00000a3,
+		break; case NtStatus::invalid_group_attributes: os << TS("invalid_group_attributes"); //0xc00000a4,
+		break; case NtStatus::bad_impersonation_level: os << TS("bad_impersonation_level"); //0xc00000a5,
+		break; case NtStatus::cant_open_anonymous: os << TS("cant_open_anonymous"); //0xc00000a6,
+		break; case NtStatus::bad_validation_class: os << TS("bad_validation_class"); //0xc00000a7,
+		break; case NtStatus::bad_token_type: os << TS("bad_token_type"); //0xc00000a8,
+		break; case NtStatus::bad_master_boot_record: os << TS("bad_master_boot_record"); //0xc00000a9,
+		break; case NtStatus::instruction_misalignment: os << TS("instruction_misalignment"); //0xc00000aa,
+		break; case NtStatus::instance_not_available: os << TS("instance_not_available"); //0xc00000ab,
+		break; case NtStatus::pipe_not_available: os << TS("pipe_not_available"); //0xc00000ac,
+		break; case NtStatus::invalid_pipe_state: os << TS("invalid_pipe_state"); //0xc00000ad,
+		break; case NtStatus::pipe_busy: os << TS("pipe_busy"); //0xc00000ae,
+		break; case NtStatus::illegal_function: os << TS("illegal_function"); //0xc00000af,
+		break; case NtStatus::pipe_disconnected: os << TS("pipe_disconnected"); //0xc00000b0,
+		break; case NtStatus::pipe_closing: os << TS("pipe_closing"); //0xc00000b1,
+		break; case NtStatus::pipe_connected: os << TS("pipe_connected"); //0xc00000b2,
+		break; case NtStatus::pipe_listening: os << TS("pipe_listening"); //0xc00000b3,
+		break; case NtStatus::invalid_read_mode: os << TS("invalid_read_mode"); //0xc00000b4,
+		break; case NtStatus::io_timeout: os << TS("io_timeout"); //0xc00000b5,
+		break; case NtStatus::file_forced_closed: os << TS("file_forced_closed"); //0xc00000b6,
+		break; case NtStatus::profiling_not_started: os << TS("profiling_not_started"); //0xc00000b7,
+		break; case NtStatus::profiling_not_stopped: os << TS("profiling_not_stopped"); //0xc00000b8,
+		break; case NtStatus::could_not_interpret: os << TS("could_not_interpret"); //0xc00000b9,
+		break; case NtStatus::file_is_a_directory: os << TS("file_is_a_directory"); //0xc00000ba,
+		break; case NtStatus::not_supported: os << TS("not_supported"); //0xc00000bb,
+		break; case NtStatus::remote_not_listening: os << TS("remote_not_listening"); //0xc00000bc,
+		break; case NtStatus::duplicate_name: os << TS("duplicate_name"); //0xc00000bd,
+		break; case NtStatus::bad_network_path: os << TS("bad_network_path"); //0xc00000be,
+		break; case NtStatus::network_busy: os << TS("network_busy"); //0xc00000bf,
+		break; case NtStatus::device_does_not_exist: os << TS("device_does_not_exist"); //0xc00000c0,
+		break; case NtStatus::too_many_commands: os << TS("too_many_commands"); //0xc00000c1,
+		break; case NtStatus::adapter_hardware_error: os << TS("adapter_hardware_error"); //0xc00000c2,
+		break; case NtStatus::invalid_network_response: os << TS("invalid_network_response"); //0xc00000c3,
+		break; case NtStatus::unexpected_network_error: os << TS("unexpected_network_error"); //0xc00000c4,
+		break; case NtStatus::bad_remote_adapter: os << TS("bad_remote_adapter"); //0xc00000c5,
+		break; case NtStatus::print_queue_full: os << TS("print_queue_full"); //0xc00000c6,
+		break; case NtStatus::no_spool_space: os << TS("no_spool_space"); //0xc00000c7,
+		break; case NtStatus::print_cancelled: os << TS("print_cancelled"); //0xc00000c8,
+		break; case NtStatus::network_name_deleted: os << TS("network_name_deleted"); //0xc00000c9,
+		break; case NtStatus::network_access_denied: os << TS("network_access_denied"); //0xc00000ca,
+		break; case NtStatus::bad_device_type: os << TS("bad_device_type"); //0xc00000cb,
+		break; case NtStatus::bad_network_name: os << TS("bad_network_name"); //0xc00000cc,
+		break; case NtStatus::too_many_names: os << TS("too_many_names"); //0xc00000cd,
+		break; case NtStatus::too_many_sessions: os << TS("too_many_sessions"); //0xc00000ce,
+		break; case NtStatus::sharing_paused: os << TS("sharing_paused"); //0xc00000cf,
+		break; case NtStatus::request_not_accepted: os << TS("request_not_accepted"); //0xc00000d0,
+		break; case NtStatus::redirector_paused: os << TS("redirector_paused"); //0xc00000d1,
+		break; case NtStatus::net_write_fault: os << TS("net_write_fault"); //0xc00000d2,
+		break; case NtStatus::profiling_at_limit: os << TS("profiling_at_limit"); //0xc00000d3,
+		break; case NtStatus::not_same_device: os << TS("not_same_device"); //0xc00000d4,
+		break; case NtStatus::file_renamed: os << TS("file_renamed"); //0xc00000d5,
+		break; case NtStatus::virtual_circuit_closed: os << TS("virtual_circuit_closed"); //0xc00000d6,
+		break; case NtStatus::no_security_on_object: os << TS("no_security_on_object"); //0xc00000d7,
+		break; case NtStatus::cant_wait: os << TS("cant_wait"); //0xc00000d8,
+		break; case NtStatus::pipe_empty: os << TS("pipe_empty"); //0xc00000d9,
+		break; case NtStatus::cant_access_domain_info: os << TS("cant_access_domain_info"); //0xc00000da,
+		break; case NtStatus::cant_terminate_self: os << TS("cant_terminate_self"); //0xc00000db,
+		break; case NtStatus::invalid_server_state: os << TS("invalid_server_state"); //0xc00000dc,
+		break; case NtStatus::invalid_domain_state: os << TS("invalid_domain_state"); //0xc00000dd,
+		break; case NtStatus::invalid_domain_role: os << TS("invalid_domain_role"); //0xc00000de,
+		break; case NtStatus::no_such_domain: os << TS("no_such_domain"); //0xc00000df,
+		break; case NtStatus::domain_exists: os << TS("domain_exists"); //0xc00000e0,
+		break; case NtStatus::domain_limit_exceeded: os << TS("domain_limit_exceeded"); //0xc00000e1,
+		break; case NtStatus::oplock_not_granted: os << TS("oplock_not_granted"); //0xc00000e2,
+		break; case NtStatus::invalid_oplock_protocol: os << TS("invalid_oplock_protocol"); //0xc00000e3,
+		break; case NtStatus::internal_db_corruption: os << TS("internal_db_corruption"); //0xc00000e4,
+		break; case NtStatus::internal_error: os << TS("internal_error"); //0xc00000e5,
+		break; case NtStatus::generic_not_mapped: os << TS("generic_not_mapped"); //0xc00000e6,
+		break; case NtStatus::bad_descriptor_format: os << TS("bad_descriptor_format"); //0xc00000e7,
+		break; case NtStatus::invalid_user_buffer: os << TS("invalid_user_buffer"); //0xc00000e8,
+		break; case NtStatus::unexpected_io_error: os << TS("unexpected_io_error"); //0xc00000e9,
+		break; case NtStatus::unexpected_mm_create_err: os << TS("unexpected_mm_create_err"); //0xc00000ea,
+		break; case NtStatus::unexpected_mm_map_error: os << TS("unexpected_mm_map_error"); //0xc00000eb,
+		break; case NtStatus::unexpected_mm_extend_err: os << TS("unexpected_mm_extend_err"); //0xc00000ec,
+		break; case NtStatus::not_logon_process: os << TS("not_logon_process"); //0xc00000ed,
+		break; case NtStatus::logon_session_exists: os << TS("logon_session_exists"); //0xc00000ee,
+		break; case NtStatus::invalid_parameter_1: os << TS("invalid_parameter_1"); //0xc00000ef,
+		break; case NtStatus::invalid_parameter_2: os << TS("invalid_parameter_2"); //0xc00000f0,
+		break; case NtStatus::invalid_parameter_3: os << TS("invalid_parameter_3"); //0xc00000f1,
+		break; case NtStatus::invalid_parameter_4: os << TS("invalid_parameter_4"); //0xc00000f2,
+		break; case NtStatus::invalid_parameter_5: os << TS("invalid_parameter_5"); //0xc00000f3,
+		break; case NtStatus::invalid_parameter_6: os << TS("invalid_parameter_6"); //0xc00000f4,
+		break; case NtStatus::invalid_parameter_7: os << TS("invalid_parameter_7"); //0xc00000f5,
+		break; case NtStatus::invalid_parameter_8: os << TS("invalid_parameter_8"); //0xc00000f6,
+		break; case NtStatus::invalid_parameter_9: os << TS("invalid_parameter_9"); //0xc00000f7,
+		break; case NtStatus::invalid_parameter_10: os << TS("invalid_parameter_10"); //0xc00000f8,
+		break; case NtStatus::invalid_parameter_11: os << TS("invalid_parameter_11"); //0xc00000f9,
+		break; case NtStatus::invalid_parameter_12: os << TS("invalid_parameter_12"); //0xc00000fa,
+		break; case NtStatus::redirector_not_started: os << TS("redirector_not_started"); //0xc00000fb,
+		break; case NtStatus::redirector_started: os << TS("redirector_started"); //0xc00000fc,
+		break; case NtStatus::stack_overflow: os << TS("stack_overflow"); //0xc00000fd,
+		break; case NtStatus::no_such_package: os << TS("no_such_package"); //0xc00000fe,
+		break; case NtStatus::bad_function_table: os << TS("bad_function_table"); //0xc00000ff,
+		break; case NtStatus::variable_not_found: os << TS("variable_not_found"); //0xc0000100,
+		break; case NtStatus::directory_not_empty: os << TS("directory_not_empty"); //0xc0000101,
+		break; case NtStatus::file_corrupt_error: os << TS("file_corrupt_error"); //0xc0000102,
+		break; case NtStatus::not_a_directory: os << TS("not_a_directory"); //0xc0000103,
+		break; case NtStatus::bad_logon_session_state: os << TS("bad_logon_session_state"); //0xc0000104,
+		break; case NtStatus::logon_session_collision: os << TS("logon_session_collision"); //0xc0000105,
+		break; case NtStatus::name_too_long: os << TS("name_too_long"); //0xc0000106,
+		break; case NtStatus::files_open: os << TS("files_open"); //0xc0000107,
+		break; case NtStatus::connection_in_use: os << TS("connection_in_use"); //0xc0000108,
+		break; case NtStatus::message_not_found: os << TS("message_not_found"); //0xc0000109,
+		break; case NtStatus::process_is_terminating: os << TS("process_is_terminating"); //0xc000010a,
+		break; case NtStatus::invalid_logon_type: os << TS("invalid_logon_type"); //0xc000010b,
+		break; case NtStatus::no_guid_translation: os << TS("no_guid_translation"); //0xc000010c,
+		break; case NtStatus::cannot_impersonate: os << TS("cannot_impersonate"); //0xc000010d,
+		break; case NtStatus::image_already_loaded: os << TS("image_already_loaded"); //0xc000010e,
+		break; case NtStatus::abios_not_present: os << TS("abios_not_present"); //0xc000010f,
+		break; case NtStatus::abios_lid_not_exist: os << TS("abios_lid_not_exist"); //0xc0000110,
+		break; case NtStatus::abios_lid_already_owned: os << TS("abios_lid_already_owned"); //0xc0000111,
+		break; case NtStatus::abios_not_lid_owner: os << TS("abios_not_lid_owner"); //0xc0000112,
+		break; case NtStatus::abios_invalid_command: os << TS("abios_invalid_command"); //0xc0000113,
+		break; case NtStatus::abios_invalid_lid: os << TS("abios_invalid_lid"); //0xc0000114,
+		break; case NtStatus::abios_selector_not_available: os << TS("abios_selector_not_available"); //0xc0000115,
+		break; case NtStatus::abios_invalid_selector: os << TS("abios_invalid_selector"); //0xc0000116,
+		break; case NtStatus::no_ldt: os << TS("no_ldt"); //0xc0000117,
+		break; case NtStatus::invalid_ldt_size: os << TS("invalid_ldt_size"); //0xc0000118,
+		break; case NtStatus::invalid_ldt_offset: os << TS("invalid_ldt_offset"); //0xc0000119,
+		break; case NtStatus::invalid_ldt_descriptor: os << TS("invalid_ldt_descriptor"); //0xc000011a,
+		break; case NtStatus::invalid_image_ne_format: os << TS("invalid_image_ne_format"); //0xc000011b,
+		break; case NtStatus::rxact_invalid_state: os << TS("rxact_invalid_state"); //0xc000011c,
+		break; case NtStatus::rxact_commit_failure: os << TS("rxact_commit_failure"); //0xc000011d,
+		break; case NtStatus::mapped_file_size_zero: os << TS("mapped_file_size_zero"); //0xc000011e,
+		break; case NtStatus::too_many_opened_files: os << TS("too_many_opened_files"); //0xc000011f,
+		break; case NtStatus::cancelled: os << TS("cancelled"); //0xc0000120,
+		break; case NtStatus::cannot_delete: os << TS("cannot_delete"); //0xc0000121,
+		break; case NtStatus::invalid_computer_name: os << TS("invalid_computer_name"); //0xc0000122,
+		break; case NtStatus::file_deleted: os << TS("file_deleted"); //0xc0000123,
+		break; case NtStatus::special_account: os << TS("special_account"); //0xc0000124,
+		break; case NtStatus::special_group: os << TS("special_group"); //0xc0000125,
+		break; case NtStatus::special_user: os << TS("special_user"); //0xc0000126,
+		break; case NtStatus::members_primary_group: os << TS("members_primary_group"); //0xc0000127,
+		break; case NtStatus::file_closed: os << TS("file_closed"); //0xc0000128,
+		break; case NtStatus::too_many_threads: os << TS("too_many_threads"); //0xc0000129,
+		break; case NtStatus::thread_not_in_process: os << TS("thread_not_in_process"); //0xc000012a,
+		break; case NtStatus::token_already_in_use: os << TS("token_already_in_use"); //0xc000012b,
+		break; case NtStatus::pagefile_quota_exceeded: os << TS("pagefile_quota_exceeded"); //0xc000012c,
+		break; case NtStatus::commitment_limit: os << TS("commitment_limit"); //0xc000012d,
+		break; case NtStatus::invalid_image_le_format: os << TS("invalid_image_le_format"); //0xc000012e,
+		break; case NtStatus::invalid_image_not_mz: os << TS("invalid_image_not_mz"); //0xc000012f,
+		break; case NtStatus::invalid_image_protect: os << TS("invalid_image_protect"); //0xc0000130,
+		break; case NtStatus::invalid_image_win_16: os << TS("invalid_image_win_16"); //0xc0000131,
+		break; case NtStatus::logon_server_conflict: os << TS("logon_server_conflict"); //0xc0000132,
+		break; case NtStatus::time_difference_at_dc: os << TS("time_difference_at_dc"); //0xc0000133,
+		break; case NtStatus::synchronization_required: os << TS("synchronization_required"); //0xc0000134,
+		break; case NtStatus::dll_not_found: os << TS("dll_not_found"); //0xc0000135,
+		break; case NtStatus::open_failed: os << TS("open_failed"); //0xc0000136,
+		break; case NtStatus::io_privilege_failed: os << TS("io_privilege_failed"); //0xc0000137,
+		break; case NtStatus::ordinal_not_found: os << TS("ordinal_not_found"); //0xc0000138,
+		break; case NtStatus::entrypoint_not_found: os << TS("entrypoint_not_found"); //0xc0000139,
+		break; case NtStatus::control_c_exit: os << TS("control_c_exit"); //0xc000013a,
+		break; case NtStatus::local_disconnect: os << TS("local_disconnect"); //0xc000013b,
+		break; case NtStatus::remote_disconnect: os << TS("remote_disconnect"); //0xc000013c,
+		break; case NtStatus::remote_resources: os << TS("remote_resources"); //0xc000013d,
+		break; case NtStatus::link_failed: os << TS("link_failed"); //0xc000013e,
+		break; case NtStatus::link_timeout: os << TS("link_timeout"); //0xc000013f,
+		break; case NtStatus::invalid_connection: os << TS("invalid_connection"); //0xc0000140,
+		break; case NtStatus::invalid_address: os << TS("invalid_address"); //0xc0000141,
+		break; case NtStatus::dll_init_failed: os << TS("dll_init_failed"); //0xc0000142,
+		break; case NtStatus::missing_systemfile: os << TS("missing_systemfile"); //0xc0000143,
+		break; case NtStatus::unhandled_exception: os << TS("unhandled_exception"); //0xc0000144,
+		break; case NtStatus::app_init_failure: os << TS("app_init_failure"); //0xc0000145,
+		break; case NtStatus::pagefile_create_failed: os << TS("pagefile_create_failed"); //0xc0000146,
+		break; case NtStatus::no_pagefile: os << TS("no_pagefile"); //0xc0000147,
+		break; case NtStatus::invalid_level: os << TS("invalid_level"); //0xc0000148,
+		break; case NtStatus::wrong_password_core: os << TS("wrong_password_core"); //0xc0000149,
+		break; case NtStatus::illegal_float_context: os << TS("illegal_float_context"); //0xc000014a,
+		break; case NtStatus::pipe_broken: os << TS("pipe_broken"); //0xc000014b,
+		break; case NtStatus::registry_corrupt: os << TS("registry_corrupt"); //0xc000014c,
+		break; case NtStatus::registry_io_failed: os << TS("registry_io_failed"); //0xc000014d,
+		break; case NtStatus::no_event_pair: os << TS("no_event_pair"); //0xc000014e,
+		break; case NtStatus::unrecognized_volume: os << TS("unrecognized_volume"); //0xc000014f,
+		break; case NtStatus::serial_no_device_inited: os << TS("serial_no_device_inited"); //0xc0000150,
+		break; case NtStatus::no_such_alias: os << TS("no_such_alias"); //0xc0000151,
+		break; case NtStatus::member_not_in_alias: os << TS("member_not_in_alias"); //0xc0000152,
+		break; case NtStatus::member_in_alias: os << TS("member_in_alias"); //0xc0000153,
+		break; case NtStatus::alias_exists: os << TS("alias_exists"); //0xc0000154,
+		break; case NtStatus::logon_not_granted: os << TS("logon_not_granted"); //0xc0000155,
+		break; case NtStatus::too_many_secrets: os << TS("too_many_secrets"); //0xc0000156,
+		break; case NtStatus::secret_too_long: os << TS("secret_too_long"); //0xc0000157,
+		break; case NtStatus::internal_db_error: os << TS("internal_db_error"); //0xc0000158,
+		break; case NtStatus::fullscreen_mode: os << TS("fullscreen_mode"); //0xc0000159,
+		break; case NtStatus::too_many_context_ids: os << TS("too_many_context_ids"); //0xc000015a,
+		break; case NtStatus::logon_type_not_granted: os << TS("logon_type_not_granted"); //0xc000015b,
+		break; case NtStatus::not_registry_file: os << TS("not_registry_file"); //0xc000015c,
+		break; case NtStatus::nt_cross_encryption_required: os << TS("nt_cross_encryption_required"); //0xc000015d,
+		break; case NtStatus::domain_ctrlr_config_error: os << TS("domain_ctrlr_config_error"); //0xc000015e,
+		break; case NtStatus::ft_missing_member: os << TS("ft_missing_member"); //0xc000015f,
+		break; case NtStatus::ill_formed_service_entry: os << TS("ill_formed_service_entry"); //0xc0000160,
+		break; case NtStatus::illegal_character: os << TS("illegal_character"); //0xc0000161,
+		break; case NtStatus::unmappable_character: os << TS("unmappable_character"); //0xc0000162,
+		break; case NtStatus::undefined_character: os << TS("undefined_character"); //0xc0000163,
+		break; case NtStatus::floppy_volume: os << TS("floppy_volume"); //0xc0000164,
+		break; case NtStatus::floppy_id_mark_not_found: os << TS("floppy_id_mark_not_found"); //0xc0000165,
+		break; case NtStatus::floppy_wrong_cylinder: os << TS("floppy_wrong_cylinder"); //0xc0000166,
+		break; case NtStatus::floppy_unknown_error: os << TS("floppy_unknown_error"); //0xc0000167,
+		break; case NtStatus::floppy_bad_registers: os << TS("floppy_bad_registers"); //0xc0000168,
+		break; case NtStatus::disk_recalibrate_failed: os << TS("disk_recalibrate_failed"); //0xc0000169,
+		break; case NtStatus::disk_operation_failed: os << TS("disk_operation_failed"); //0xc000016a,
+		break; case NtStatus::disk_reset_failed: os << TS("disk_reset_failed"); //0xc000016b,
+		break; case NtStatus::shared_irq_busy: os << TS("shared_irq_busy"); //0xc000016c,
+		break; case NtStatus::ft_orphaning: os << TS("ft_orphaning"); //0xc000016d,
+		break; case NtStatus::bios_failed_to_connect_interrupt: os << TS("bios_failed_to_connect_interrupt"); //0xc000016e,
+		break; case NtStatus::partition_failure: os << TS("partition_failure"); //0xc0000172,
+		break; case NtStatus::invalid_block_length: os << TS("invalid_block_length"); //0xc0000173,
+		break; case NtStatus::device_not_partitioned: os << TS("device_not_partitioned"); //0xc0000174,
+		break; case NtStatus::unable_to_lock_media: os << TS("unable_to_lock_media"); //0xc0000175,
+		break; case NtStatus::unable_to_unload_media: os << TS("unable_to_unload_media"); //0xc0000176,
+		break; case NtStatus::eom_overflow: os << TS("eom_overflow"); //0xc0000177,
+		break; case NtStatus::no_media: os << TS("no_media"); //0xc0000178,
+		break; case NtStatus::no_such_member: os << TS("no_such_member"); //0xc000017a,
+		break; case NtStatus::invalid_member: os << TS("invalid_member"); //0xc000017b,
+		break; case NtStatus::key_deleted: os << TS("key_deleted"); //0xc000017c,
+		break; case NtStatus::no_log_space: os << TS("no_log_space"); //0xc000017d,
+		break; case NtStatus::too_many_sids: os << TS("too_many_sids"); //0xc000017e,
+		break; case NtStatus::lm_cross_encryption_required: os << TS("lm_cross_encryption_required"); //0xc000017f,
+		break; case NtStatus::key_has_children: os << TS("key_has_children"); //0xc0000180,
+		break; case NtStatus::child_must_be_volatile: os << TS("child_must_be_volatile"); //0xc0000181,
+		break; case NtStatus::device_configuration_error: os << TS("device_configuration_error"); //0xc0000182,
+		break; case NtStatus::driver_internal_error: os << TS("driver_internal_error"); //0xc0000183,
+		break; case NtStatus::invalid_device_state: os << TS("invalid_device_state"); //0xc0000184,
+		break; case NtStatus::io_device_error: os << TS("io_device_error"); //0xc0000185,
+		break; case NtStatus::device_protocol_error: os << TS("device_protocol_error"); //0xc0000186,
+		break; case NtStatus::backup_controller: os << TS("backup_controller"); //0xc0000187,
+		break; case NtStatus::log_file_full: os << TS("log_file_full"); //0xc0000188,
+		break; case NtStatus::too_late: os << TS("too_late"); //0xc0000189,
+		break; case NtStatus::no_trust_lsa_secret: os << TS("no_trust_lsa_secret"); //0xc000018a,
+		break; case NtStatus::no_trust_sam_account: os << TS("no_trust_sam_account"); //0xc000018b,
+		break; case NtStatus::trusted_domain_failure: os << TS("trusted_domain_failure"); //0xc000018c,
+		break; case NtStatus::trusted_relationship_failure: os << TS("trusted_relationship_failure"); //0xc000018d,
+		break; case NtStatus::eventlog_file_corrupt: os << TS("eventlog_file_corrupt"); //0xc000018e,
+		break; case NtStatus::eventlog_cant_start: os << TS("eventlog_cant_start"); //0xc000018f,
+		break; case NtStatus::trust_failure: os << TS("trust_failure"); //0xc0000190,
+		break; case NtStatus::mutant_limit_exceeded: os << TS("mutant_limit_exceeded"); //0xc0000191,
+		break; case NtStatus::netlogon_not_started: os << TS("netlogon_not_started"); //0xc0000192,
+		break; case NtStatus::account_expired: os << TS("account_expired"); //0xc0000193,
+		break; case NtStatus::possible_deadlock: os << TS("possible_deadlock"); //0xc0000194,
+		break; case NtStatus::network_credential_conflict: os << TS("network_credential_conflict"); //0xc0000195,
+		break; case NtStatus::remote_session_limit: os << TS("remote_session_limit"); //0xc0000196,
+		break; case NtStatus::eventlog_file_changed: os << TS("eventlog_file_changed"); //0xc0000197,
+		break; case NtStatus::nologon_interdomain_trust_account: os << TS("nologon_interdomain_trust_account"); //0xc0000198,
+		break; case NtStatus::nologon_workstation_trust_account: os << TS("nologon_workstation_trust_account"); //0xc0000199,
+		break; case NtStatus::nologon_server_trust_account: os << TS("nologon_server_trust_account"); //0xc000019a,
+		break; case NtStatus::domain_trust_inconsistent: os << TS("domain_trust_inconsistent"); //0xc000019b,
+		break; case NtStatus::fs_driver_required: os << TS("fs_driver_required"); //0xc000019c,
+		break; case NtStatus::image_already_loaded_as_dll: os << TS("image_already_loaded_as_dll"); //0xc000019d,
+		break; case NtStatus::incompatible_with_global_short_name_registry_setting: os << TS("incompatible_with_global_short_name_registry_setting"); //0xc000019e,
+		break; case NtStatus::short_names_not_enabled_on_volume: os << TS("short_names_not_enabled_on_volume"); //0xc000019f,
+		break; case NtStatus::security_stream_is_inconsistent: os << TS("security_stream_is_inconsistent"); //0xc00001a0,
+		break; case NtStatus::invalid_lock_range: os << TS("invalid_lock_range"); //0xc00001a1,
+		break; case NtStatus::invalid_ace_condition: os << TS("invalid_ace_condition"); //0xc00001a2,
+		break; case NtStatus::image_subsystem_not_present: os << TS("image_subsystem_not_present"); //0xc00001a3,
+		break; case NtStatus::notification_guid_already_defined: os << TS("notification_guid_already_defined"); //0xc00001a4,
+		break; case NtStatus::invalid_exception_handler: os << TS("invalid_exception_handler"); //0xc00001a5,
+		break; case NtStatus::duplicate_privileges: os << TS("duplicate_privileges"); //0xc00001a6,
+		break; case NtStatus::not_allowed_on_system_file: os << TS("not_allowed_on_system_file"); //0xc00001a7,
+		break; case NtStatus::repair_needed: os << TS("repair_needed"); //0xc00001a8,
+		break; case NtStatus::quota_not_enabled: os << TS("quota_not_enabled"); //0xc00001a9,
+		break; case NtStatus::no_application_package: os << TS("no_application_package"); //0xc00001aa,
+		break; case NtStatus::file_metadata_optimization_in_progress: os << TS("file_metadata_optimization_in_progress"); //0xc00001ab,
+		break; case NtStatus::not_same_object: os << TS("not_same_object"); //0xc00001ac,
+		break; case NtStatus::fatal_memory_exhaustion: os << TS("fatal_memory_exhaustion"); //0xc00001ad,
+		break; case NtStatus::error_process_not_in_job: os << TS("error_process_not_in_job"); //0xc00001ae,
+		break; case NtStatus::cpu_set_invalid: os << TS("cpu_set_invalid"); //0xc00001af,
+		break; case NtStatus::io_device_invalid_data: os << TS("io_device_invalid_data"); //0xc00001b0,
+		break; case NtStatus::io_unaligned_write: os << TS("io_unaligned_write"); //0xc00001b1,
+		break; case NtStatus::control_stack_violation: os << TS("control_stack_violation"); //0xc00001b2,
+		break; case NtStatus::weak_whfbkey_blocked: os << TS("weak_whfbkey_blocked"); //0xc00001b3,
+		break; case NtStatus::server_transport_conflict: os << TS("server_transport_conflict"); //0xc00001b4,
+		break; case NtStatus::certificate_validation_preference_conflict: os << TS("certificate_validation_preference_conflict"); //0xc00001b5,
+		break; case NtStatus::network_open_restriction: os << TS("network_open_restriction"); //0xc0000201,
+		break; case NtStatus::no_user_session_key: os << TS("no_user_session_key"); //0xc0000202,
+		break; case NtStatus::user_session_deleted: os << TS("user_session_deleted"); //0xc0000203,
+		break; case NtStatus::resource_lang_not_found: os << TS("resource_lang_not_found"); //0xc0000204,
+		break; case NtStatus::insuff_server_resources: os << TS("insuff_server_resources"); //0xc0000205,
+		break; case NtStatus::invalid_buffer_size: os << TS("invalid_buffer_size"); //0xc0000206,
+		break; case NtStatus::invalid_address_component: os << TS("invalid_address_component"); //0xc0000207,
+		break; case NtStatus::invalid_address_wildcard: os << TS("invalid_address_wildcard"); //0xc0000208,
+		break; case NtStatus::too_many_addresses: os << TS("too_many_addresses"); //0xc0000209,
+		break; case NtStatus::address_already_exists: os << TS("address_already_exists"); //0xc000020a,
+		break; case NtStatus::address_closed: os << TS("address_closed"); //0xc000020b,
+		break; case NtStatus::connection_disconnected: os << TS("connection_disconnected"); //0xc000020c,
+		break; case NtStatus::connection_reset: os << TS("connection_reset"); //0xc000020d,
+		break; case NtStatus::too_many_nodes: os << TS("too_many_nodes"); //0xc000020e,
+		break; case NtStatus::transaction_aborted: os << TS("transaction_aborted"); //0xc000020f,
+		break; case NtStatus::transaction_timed_out: os << TS("transaction_timed_out"); //0xc0000210,
+		break; case NtStatus::transaction_no_release: os << TS("transaction_no_release"); //0xc0000211,
+		break; case NtStatus::transaction_no_match: os << TS("transaction_no_match"); //0xc0000212,
+		break; case NtStatus::transaction_responded: os << TS("transaction_responded"); //0xc0000213,
+		break; case NtStatus::transaction_invalid_id: os << TS("transaction_invalid_id"); //0xc0000214,
+		break; case NtStatus::transaction_invalid_type: os << TS("transaction_invalid_type"); //0xc0000215,
+		break; case NtStatus::not_server_session: os << TS("not_server_session"); //0xc0000216,
+		break; case NtStatus::not_client_session: os << TS("not_client_session"); //0xc0000217,
+		break; case NtStatus::cannot_load_registry_file: os << TS("cannot_load_registry_file"); //0xc0000218,
+		break; case NtStatus::debug_attach_failed: os << TS("debug_attach_failed"); //0xc0000219,
+		break; case NtStatus::system_process_terminated: os << TS("system_process_terminated"); //0xc000021a,
+		break; case NtStatus::data_not_accepted: os << TS("data_not_accepted"); //0xc000021b,
+		break; case NtStatus::no_browser_servers_found: os << TS("no_browser_servers_found"); //0xc000021c,
+		break; case NtStatus::vdm_hard_error: os << TS("vdm_hard_error"); //0xc000021d,
+		break; case NtStatus::driver_cancel_timeout: os << TS("driver_cancel_timeout"); //0xc000021e,
+		break; case NtStatus::reply_message_mismatch: os << TS("reply_message_mismatch"); //0xc000021f,
+		break; case NtStatus::mapped_alignment: os << TS("mapped_alignment"); //0xc0000220,
+		break; case NtStatus::image_checksum_mismatch: os << TS("image_checksum_mismatch"); //0xc0000221,
+		break; case NtStatus::lost_writebehind_data: os << TS("lost_writebehind_data"); //0xc0000222,
+		break; case NtStatus::client_server_parameters_invalid: os << TS("client_server_parameters_invalid"); //0xc0000223,
+		break; case NtStatus::password_must_change: os << TS("password_must_change"); //0xc0000224,
+		break; case NtStatus::not_found: os << TS("not_found"); //0xc0000225,
+		break; case NtStatus::not_tiny_stream: os << TS("not_tiny_stream"); //0xc0000226,
+		break; case NtStatus::recovery_failure: os << TS("recovery_failure"); //0xc0000227,
+		break; case NtStatus::stack_overflow_read: os << TS("stack_overflow_read"); //0xc0000228,
+		break; case NtStatus::fail_check: os << TS("fail_check"); //0xc0000229,
+		break; case NtStatus::duplicate_objectid: os << TS("duplicate_objectid"); //0xc000022a,
+		break; case NtStatus::objectid_exists: os << TS("objectid_exists"); //0xc000022b,
+		break; case NtStatus::convert_to_large: os << TS("convert_to_large"); //0xc000022c,
+		break; case NtStatus::retry: os << TS("retry"); //0xc000022d,
+		break; case NtStatus::found_out_of_scope: os << TS("found_out_of_scope"); //0xc000022e,
+		break; case NtStatus::allocate_bucket: os << TS("allocate_bucket"); //0xc000022f,
+		break; case NtStatus::propset_not_found: os << TS("propset_not_found"); //0xc0000230,
+		break; case NtStatus::marshall_overflow: os << TS("marshall_overflow"); //0xc0000231,
+		break; case NtStatus::invalid_variant: os << TS("invalid_variant"); //0xc0000232,
+		break; case NtStatus::domain_controller_not_found: os << TS("domain_controller_not_found"); //0xc0000233,
+		break; case NtStatus::account_locked_out: os << TS("account_locked_out"); //0xc0000234,
+		break; case NtStatus::handle_not_closable: os << TS("handle_not_closable"); //0xc0000235,
+		break; case NtStatus::connection_refused: os << TS("connection_refused"); //0xc0000236,
+		break; case NtStatus::graceful_disconnect: os << TS("graceful_disconnect"); //0xc0000237,
+		break; case NtStatus::address_already_associated: os << TS("address_already_associated"); //0xc0000238,
+		break; case NtStatus::address_not_associated: os << TS("address_not_associated"); //0xc0000239,
+		break; case NtStatus::connection_invalid: os << TS("connection_invalid"); //0xc000023a,
+		break; case NtStatus::connection_active: os << TS("connection_active"); //0xc000023b,
+		break; case NtStatus::network_unreachable: os << TS("network_unreachable"); //0xc000023c,
+		break; case NtStatus::host_unreachable: os << TS("host_unreachable"); //0xc000023d,
+		break; case NtStatus::protocol_unreachable: os << TS("protocol_unreachable"); //0xc000023e,
+		break; case NtStatus::port_unreachable: os << TS("port_unreachable"); //0xc000023f,
+		break; case NtStatus::request_aborted: os << TS("request_aborted"); //0xc0000240,
+		break; case NtStatus::connection_aborted: os << TS("connection_aborted"); //0xc0000241,
+		break; case NtStatus::bad_compression_buffer: os << TS("bad_compression_buffer"); //0xc0000242,
+		break; case NtStatus::user_mapped_file: os << TS("user_mapped_file"); //0xc0000243,
+		break; case NtStatus::audit_failed: os << TS("audit_failed"); //0xc0000244,
+		break; case NtStatus::timer_resolution_not_set: os << TS("timer_resolution_not_set"); //0xc0000245,
+		break; case NtStatus::connection_count_limit: os << TS("connection_count_limit"); //0xc0000246,
+		break; case NtStatus::login_time_restriction: os << TS("login_time_restriction"); //0xc0000247,
+		break; case NtStatus::login_wksta_restriction: os << TS("login_wksta_restriction"); //0xc0000248,
+		break; case NtStatus::image_mp_up_mismatch: os << TS("image_mp_up_mismatch"); //0xc0000249,
+		break; case NtStatus::insufficient_logon_info: os << TS("insufficient_logon_info"); //0xc0000250,
+		break; case NtStatus::bad_dll_entrypoint: os << TS("bad_dll_entrypoint"); //0xc0000251,
+		break; case NtStatus::bad_service_entrypoint: os << TS("bad_service_entrypoint"); //0xc0000252,
+		break; case NtStatus::lpc_reply_lost: os << TS("lpc_reply_lost"); //0xc0000253,
+		break; case NtStatus::ip_address_conflict1: os << TS("ip_address_conflict1"); //0xc0000254,
+		break; case NtStatus::ip_address_conflict2: os << TS("ip_address_conflict2"); //0xc0000255,
+		break; case NtStatus::registry_quota_limit: os << TS("registry_quota_limit"); //0xc0000256,
+		break; case NtStatus::path_not_covered: os << TS("path_not_covered"); //0xc0000257,
+		break; case NtStatus::no_callback_active: os << TS("no_callback_active"); //0xc0000258,
+		break; case NtStatus::license_quota_exceeded: os << TS("license_quota_exceeded"); //0xc0000259,
+		break; case NtStatus::pwd_too_short: os << TS("pwd_too_short"); //0xc000025a,
+		break; case NtStatus::pwd_too_recent: os << TS("pwd_too_recent"); //0xc000025b,
+		break; case NtStatus::pwd_history_conflict: os << TS("pwd_history_conflict"); //0xc000025c,
+		break; case NtStatus::plugplay_no_device: os << TS("plugplay_no_device"); //0xc000025e,
+		break; case NtStatus::unsupported_compression: os << TS("unsupported_compression"); //0xc000025f,
+		break; case NtStatus::invalid_hw_profile: os << TS("invalid_hw_profile"); //0xc0000260,
+		break; case NtStatus::invalid_plugplay_device_path: os << TS("invalid_plugplay_device_path"); //0xc0000261,
+		break; case NtStatus::driver_ordinal_not_found: os << TS("driver_ordinal_not_found"); //0xc0000262,
+		break; case NtStatus::driver_entrypoint_not_found: os << TS("driver_entrypoint_not_found"); //0xc0000263,
+		break; case NtStatus::resource_not_owned: os << TS("resource_not_owned"); //0xc0000264,
+		break; case NtStatus::too_many_links: os << TS("too_many_links"); //0xc0000265,
+		break; case NtStatus::quota_list_inconsistent: os << TS("quota_list_inconsistent"); //0xc0000266,
+		break; case NtStatus::file_is_offline: os << TS("file_is_offline"); //0xc0000267,
+		break; case NtStatus::evaluation_expiration: os << TS("evaluation_expiration"); //0xc0000268,
+		break; case NtStatus::illegal_dll_relocation: os << TS("illegal_dll_relocation"); //0xc0000269,
+		break; case NtStatus::license_violation: os << TS("license_violation"); //0xc000026a,
+		break; case NtStatus::dll_init_failed_logoff: os << TS("dll_init_failed_logoff"); //0xc000026b,
+		break; case NtStatus::driver_unable_to_load: os << TS("driver_unable_to_load"); //0xc000026c,
+		break; case NtStatus::dfs_unavailable: os << TS("dfs_unavailable"); //0xc000026d,
+		break; case NtStatus::volume_dismounted: os << TS("volume_dismounted"); //0xc000026e,
+		break; case NtStatus::wx86_internal_error: os << TS("wx86_internal_error"); //0xc000026f,
+		break; case NtStatus::wx86_float_stack_check: os << TS("wx86_float_stack_check"); //0xc0000270,
+		break; case NtStatus::validate_continue: os << TS("validate_continue"); //0xc0000271,
+		break; case NtStatus::no_match: os << TS("no_match"); //0xc0000272,
+		break; case NtStatus::no_more_matches: os << TS("no_more_matches"); //0xc0000273,
+		break; case NtStatus::not_a_reparse_point: os << TS("not_a_reparse_point"); //0xc0000275,
+		break; case NtStatus::io_reparse_tag_invalid: os << TS("io_reparse_tag_invalid"); //0xc0000276,
+		break; case NtStatus::io_reparse_tag_mismatch: os << TS("io_reparse_tag_mismatch"); //0xc0000277,
+		break; case NtStatus::io_reparse_data_invalid: os << TS("io_reparse_data_invalid"); //0xc0000278,
+		break; case NtStatus::io_reparse_tag_not_handled: os << TS("io_reparse_tag_not_handled"); //0xc0000279,
+		break; case NtStatus::pwd_too_long: os << TS("pwd_too_long"); //0xc000027a,
+		break; case NtStatus::stowed_exception: os << TS("stowed_exception"); //0xc000027b,
+		break; case NtStatus::context_stowed_exception: os << TS("context_stowed_exception"); //0xc000027c,
+		break; case NtStatus::reparse_point_not_resolved: os << TS("reparse_point_not_resolved"); //0xc0000280,
+		break; case NtStatus::directory_is_a_reparse_point: os << TS("directory_is_a_reparse_point"); //0xc0000281,
+		break; case NtStatus::range_list_conflict: os << TS("range_list_conflict"); //0xc0000282,
+		break; case NtStatus::source_element_empty: os << TS("source_element_empty"); //0xc0000283,
+		break; case NtStatus::destination_element_full: os << TS("destination_element_full"); //0xc0000284,
+		break; case NtStatus::illegal_element_address: os << TS("illegal_element_address"); //0xc0000285,
+		break; case NtStatus::magazine_not_present: os << TS("magazine_not_present"); //0xc0000286,
+		break; case NtStatus::reinitialization_needed: os << TS("reinitialization_needed"); //0xc0000287,
+		break; case NtStatus::encryption_failed: os << TS("encryption_failed"); //0xc000028a,
+		break; case NtStatus::decryption_failed: os << TS("decryption_failed"); //0xc000028b,
+		break; case NtStatus::range_not_found: os << TS("range_not_found"); //0xc000028c,
+		break; case NtStatus::no_recovery_policy: os << TS("no_recovery_policy"); //0xc000028d,
+		break; case NtStatus::no_efs: os << TS("no_efs"); //0xc000028e,
+		break; case NtStatus::wrong_efs: os << TS("wrong_efs"); //0xc000028f,
+		break; case NtStatus::no_user_keys: os << TS("no_user_keys"); //0xc0000290,
+		break; case NtStatus::file_not_encrypted: os << TS("file_not_encrypted"); //0xc0000291,
+		break; case NtStatus::not_export_format: os << TS("not_export_format"); //0xc0000292,
+		break; case NtStatus::file_encrypted: os << TS("file_encrypted"); //0xc0000293,
+		break; case NtStatus::wmi_guid_not_found: os << TS("wmi_guid_not_found"); //0xc0000295,
+		break; case NtStatus::wmi_instance_not_found: os << TS("wmi_instance_not_found"); //0xc0000296,
+		break; case NtStatus::wmi_itemid_not_found: os << TS("wmi_itemid_not_found"); //0xc0000297,
+		break; case NtStatus::wmi_try_again: os << TS("wmi_try_again"); //0xc0000298,
+		break; case NtStatus::shared_policy: os << TS("shared_policy"); //0xc0000299,
+		break; case NtStatus::policy_object_not_found: os << TS("policy_object_not_found"); //0xc000029a,
+		break; case NtStatus::policy_only_in_ds: os << TS("policy_only_in_ds"); //0xc000029b,
+		break; case NtStatus::volume_not_upgraded: os << TS("volume_not_upgraded"); //0xc000029c,
+		break; case NtStatus::remote_storage_not_active: os << TS("remote_storage_not_active"); //0xc000029d,
+		break; case NtStatus::remote_storage_media_error: os << TS("remote_storage_media_error"); //0xc000029e,
+		break; case NtStatus::no_tracking_service: os << TS("no_tracking_service"); //0xc000029f,
+		break; case NtStatus::server_sid_mismatch: os << TS("server_sid_mismatch"); //0xc00002a0,
+		break; case NtStatus::ds_no_attribute_or_value: os << TS("ds_no_attribute_or_value"); //0xc00002a1,
+		break; case NtStatus::ds_invalid_attribute_syntax: os << TS("ds_invalid_attribute_syntax"); //0xc00002a2,
+		break; case NtStatus::ds_attribute_type_undefined: os << TS("ds_attribute_type_undefined"); //0xc00002a3,
+		break; case NtStatus::ds_attribute_or_value_exists: os << TS("ds_attribute_or_value_exists"); //0xc00002a4,
+		break; case NtStatus::ds_busy: os << TS("ds_busy"); //0xc00002a5,
+		break; case NtStatus::ds_unavailable: os << TS("ds_unavailable"); //0xc00002a6,
+		break; case NtStatus::ds_no_rids_allocated: os << TS("ds_no_rids_allocated"); //0xc00002a7,
+		break; case NtStatus::ds_no_more_rids: os << TS("ds_no_more_rids"); //0xc00002a8,
+		break; case NtStatus::ds_incorrect_role_owner: os << TS("ds_incorrect_role_owner"); //0xc00002a9,
+		break; case NtStatus::ds_ridmgr_init_error: os << TS("ds_ridmgr_init_error"); //0xc00002aa,
+		break; case NtStatus::ds_obj_class_violation: os << TS("ds_obj_class_violation"); //0xc00002ab,
+		break; case NtStatus::ds_cant_on_non_leaf: os << TS("ds_cant_on_non_leaf"); //0xc00002ac,
+		break; case NtStatus::ds_cant_on_rdn: os << TS("ds_cant_on_rdn"); //0xc00002ad,
+		break; case NtStatus::ds_cant_mod_obj_class: os << TS("ds_cant_mod_obj_class"); //0xc00002ae,
+		break; case NtStatus::ds_cross_dom_move_failed: os << TS("ds_cross_dom_move_failed"); //0xc00002af,
+		break; case NtStatus::ds_gc_not_available: os << TS("ds_gc_not_available"); //0xc00002b0,
+		break; case NtStatus::directory_service_required: os << TS("directory_service_required"); //0xc00002b1,
+		break; case NtStatus::reparse_attribute_conflict: os << TS("reparse_attribute_conflict"); //0xc00002b2,
+		break; case NtStatus::cant_enable_deny_only: os << TS("cant_enable_deny_only"); //0xc00002b3,
+		break; case NtStatus::float_multiple_faults: os << TS("float_multiple_faults"); //0xc00002b4,
+		break; case NtStatus::float_multiple_traps: os << TS("float_multiple_traps"); //0xc00002b5,
+		break; case NtStatus::device_removed: os << TS("device_removed"); //0xc00002b6,
+		break; case NtStatus::journal_delete_in_progress: os << TS("journal_delete_in_progress"); //0xc00002b7,
+		break; case NtStatus::journal_not_active: os << TS("journal_not_active"); //0xc00002b8,
+		break; case NtStatus::nointerface: os << TS("nointerface"); //0xc00002b9,
+		break; case NtStatus::ds_ridmgr_disabled: os << TS("ds_ridmgr_disabled"); //0xc00002ba,
+		break; case NtStatus::ds_admin_limit_exceeded: os << TS("ds_admin_limit_exceeded"); //0xc00002c1,
+		break; case NtStatus::driver_failed_sleep: os << TS("driver_failed_sleep"); //0xc00002c2,
+		break; case NtStatus::mutual_authentication_failed: os << TS("mutual_authentication_failed"); //0xc00002c3,
+		break; case NtStatus::corrupt_system_file: os << TS("corrupt_system_file"); //0xc00002c4,
+		break; case NtStatus::datatype_misalignment_error: os << TS("datatype_misalignment_error"); //0xc00002c5,
+		break; case NtStatus::wmi_read_only: os << TS("wmi_read_only"); //0xc00002c6,
+		break; case NtStatus::wmi_set_failure: os << TS("wmi_set_failure"); //0xc00002c7,
+		break; case NtStatus::commitment_minimum: os << TS("commitment_minimum"); //0xc00002c8,
+		break; case NtStatus::reg_nat_consumption: os << TS("reg_nat_consumption"); //0xc00002c9,
+		break; case NtStatus::transport_full: os << TS("transport_full"); //0xc00002ca,
+		break; case NtStatus::ds_sam_init_failure: os << TS("ds_sam_init_failure"); //0xc00002cb,
+		break; case NtStatus::only_if_connected: os << TS("only_if_connected"); //0xc00002cc,
+		break; case NtStatus::ds_sensitive_group_violation: os << TS("ds_sensitive_group_violation"); //0xc00002cd,
+		break; case NtStatus::pnp_restart_enumeration: os << TS("pnp_restart_enumeration"); //0xc00002ce,
+		break; case NtStatus::journal_entry_deleted: os << TS("journal_entry_deleted"); //0xc00002cf,
+		break; case NtStatus::ds_cant_mod_primarygroupid: os << TS("ds_cant_mod_primarygroupid"); //0xc00002d0,
+		break; case NtStatus::system_image_bad_signature: os << TS("system_image_bad_signature"); //0xc00002d1,
+		break; case NtStatus::pnp_reboot_required: os << TS("pnp_reboot_required"); //0xc00002d2,
+		break; case NtStatus::power_state_invalid: os << TS("power_state_invalid"); //0xc00002d3,
+		break; case NtStatus::ds_invalid_group_type: os << TS("ds_invalid_group_type"); //0xc00002d4,
+		break; case NtStatus::ds_no_nest_globalgroup_in_mixeddomain: os << TS("ds_no_nest_globalgroup_in_mixeddomain"); //0xc00002d5,
+		break; case NtStatus::ds_no_nest_localgroup_in_mixeddomain: os << TS("ds_no_nest_localgroup_in_mixeddomain"); //0xc00002d6,
+		break; case NtStatus::ds_global_cant_have_local_member: os << TS("ds_global_cant_have_local_member"); //0xc00002d7,
+		break; case NtStatus::ds_global_cant_have_universal_member: os << TS("ds_global_cant_have_universal_member"); //0xc00002d8,
+		break; case NtStatus::ds_universal_cant_have_local_member: os << TS("ds_universal_cant_have_local_member"); //0xc00002d9,
+		break; case NtStatus::ds_global_cant_have_crossdomain_member: os << TS("ds_global_cant_have_crossdomain_member"); //0xc00002da,
+		break; case NtStatus::ds_local_cant_have_crossdomain_local_member: os << TS("ds_local_cant_have_crossdomain_local_member"); //0xc00002db,
+		break; case NtStatus::ds_have_primary_members: os << TS("ds_have_primary_members"); //0xc00002dc,
+		break; case NtStatus::wmi_not_supported: os << TS("wmi_not_supported"); //0xc00002dd,
+		break; case NtStatus::insufficient_power: os << TS("insufficient_power"); //0xc00002de,
+		break; case NtStatus::sam_need_bootkey_password: os << TS("sam_need_bootkey_password"); //0xc00002df,
+		break; case NtStatus::sam_need_bootkey_floppy: os << TS("sam_need_bootkey_floppy"); //0xc00002e0,
+		break; case NtStatus::ds_cant_start: os << TS("ds_cant_start"); //0xc00002e1,
+		break; case NtStatus::ds_init_failure: os << TS("ds_init_failure"); //0xc00002e2,
+		break; case NtStatus::sam_init_failure: os << TS("sam_init_failure"); //0xc00002e3,
+		break; case NtStatus::ds_gc_required: os << TS("ds_gc_required"); //0xc00002e4,
+		break; case NtStatus::ds_local_member_of_local_only: os << TS("ds_local_member_of_local_only"); //0xc00002e5,
+		break; case NtStatus::ds_no_fpo_in_universal_groups: os << TS("ds_no_fpo_in_universal_groups"); //0xc00002e6,
+		break; case NtStatus::ds_machine_account_quota_exceeded: os << TS("ds_machine_account_quota_exceeded"); //0xc00002e7,
+		break; case NtStatus::multiple_fault_violation: os << TS("multiple_fault_violation"); //0xc00002e8,
+		break; case NtStatus::current_domain_not_allowed: os << TS("current_domain_not_allowed"); //0xc00002e9,
+		break; case NtStatus::cannot_make: os << TS("cannot_make"); //0xc00002ea,
+		break; case NtStatus::system_shutdown: os << TS("system_shutdown"); //0xc00002eb,
+		break; case NtStatus::ds_init_failure_console: os << TS("ds_init_failure_console"); //0xc00002ec,
+		break; case NtStatus::ds_sam_init_failure_console: os << TS("ds_sam_init_failure_console"); //0xc00002ed,
+		break; case NtStatus::unfinished_context_deleted: os << TS("unfinished_context_deleted"); //0xc00002ee,
+		break; case NtStatus::no_tgt_reply: os << TS("no_tgt_reply"); //0xc00002ef,
+		break; case NtStatus::objectid_not_found: os << TS("objectid_not_found"); //0xc00002f0,
+		break; case NtStatus::no_ip_addresses: os << TS("no_ip_addresses"); //0xc00002f1,
+		break; case NtStatus::wrong_credential_handle: os << TS("wrong_credential_handle"); //0xc00002f2,
+		break; case NtStatus::crypto_system_invalid: os << TS("crypto_system_invalid"); //0xc00002f3,
+		break; case NtStatus::max_referrals_exceeded: os << TS("max_referrals_exceeded"); //0xc00002f4,
+		break; case NtStatus::must_be_kdc: os << TS("must_be_kdc"); //0xc00002f5,
+		break; case NtStatus::strong_crypto_not_supported: os << TS("strong_crypto_not_supported"); //0xc00002f6,
+		break; case NtStatus::too_many_principals: os << TS("too_many_principals"); //0xc00002f7,
+		break; case NtStatus::no_pa_data: os << TS("no_pa_data"); //0xc00002f8,
+		break; case NtStatus::pkinit_name_mismatch: os << TS("pkinit_name_mismatch"); //0xc00002f9,
+		break; case NtStatus::smartcard_logon_required: os << TS("smartcard_logon_required"); //0xc00002fa,
+		break; case NtStatus::kdc_invalid_request: os << TS("kdc_invalid_request"); //0xc00002fb,
+		break; case NtStatus::kdc_unable_to_refer: os << TS("kdc_unable_to_refer"); //0xc00002fc,
+		break; case NtStatus::kdc_unknown_etype: os << TS("kdc_unknown_etype"); //0xc00002fd,
+		break; case NtStatus::shutdown_in_progress: os << TS("shutdown_in_progress"); //0xc00002fe,
+		break; case NtStatus::server_shutdown_in_progress: os << TS("server_shutdown_in_progress"); //0xc00002ff,
+		break; case NtStatus::not_supported_on_sbs: os << TS("not_supported_on_sbs"); //0xc0000300,
+		break; case NtStatus::wmi_guid_disconnected: os << TS("wmi_guid_disconnected"); //0xc0000301,
+		break; case NtStatus::wmi_already_disabled: os << TS("wmi_already_disabled"); //0xc0000302,
+		break; case NtStatus::wmi_already_enabled: os << TS("wmi_already_enabled"); //0xc0000303,
+		break; case NtStatus::mft_too_fragmented: os << TS("mft_too_fragmented"); //0xc0000304,
+		break; case NtStatus::copy_protection_failure: os << TS("copy_protection_failure"); //0xc0000305,
+		break; case NtStatus::css_authentication_failure: os << TS("css_authentication_failure"); //0xc0000306,
+		break; case NtStatus::css_key_not_present: os << TS("css_key_not_present"); //0xc0000307,
+		break; case NtStatus::css_key_not_established: os << TS("css_key_not_established"); //0xc0000308,
+		break; case NtStatus::css_scrambled_sector: os << TS("css_scrambled_sector"); //0xc0000309,
+		break; case NtStatus::css_region_mismatch: os << TS("css_region_mismatch"); //0xc000030a,
+		break; case NtStatus::css_resets_exhausted: os << TS("css_resets_exhausted"); //0xc000030b,
+		break; case NtStatus::password_change_required: os << TS("password_change_required"); //0xc000030c,
+		break; case NtStatus::lost_mode_logon_restriction: os << TS("lost_mode_logon_restriction"); //0xc000030d,
+		break; case NtStatus::pkinit_failure: os << TS("pkinit_failure"); //0xc0000320,
+		break; case NtStatus::smartcard_subsystem_failure: os << TS("smartcard_subsystem_failure"); //0xc0000321,
+		break; case NtStatus::no_kerb_key: os << TS("no_kerb_key"); //0xc0000322,
+		break; case NtStatus::host_down: os << TS("host_down"); //0xc0000350,
+		break; case NtStatus::unsupported_preauth: os << TS("unsupported_preauth"); //0xc0000351,
+		break; case NtStatus::efs_alg_blob_too_big: os << TS("efs_alg_blob_too_big"); //0xc0000352,
+		break; case NtStatus::port_not_set: os << TS("port_not_set"); //0xc0000353,
+		break; case NtStatus::debugger_inactive: os << TS("debugger_inactive"); //0xc0000354,
+		break; case NtStatus::ds_version_check_failure: os << TS("ds_version_check_failure"); //0xc0000355,
+		break; case NtStatus::auditing_disabled: os << TS("auditing_disabled"); //0xc0000356,
+		break; case NtStatus::prent4_machine_account: os << TS("prent4_machine_account"); //0xc0000357,
+		break; case NtStatus::ds_ag_cant_have_universal_member: os << TS("ds_ag_cant_have_universal_member"); //0xc0000358,
+		break; case NtStatus::invalid_image_win_32: os << TS("invalid_image_win_32"); //0xc0000359,
+		break; case NtStatus::invalid_image_win_64: os << TS("invalid_image_win_64"); //0xc000035a,
+		break; case NtStatus::bad_bindings: os << TS("bad_bindings"); //0xc000035b,
+		break; case NtStatus::network_session_expired: os << TS("network_session_expired"); //0xc000035c,
+		break; case NtStatus::apphelp_block: os << TS("apphelp_block"); //0xc000035d,
+		break; case NtStatus::all_sids_filtered: os << TS("all_sids_filtered"); //0xc000035e,
+		break; case NtStatus::not_safe_mode_driver: os << TS("not_safe_mode_driver"); //0xc000035f,
+		break; case NtStatus::access_disabled_by_policy_default: os << TS("access_disabled_by_policy_default"); //0xc0000361,
+		break; case NtStatus::access_disabled_by_policy_path: os << TS("access_disabled_by_policy_path"); //0xc0000362,
+		break; case NtStatus::access_disabled_by_policy_publisher: os << TS("access_disabled_by_policy_publisher"); //0xc0000363,
+		break; case NtStatus::access_disabled_by_policy_other: os << TS("access_disabled_by_policy_other"); //0xc0000364,
+		break; case NtStatus::failed_driver_entry: os << TS("failed_driver_entry"); //0xc0000365,
+		break; case NtStatus::device_enumeration_error: os << TS("device_enumeration_error"); //0xc0000366,
+		break; case NtStatus::mount_point_not_resolved: os << TS("mount_point_not_resolved"); //0xc0000368,
+		break; case NtStatus::invalid_device_object_parameter: os << TS("invalid_device_object_parameter"); //0xc0000369,
+		break; case NtStatus::mca_occured: os << TS("mca_occured"); //0xc000036a,
+		break; case NtStatus::driver_blocked_critical: os << TS("driver_blocked_critical"); //0xc000036b,
+		break; case NtStatus::driver_blocked: os << TS("driver_blocked"); //0xc000036c,
+		break; case NtStatus::driver_database_error: os << TS("driver_database_error"); //0xc000036d,
+		break; case NtStatus::system_hive_too_large: os << TS("system_hive_too_large"); //0xc000036e,
+		break; case NtStatus::invalid_import_of_non_dll: os << TS("invalid_import_of_non_dll"); //0xc000036f,
+		break; case NtStatus::no_secrets: os << TS("no_secrets"); //0xc0000371,
+		break; case NtStatus::access_disabled_no_safer_ui_by_policy: os << TS("access_disabled_no_safer_ui_by_policy"); //0xc0000372,
+		break; case NtStatus::failed_stack_switch: os << TS("failed_stack_switch"); //0xc0000373,
+		break; case NtStatus::heap_corruption: os << TS("heap_corruption"); //0xc0000374,
+		break; case NtStatus::smartcard_wrong_pin: os << TS("smartcard_wrong_pin"); //0xc0000380,
+		break; case NtStatus::smartcard_card_blocked: os << TS("smartcard_card_blocked"); //0xc0000381,
+		break; case NtStatus::smartcard_card_not_authenticated: os << TS("smartcard_card_not_authenticated"); //0xc0000382,
+		break; case NtStatus::smartcard_no_card: os << TS("smartcard_no_card"); //0xc0000383,
+		break; case NtStatus::smartcard_no_key_container: os << TS("smartcard_no_key_container"); //0xc0000384,
+		break; case NtStatus::smartcard_no_certificate: os << TS("smartcard_no_certificate"); //0xc0000385,
+		break; case NtStatus::smartcard_no_keyset: os << TS("smartcard_no_keyset"); //0xc0000386,
+		break; case NtStatus::smartcard_io_error: os << TS("smartcard_io_error"); //0xc0000387,
+		break; case NtStatus::downgrade_detected: os << TS("downgrade_detected"); //0xc0000388,
+		break; case NtStatus::smartcard_cert_revoked: os << TS("smartcard_cert_revoked"); //0xc0000389,
+		break; case NtStatus::issuing_ca_untrusted: os << TS("issuing_ca_untrusted"); //0xc000038a,
+		break; case NtStatus::revocation_offline_c: os << TS("revocation_offline_c"); //0xc000038b,
+		break; case NtStatus::pkinit_client_failure: os << TS("pkinit_client_failure"); //0xc000038c,
+		break; case NtStatus::smartcard_cert_expired: os << TS("smartcard_cert_expired"); //0xc000038d,
+		break; case NtStatus::driver_failed_prior_unload: os << TS("driver_failed_prior_unload"); //0xc000038e,
+		break; case NtStatus::smartcard_silent_context: os << TS("smartcard_silent_context"); //0xc000038f,
+		break; case NtStatus::per_user_trust_quota_exceeded: os << TS("per_user_trust_quota_exceeded"); //0xc0000401,
+		break; case NtStatus::all_user_trust_quota_exceeded: os << TS("all_user_trust_quota_exceeded"); //0xc0000402,
+		break; case NtStatus::user_delete_trust_quota_exceeded: os << TS("user_delete_trust_quota_exceeded"); //0xc0000403,
+		break; case NtStatus::ds_name_not_unique: os << TS("ds_name_not_unique"); //0xc0000404,
+		break; case NtStatus::ds_duplicate_id_found: os << TS("ds_duplicate_id_found"); //0xc0000405,
+		break; case NtStatus::ds_group_conversion_error: os << TS("ds_group_conversion_error"); //0xc0000406,
+		break; case NtStatus::volsnap_prepare_hibernate: os << TS("volsnap_prepare_hibernate"); //0xc0000407,
+		break; case NtStatus::user2user_required: os << TS("user2user_required"); //0xc0000408,
+		break; case NtStatus::stack_buffer_overrun: os << TS("stack_buffer_overrun"); //0xc0000409,
+		break; case NtStatus::no_s4u_prot_support: os << TS("no_s4u_prot_support"); //0xc000040a,
+		break; case NtStatus::crossrealm_delegation_failure: os << TS("crossrealm_delegation_failure"); //0xc000040b,
+		break; case NtStatus::revocation_offline_kdc: os << TS("revocation_offline_kdc"); //0xc000040c,
+		break; case NtStatus::issuing_ca_untrusted_kdc: os << TS("issuing_ca_untrusted_kdc"); //0xc000040d,
+		break; case NtStatus::kdc_cert_expired: os << TS("kdc_cert_expired"); //0xc000040e,
+		break; case NtStatus::kdc_cert_revoked: os << TS("kdc_cert_revoked"); //0xc000040f,
+		break; case NtStatus::parameter_quota_exceeded: os << TS("parameter_quota_exceeded"); //0xc0000410,
+		break; case NtStatus::hibernation_failure: os << TS("hibernation_failure"); //0xc0000411,
+		break; case NtStatus::delay_load_failed: os << TS("delay_load_failed"); //0xc0000412,
+		break; case NtStatus::authentication_firewall_failed: os << TS("authentication_firewall_failed"); //0xc0000413,
+		break; case NtStatus::vdm_disallowed: os << TS("vdm_disallowed"); //0xc0000414,
+		break; case NtStatus::hung_display_driver_thread: os << TS("hung_display_driver_thread"); //0xc0000415,
+		break; case NtStatus::insufficient_resource_for_specified_shared_section_size: os << TS("insufficient_resource_for_specified_shared_section_size"); //0xc0000416,
+		break; case NtStatus::invalid_cruntime_parameter: os << TS("invalid_cruntime_parameter"); //0xc0000417,
+		break; case NtStatus::ntlm_blocked: os << TS("ntlm_blocked"); //0xc0000418,
+		break; case NtStatus::ds_src_sid_exists_in_forest: os << TS("ds_src_sid_exists_in_forest"); //0xc0000419,
+		break; case NtStatus::ds_domain_name_exists_in_forest: os << TS("ds_domain_name_exists_in_forest"); //0xc000041a,
+		break; case NtStatus::ds_flat_name_exists_in_forest: os << TS("ds_flat_name_exists_in_forest"); //0xc000041b,
+		break; case NtStatus::invalid_user_principal_name: os << TS("invalid_user_principal_name"); //0xc000041c,
+		break; case NtStatus::fatal_user_callback_exception: os << TS("fatal_user_callback_exception"); //0xc000041d,
+		break; case NtStatus::assertion_failure: os << TS("assertion_failure"); //0xc0000420,
+		break; case NtStatus::verifier_stop: os << TS("verifier_stop"); //0xc0000421,
+		break; case NtStatus::callback_pop_stack: os << TS("callback_pop_stack"); //0xc0000423,
+		break; case NtStatus::incompatible_driver_blocked: os << TS("incompatible_driver_blocked"); //0xc0000424,
+		break; case NtStatus::hive_unloaded: os << TS("hive_unloaded"); //0xc0000425,
+		break; case NtStatus::compression_disabled: os << TS("compression_disabled"); //0xc0000426,
+		break; case NtStatus::file_system_limitation: os << TS("file_system_limitation"); //0xc0000427,
+		break; case NtStatus::invalid_image_hash: os << TS("invalid_image_hash"); //0xc0000428,
+		break; case NtStatus::not_capable: os << TS("not_capable"); //0xc0000429,
+		break; case NtStatus::request_out_of_sequence: os << TS("request_out_of_sequence"); //0xc000042a,
+		break; case NtStatus::implementation_limit: os << TS("implementation_limit"); //0xc000042b,
+		break; case NtStatus::elevation_required: os << TS("elevation_required"); //0xc000042c,
+		break; case NtStatus::no_security_context: os << TS("no_security_context"); //0xc000042d,
+		break; case NtStatus::pku2u_cert_failure: os << TS("pku2u_cert_failure"); //0xc000042f,
+		break; case NtStatus::beyond_vdl: os << TS("beyond_vdl"); //0xc0000432,
+		break; case NtStatus::encountered_write_in_progress: os << TS("encountered_write_in_progress"); //0xc0000433,
+		break; case NtStatus::pte_changed: os << TS("pte_changed"); //0xc0000434,
+		break; case NtStatus::purge_failed: os << TS("purge_failed"); //0xc0000435,
+		break; case NtStatus::cred_requires_confirmation: os << TS("cred_requires_confirmation"); //0xc0000440,
+		break; case NtStatus::cs_encryption_invalid_server_response: os << TS("cs_encryption_invalid_server_response"); //0xc0000441,
+		break; case NtStatus::cs_encryption_unsupported_server: os << TS("cs_encryption_unsupported_server"); //0xc0000442,
+		break; case NtStatus::cs_encryption_existing_encrypted_file: os << TS("cs_encryption_existing_encrypted_file"); //0xc0000443,
+		break; case NtStatus::cs_encryption_new_encrypted_file: os << TS("cs_encryption_new_encrypted_file"); //0xc0000444,
+		break; case NtStatus::cs_encryption_file_not_cse: os << TS("cs_encryption_file_not_cse"); //0xc0000445,
+		break; case NtStatus::invalid_label: os << TS("invalid_label"); //0xc0000446,
+		break; case NtStatus::driver_process_terminated: os << TS("driver_process_terminated"); //0xc0000450,
+		break; case NtStatus::ambiguous_system_device: os << TS("ambiguous_system_device"); //0xc0000451,
+		break; case NtStatus::system_device_not_found: os << TS("system_device_not_found"); //0xc0000452,
+		break; case NtStatus::restart_boot_application: os << TS("restart_boot_application"); //0xc0000453,
+		break; case NtStatus::insufficient_nvram_resources: os << TS("insufficient_nvram_resources"); //0xc0000454,
+		break; case NtStatus::invalid_session: os << TS("invalid_session"); //0xc0000455,
+		break; case NtStatus::thread_already_in_session: os << TS("thread_already_in_session"); //0xc0000456,
+		break; case NtStatus::thread_not_in_session: os << TS("thread_not_in_session"); //0xc0000457,
+		break; case NtStatus::invalid_weight: os << TS("invalid_weight"); //0xc0000458,
+		break; case NtStatus::request_paused: os << TS("request_paused"); //0xc0000459,
+		break; case NtStatus::no_ranges_processed: os << TS("no_ranges_processed"); //0xc0000460,
+		break; case NtStatus::disk_resources_exhausted: os << TS("disk_resources_exhausted"); //0xc0000461,
+		break; case NtStatus::needs_remediation: os << TS("needs_remediation"); //0xc0000462,
+		break; case NtStatus::device_feature_not_supported: os << TS("device_feature_not_supported"); //0xc0000463,
+		break; case NtStatus::device_unreachable: os << TS("device_unreachable"); //0xc0000464,
+		break; case NtStatus::invalid_token: os << TS("invalid_token"); //0xc0000465,
+		break; case NtStatus::server_unavailable: os << TS("server_unavailable"); //0xc0000466,
+		break; case NtStatus::file_not_available: os << TS("file_not_available"); //0xc0000467,
+		break; case NtStatus::device_insufficient_resources: os << TS("device_insufficient_resources"); //0xc0000468,
+		break; case NtStatus::package_updating: os << TS("package_updating"); //0xc0000469,
+		break; case NtStatus::not_read_from_copy: os << TS("not_read_from_copy"); //0xc000046a,
+		break; case NtStatus::ft_write_failure: os << TS("ft_write_failure"); //0xc000046b,
+		break; case NtStatus::ft_di_scan_required: os << TS("ft_di_scan_required"); //0xc000046c,
+		break; case NtStatus::object_not_externally_backed: os << TS("object_not_externally_backed"); //0xc000046d,
+		break; case NtStatus::external_backing_provider_unknown: os << TS("external_backing_provider_unknown"); //0xc000046e,
+		break; case NtStatus::compression_not_beneficial: os << TS("compression_not_beneficial"); //0xc000046f,
+		break; case NtStatus::data_checksum_error: os << TS("data_checksum_error"); //0xc0000470,
+		break; case NtStatus::intermixed_kernel_ea_operation: os << TS("intermixed_kernel_ea_operation"); //0xc0000471,
+		break; case NtStatus::trim_read_zero_not_supported: os << TS("trim_read_zero_not_supported"); //0xc0000472,
+		break; case NtStatus::too_many_segment_descriptors: os << TS("too_many_segment_descriptors"); //0xc0000473,
+		break; case NtStatus::invalid_offset_alignment: os << TS("invalid_offset_alignment"); //0xc0000474,
+		break; case NtStatus::invalid_field_in_parameter_list: os << TS("invalid_field_in_parameter_list"); //0xc0000475,
+		break; case NtStatus::operation_in_progress: os << TS("operation_in_progress"); //0xc0000476,
+		break; case NtStatus::invalid_initiator_target_path: os << TS("invalid_initiator_target_path"); //0xc0000477,
+		break; case NtStatus::scrub_data_disabled: os << TS("scrub_data_disabled"); //0xc0000478,
+		break; case NtStatus::not_redundant_storage: os << TS("not_redundant_storage"); //0xc0000479,
+		break; case NtStatus::resident_file_not_supported: os << TS("resident_file_not_supported"); //0xc000047a,
+		break; case NtStatus::compressed_file_not_supported: os << TS("compressed_file_not_supported"); //0xc000047b,
+		break; case NtStatus::directory_not_supported: os << TS("directory_not_supported"); //0xc000047c,
+		break; case NtStatus::io_operation_timeout: os << TS("io_operation_timeout"); //0xc000047d,
+		break; case NtStatus::system_needs_remediation: os << TS("system_needs_remediation"); //0xc000047e,
+		break; case NtStatus::appx_integrity_failure_clr_ngen: os << TS("appx_integrity_failure_clr_ngen"); //0xc000047f,
+		break; case NtStatus::share_unavailable: os << TS("share_unavailable"); //0xc0000480,
+		break; case NtStatus::apiset_not_hosted: os << TS("apiset_not_hosted"); //0xc0000481,
+		break; case NtStatus::apiset_not_present: os << TS("apiset_not_present"); //0xc0000482,
+		break; case NtStatus::device_hardware_error: os << TS("device_hardware_error"); //0xc0000483,
+		break; case NtStatus::firmware_slot_invalid: os << TS("firmware_slot_invalid"); //0xc0000484,
+		break; case NtStatus::firmware_image_invalid: os << TS("firmware_image_invalid"); //0xc0000485,
+		break; case NtStatus::storage_topology_id_mismatch: os << TS("storage_topology_id_mismatch"); //0xc0000486,
+		break; case NtStatus::wim_not_bootable: os << TS("wim_not_bootable"); //0xc0000487,
+		break; case NtStatus::blocked_by_parental_controls: os << TS("blocked_by_parental_controls"); //0xc0000488,
+		break; case NtStatus::needs_registration: os << TS("needs_registration"); //0xc0000489,
+		break; case NtStatus::quota_activity: os << TS("quota_activity"); //0xc000048a,
+		break; case NtStatus::callback_invoke_inline: os << TS("callback_invoke_inline"); //0xc000048b,
+		break; case NtStatus::block_too_many_references: os << TS("block_too_many_references"); //0xc000048c,
+		break; case NtStatus::marked_to_disallow_writes: os << TS("marked_to_disallow_writes"); //0xc000048d,
+		break; case NtStatus::network_access_denied_edp: os << TS("network_access_denied_edp"); //0xc000048e,
+		break; case NtStatus::enclave_failure: os << TS("enclave_failure"); //0xc000048f,
+		break; case NtStatus::pnp_no_compat_drivers: os << TS("pnp_no_compat_drivers"); //0xc0000490,
+		break; case NtStatus::pnp_driver_package_not_found: os << TS("pnp_driver_package_not_found"); //0xc0000491,
+		break; case NtStatus::pnp_driver_configuration_not_found: os << TS("pnp_driver_configuration_not_found"); //0xc0000492,
+		break; case NtStatus::pnp_driver_configuration_incomplete: os << TS("pnp_driver_configuration_incomplete"); //0xc0000493,
+		break; case NtStatus::pnp_function_driver_required: os << TS("pnp_function_driver_required"); //0xc0000494,
+		break; case NtStatus::pnp_device_configuration_pending: os << TS("pnp_device_configuration_pending"); //0xc0000495,
+		break; case NtStatus::device_hint_name_buffer_too_small: os << TS("device_hint_name_buffer_too_small"); //0xc0000496,
+		break; case NtStatus::package_not_available: os << TS("package_not_available"); //0xc0000497,
+		break; case NtStatus::device_in_maintenance: os << TS("device_in_maintenance"); //0xc0000499,
+		break; case NtStatus::not_supported_on_dax: os << TS("not_supported_on_dax"); //0xc000049a,
+		break; case NtStatus::free_space_too_fragmented: os << TS("free_space_too_fragmented"); //0xc000049b,
+		break; case NtStatus::dax_mapping_exists: os << TS("dax_mapping_exists"); //0xc000049c,
+		break; case NtStatus::child_process_blocked: os << TS("child_process_blocked"); //0xc000049d,
+		break; case NtStatus::storage_lost_data_persistence: os << TS("storage_lost_data_persistence"); //0xc000049e,
+		break; case NtStatus::vrf_cfg_enabled: os << TS("vrf_cfg_enabled"); //0xc000049f,
+		break; case NtStatus::partition_terminating: os << TS("partition_terminating"); //0xc00004a0,
+		break; case NtStatus::external_syskey_not_supported: os << TS("external_syskey_not_supported"); //0xc00004a1,
+		break; case NtStatus::enclave_violation: os << TS("enclave_violation"); //0xc00004a2,
+		break; case NtStatus::file_protected_under_dpl: os << TS("file_protected_under_dpl"); //0xc00004a3,
+		break; case NtStatus::volume_not_cluster_aligned: os << TS("volume_not_cluster_aligned"); //0xc00004a4,
+		break; case NtStatus::no_physically_aligned_free_space_found: os << TS("no_physically_aligned_free_space_found"); //0xc00004a5,
+		break; case NtStatus::appx_file_not_encrypted: os << TS("appx_file_not_encrypted"); //0xc00004a6,
+		break; case NtStatus::rwraw_encrypted_file_not_encrypted: os << TS("rwraw_encrypted_file_not_encrypted"); //0xc00004a7,
+		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_fileoffset: os << TS("rwraw_encrypted_invalid_edatainfo_fileoffset"); //0xc00004a8,
+		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_filerange: os << TS("rwraw_encrypted_invalid_edatainfo_filerange"); //0xc00004a9,
+		break; case NtStatus::rwraw_encrypted_invalid_edatainfo_parameter: os << TS("rwraw_encrypted_invalid_edatainfo_parameter"); //0xc00004aa,
+		break; case NtStatus::ft_read_failure: os << TS("ft_read_failure"); //0xc00004ab,
+		break; case NtStatus::patch_conflict: os << TS("patch_conflict"); //0xc00004ac,
+		break; case NtStatus::storage_reserve_id_invalid: os << TS("storage_reserve_id_invalid"); //0xc00004ad,
+		break; case NtStatus::storage_reserve_does_not_exist: os << TS("storage_reserve_does_not_exist"); //0xc00004ae,
+		break; case NtStatus::storage_reserve_already_exists: os << TS("storage_reserve_already_exists"); //0xc00004af,
+		break; case NtStatus::storage_reserve_not_empty: os << TS("storage_reserve_not_empty"); //0xc00004b0,
+		break; case NtStatus::not_a_dax_volume: os << TS("not_a_dax_volume"); //0xc00004b1,
+		break; case NtStatus::not_dax_mappable: os << TS("not_dax_mappable"); //0xc00004b2,
+		break; case NtStatus::case_differing_names_in_dir: os << TS("case_differing_names_in_dir"); //0xc00004b3,
+		break; case NtStatus::file_not_supported: os << TS("file_not_supported"); //0xc00004b4,
+		break; case NtStatus::not_supported_with_btt: os << TS("not_supported_with_btt"); //0xc00004b5,
+		break; case NtStatus::encryption_disabled: os << TS("encryption_disabled"); //0xc00004b6,
+		break; case NtStatus::encrypting_metadata_disallowed: os << TS("encrypting_metadata_disallowed"); //0xc00004b7,
+		break; case NtStatus::cant_clear_encryption_flag: os << TS("cant_clear_encryption_flag"); //0xc00004b8,
+		break; case NtStatus::unsatisfied_dependencies: os << TS("unsatisfied_dependencies"); //0xc00004b9,
+		break; case NtStatus::case_sensitive_path: os << TS("case_sensitive_path"); //0xc00004ba,
+		break; case NtStatus::unsupported_paging_mode: os << TS("unsupported_paging_mode"); //0xc00004bb,
+		break; case NtStatus::untrusted_mount_point: os << TS("untrusted_mount_point"); //0xc00004bc,
+		break; case NtStatus::has_system_critical_files: os << TS("has_system_critical_files"); //0xc00004bd,
+		break; case NtStatus::object_is_immutable: os << TS("object_is_immutable"); //0xc00004be,
+		break; case NtStatus::ft_read_from_copy_failure: os << TS("ft_read_from_copy_failure"); //0xc00004bf,
+		break; case NtStatus::image_loaded_as_patch_image: os << TS("image_loaded_as_patch_image"); //0xc00004c0,
+		break; case NtStatus::storage_stack_access_denied: os << TS("storage_stack_access_denied"); //0xc00004c1,
+		break; case NtStatus::insufficient_virtual_addr_resources: os << TS("insufficient_virtual_addr_resources"); //0xc00004c2,
+		break; case NtStatus::encrypted_file_not_supported: os << TS("encrypted_file_not_supported"); //0xc00004c3,
+		break; case NtStatus::sparse_file_not_supported: os << TS("sparse_file_not_supported"); //0xc00004c4,
+		break; case NtStatus::pagefile_not_supported: os << TS("pagefile_not_supported"); //0xc00004c5,
+		break; case NtStatus::volume_not_supported: os << TS("volume_not_supported"); //0xc00004c6,
+		break; case NtStatus::not_supported_with_bypassio: os << TS("not_supported_with_bypassio"); //0xc00004c7,
+		break; case NtStatus::no_bypassio_driver_support: os << TS("no_bypassio_driver_support"); //0xc00004c8,
+		break; case NtStatus::not_supported_with_encryption: os << TS("not_supported_with_encryption"); //0xc00004c9,
+		break; case NtStatus::not_supported_with_compression: os << TS("not_supported_with_compression"); //0xc00004ca,
+		break; case NtStatus::not_supported_with_replication: os << TS("not_supported_with_replication"); //0xc00004cb,
+		break; case NtStatus::not_supported_with_deduplication: os << TS("not_supported_with_deduplication"); //0xc00004cc,
+		break; case NtStatus::not_supported_with_auditing: os << TS("not_supported_with_auditing"); //0xc00004cd,
+		break; case NtStatus::not_supported_with_monitoring: os << TS("not_supported_with_monitoring"); //0xc00004ce,
+		break; case NtStatus::not_supported_with_snapshot: os << TS("not_supported_with_snapshot"); //0xc00004cf,
+		break; case NtStatus::not_supported_with_virtualization: os << TS("not_supported_with_virtualization"); //0xc00004d0,
+		break; case NtStatus::index_out_of_bounds: os << TS("index_out_of_bounds"); //0xc00004d1,
+		break; case NtStatus::bypassio_flt_not_supported: os << TS("bypassio_flt_not_supported"); //0xc00004d2,
+		break; case NtStatus::volume_write_access_denied: os << TS("volume_write_access_denied"); //0xc00004d3,
+		break; case NtStatus::patch_not_registered: os << TS("patch_not_registered"); //0xc00004d4,
+		break; case NtStatus::not_supported_with_cached_handle: os << TS("not_supported_with_cached_handle"); //0xc00004d5,
+		break; case NtStatus::invalid_task_name: os << TS("invalid_task_name"); //0xc0000500,
+		break; case NtStatus::invalid_task_index: os << TS("invalid_task_index"); //0xc0000501,
+		break; case NtStatus::thread_already_in_task: os << TS("thread_already_in_task"); //0xc0000502,
+		break; case NtStatus::callback_bypass: os << TS("callback_bypass"); //0xc0000503,
+		break; case NtStatus::undefined_scope: os << TS("undefined_scope"); //0xc0000504,
+		break; case NtStatus::invalid_cap: os << TS("invalid_cap"); //0xc0000505,
+		break; case NtStatus::not_gui_process: os << TS("not_gui_process"); //0xc0000506,
+		break; case NtStatus::device_hung: os << TS("device_hung"); //0xc0000507,
+		break; case NtStatus::container_assigned: os << TS("container_assigned"); //0xc0000508,
+		break; case NtStatus::job_no_container: os << TS("job_no_container"); //0xc0000509,
+		break; case NtStatus::device_unresponsive: os << TS("device_unresponsive"); //0xc000050a,
+		break; case NtStatus::reparse_point_encountered: os << TS("reparse_point_encountered"); //0xc000050b,
+		break; case NtStatus::attribute_not_present: os << TS("attribute_not_present"); //0xc000050c,
+		break; case NtStatus::not_a_tiered_volume: os << TS("not_a_tiered_volume"); //0xc000050d,
+		break; case NtStatus::already_has_stream_id: os << TS("already_has_stream_id"); //0xc000050e,
+		break; case NtStatus::job_not_empty: os << TS("job_not_empty"); //0xc000050f,
+		break; case NtStatus::already_initialized: os << TS("already_initialized"); //0xc0000510,
+		break; case NtStatus::enclave_not_terminated: os << TS("enclave_not_terminated"); //0xc0000511,
+		break; case NtStatus::enclave_is_terminating: os << TS("enclave_is_terminating"); //0xc0000512,
+		break; case NtStatus::smb1_not_available: os << TS("smb1_not_available"); //0xc0000513,
+		break; case NtStatus::smr_garbage_collection_required: os << TS("smr_garbage_collection_required"); //0xc0000514,
+		break; case NtStatus::interrupted: os << TS("interrupted"); //0xc0000515,
+		break; case NtStatus::thread_not_running: os << TS("thread_not_running"); //0xc0000516,
+		break; case NtStatus::session_key_too_short: os << TS("session_key_too_short"); //0xc0000517,
+		break; case NtStatus::fs_metadata_inconsistent: os << TS("fs_metadata_inconsistent"); //0xc0000518,
+		break; case NtStatus::fail_fast_exception: os << TS("fail_fast_exception"); //0xc0000602,
+		break; case NtStatus::image_cert_revoked: os << TS("image_cert_revoked"); //0xc0000603,
+		break; case NtStatus::dynamic_code_blocked: os << TS("dynamic_code_blocked"); //0xc0000604,
+		break; case NtStatus::image_cert_expired: os << TS("image_cert_expired"); //0xc0000605,
+		break; case NtStatus::strict_cfg_violation: os << TS("strict_cfg_violation"); //0xc0000606,
+		break; case NtStatus::set_context_denied: os << TS("set_context_denied"); //0xc000060a,
+		break; case NtStatus::cross_partition_violation: os << TS("cross_partition_violation"); //0xc000060b,
+		break; case NtStatus::port_closed: os << TS("port_closed"); //0xc0000700,
+		break; case NtStatus::message_lost: os << TS("message_lost"); //0xc0000701,
+		break; case NtStatus::invalid_message: os << TS("invalid_message"); //0xc0000702,
+		break; case NtStatus::request_canceled: os << TS("request_canceled"); //0xc0000703,
+		break; case NtStatus::recursive_dispatch: os << TS("recursive_dispatch"); //0xc0000704,
+		break; case NtStatus::lpc_receive_buffer_expected: os << TS("lpc_receive_buffer_expected"); //0xc0000705,
+		break; case NtStatus::lpc_invalid_connection_usage: os << TS("lpc_invalid_connection_usage"); //0xc0000706,
+		break; case NtStatus::lpc_requests_not_allowed: os << TS("lpc_requests_not_allowed"); //0xc0000707,
+		break; case NtStatus::resource_in_use: os << TS("resource_in_use"); //0xc0000708,
+		break; case NtStatus::hardware_memory_error: os << TS("hardware_memory_error"); //0xc0000709,
+		break; case NtStatus::threadpool_handle_exception: os << TS("threadpool_handle_exception"); //0xc000070a,
+		break; case NtStatus::threadpool_set_event_on_completion_failed: os << TS("threadpool_set_event_on_completion_failed"); //0xc000070b,
+		break; case NtStatus::threadpool_release_semaphore_on_completion_failed: os << TS("threadpool_release_semaphore_on_completion_failed"); //0xc000070c,
+		break; case NtStatus::threadpool_release_mutex_on_completion_failed: os << TS("threadpool_release_mutex_on_completion_failed"); //0xc000070d,
+		break; case NtStatus::threadpool_free_library_on_completion_failed: os << TS("threadpool_free_library_on_completion_failed"); //0xc000070e,
+		break; case NtStatus::threadpool_released_during_operation: os << TS("threadpool_released_during_operation"); //0xc000070f,
+		break; case NtStatus::callback_returned_while_impersonating: os << TS("callback_returned_while_impersonating"); //0xc0000710,
+		break; case NtStatus::apc_returned_while_impersonating: os << TS("apc_returned_while_impersonating"); //0xc0000711,
+		break; case NtStatus::process_is_protected: os << TS("process_is_protected"); //0xc0000712,
+		break; case NtStatus::mca_exception: os << TS("mca_exception"); //0xc0000713,
+		break; case NtStatus::certificate_mapping_not_unique: os << TS("certificate_mapping_not_unique"); //0xc0000714,
+		break; case NtStatus::symlink_class_disabled: os << TS("symlink_class_disabled"); //0xc0000715,
+		break; case NtStatus::invalid_idn_normalization: os << TS("invalid_idn_normalization"); //0xc0000716,
+		break; case NtStatus::no_unicode_translation: os << TS("no_unicode_translation"); //0xc0000717,
+		break; case NtStatus::already_registered: os << TS("already_registered"); //0xc0000718,
+		break; case NtStatus::context_mismatch: os << TS("context_mismatch"); //0xc0000719,
+		break; case NtStatus::port_already_has_completion_list: os << TS("port_already_has_completion_list"); //0xc000071a,
+		break; case NtStatus::callback_returned_thread_priority: os << TS("callback_returned_thread_priority"); //0xc000071b,
+		break; case NtStatus::invalid_thread: os << TS("invalid_thread"); //0xc000071c,
+		break; case NtStatus::callback_returned_transaction: os << TS("callback_returned_transaction"); //0xc000071d,
+		break; case NtStatus::callback_returned_ldr_lock: os << TS("callback_returned_ldr_lock"); //0xc000071e,
+		break; case NtStatus::callback_returned_lang: os << TS("callback_returned_lang"); //0xc000071f,
+		break; case NtStatus::callback_returned_pri_back: os << TS("callback_returned_pri_back"); //0xc0000720,
+		break; case NtStatus::callback_returned_thread_affinity: os << TS("callback_returned_thread_affinity"); //0xc0000721,
+		break; case NtStatus::lpc_handle_count_exceeded: os << TS("lpc_handle_count_exceeded"); //0xc0000722,
+		break; case NtStatus::executable_memory_write: os << TS("executable_memory_write"); //0xc0000723,
+		break; case NtStatus::kernel_executable_memory_write: os << TS("kernel_executable_memory_write"); //0xc0000724,
+		break; case NtStatus::attached_executable_memory_write: os << TS("attached_executable_memory_write"); //0xc0000725,
+		break; case NtStatus::triggered_executable_memory_write: os << TS("triggered_executable_memory_write"); //0xc0000726,
+		break; case NtStatus::disk_repair_disabled: os << TS("disk_repair_disabled"); //0xc0000800,
+		break; case NtStatus::ds_domain_rename_in_progress: os << TS("ds_domain_rename_in_progress"); //0xc0000801,
+		break; case NtStatus::disk_quota_exceeded: os << TS("disk_quota_exceeded"); //0xc0000802,
+		break; case NtStatus::content_blocked: os << TS("content_blocked"); //0xc0000804,
+		break; case NtStatus::bad_clusters: os << TS("bad_clusters"); //0xc0000805,
+		break; case NtStatus::volume_dirty: os << TS("volume_dirty"); //0xc0000806,
+		break; case NtStatus::disk_repair_unsuccessful: os << TS("disk_repair_unsuccessful"); //0xc0000808,
+		break; case NtStatus::corrupt_log_overfull: os << TS("corrupt_log_overfull"); //0xc0000809,
+		break; case NtStatus::corrupt_log_corrupted: os << TS("corrupt_log_corrupted"); //0xc000080a,
+		break; case NtStatus::corrupt_log_unavailable: os << TS("corrupt_log_unavailable"); //0xc000080b,
+		break; case NtStatus::corrupt_log_deleted_full: os << TS("corrupt_log_deleted_full"); //0xc000080c,
+		break; case NtStatus::corrupt_log_cleared: os << TS("corrupt_log_cleared"); //0xc000080d,
+		break; case NtStatus::orphan_name_exhausted: os << TS("orphan_name_exhausted"); //0xc000080e,
+		break; case NtStatus::proactive_scan_in_progress: os << TS("proactive_scan_in_progress"); //0xc000080f,
+		break; case NtStatus::encrypted_io_not_possible: os << TS("encrypted_io_not_possible"); //0xc0000810,
+		break; case NtStatus::corrupt_log_uplevel_records: os << TS("corrupt_log_uplevel_records"); //0xc0000811,
+		break; case NtStatus::file_checked_out: os << TS("file_checked_out"); //0xc0000901,
+		break; case NtStatus::checkout_required: os << TS("checkout_required"); //0xc0000902,
+		break; case NtStatus::bad_file_type: os << TS("bad_file_type"); //0xc0000903,
+		break; case NtStatus::file_too_large: os << TS("file_too_large"); //0xc0000904,
+		break; case NtStatus::forms_auth_required: os << TS("forms_auth_required"); //0xc0000905,
+		break; case NtStatus::virus_infected: os << TS("virus_infected"); //0xc0000906,
+		break; case NtStatus::virus_deleted: os << TS("virus_deleted"); //0xc0000907,
+		break; case NtStatus::bad_mcfg_table: os << TS("bad_mcfg_table"); //0xc0000908,
+		break; case NtStatus::cannot_break_oplock: os << TS("cannot_break_oplock"); //0xc0000909,
+		break; case NtStatus::bad_key: os << TS("bad_key"); //0xc000090a,
+		break; case NtStatus::bad_data: os << TS("bad_data"); //0xc000090b,
+		break; case NtStatus::no_key: os << TS("no_key"); //0xc000090c,
+		break; case NtStatus::file_handle_revoked: os << TS("file_handle_revoked"); //0xc0000910,
+		break; case NtStatus::section_direct_map_only: os << TS("section_direct_map_only"); //0xc0000911,
+		break; case NtStatus::block_weak_reference_invalid: os << TS("block_weak_reference_invalid"); //0xc0000912,
+		break; case NtStatus::block_source_weak_reference_invalid: os << TS("block_source_weak_reference_invalid"); //0xc0000913,
+		break; case NtStatus::block_target_weak_reference_invalid: os << TS("block_target_weak_reference_invalid"); //0xc0000914,
+		break; case NtStatus::block_shared: os << TS("block_shared"); //0xc0000915,
+		break; case NtStatus::vrf_volatile_cfg_and_io_enabled: os << TS("vrf_volatile_cfg_and_io_enabled"); //0xc0000c08,
+		break; case NtStatus::vrf_volatile_not_stoppable: os << TS("vrf_volatile_not_stoppable"); //0xc0000c09,
+		break; case NtStatus::vrf_volatile_safe_mode: os << TS("vrf_volatile_safe_mode"); //0xc0000c0a,
+		break; case NtStatus::vrf_volatile_not_runnable_system: os << TS("vrf_volatile_not_runnable_system"); //0xc0000c0b,
+		break; case NtStatus::vrf_volatile_not_supported_ruleclass: os << TS("vrf_volatile_not_supported_ruleclass"); //0xc0000c0c,
+		break; case NtStatus::vrf_volatile_protected_driver: os << TS("vrf_volatile_protected_driver"); //0xc0000c0d,
+		break; case NtStatus::vrf_volatile_nmi_registered: os << TS("vrf_volatile_nmi_registered"); //0xc0000c0e,
+		break; case NtStatus::vrf_volatile_settings_conflict: os << TS("vrf_volatile_settings_conflict"); //0xc0000c0f,
+		break; case NtStatus::dif_iocallback_not_replaced: os << TS("dif_iocallback_not_replaced"); //0xc0000c76,
+		break; case NtStatus::dif_livedump_limit_exceeded: os << TS("dif_livedump_limit_exceeded"); //0xc0000c77,
+		break; case NtStatus::dif_volatile_section_not_locked: os << TS("dif_volatile_section_not_locked"); //0xc0000c78,
+		break; case NtStatus::dif_volatile_driver_hotpatched: os << TS("dif_volatile_driver_hotpatched"); //0xc0000c79,
+		break; case NtStatus::dif_volatile_invalid_info: os << TS("dif_volatile_invalid_info"); //0xc0000c7a,
+		break; case NtStatus::dif_volatile_driver_is_not_running: os << TS("dif_volatile_driver_is_not_running"); //0xc0000c7b,
+		break; case NtStatus::dif_volatile_plugin_is_not_running: os << TS("dif_volatile_plugin_is_not_running"); //0xc0000c7c,
+		break; case NtStatus::dif_volatile_plugin_change_not_allowed: os << TS("dif_volatile_plugin_change_not_allowed"); //0xc0000c7d,
+		break; case NtStatus::dif_volatile_not_allowed: os << TS("dif_volatile_not_allowed"); //0xc0000c7e,
+		break; case NtStatus::dif_binding_api_not_found: os << TS("dif_binding_api_not_found"); //0xc0000c7f,
+		break; case NtStatus::wow_assertion: os << TS("wow_assertion"); //0xc0009898,
+		break; case NtStatus::invalid_signature: os << TS("invalid_signature"); //0xc000a000,
+		break; case NtStatus::hmac_not_supported: os << TS("hmac_not_supported"); //0xc000a001,
+		break; case NtStatus::auth_tag_mismatch: os << TS("auth_tag_mismatch"); //0xc000a002,
+		break; case NtStatus::invalid_state_transition: os << TS("invalid_state_transition"); //0xc000a003,
+		break; case NtStatus::invalid_kernel_info_version: os << TS("invalid_kernel_info_version"); //0xc000a004,
+		break; case NtStatus::invalid_pep_info_version: os << TS("invalid_pep_info_version"); //0xc000a005,
+		break; case NtStatus::handle_revoked: os << TS("handle_revoked"); //0xc000a006,
+		break; case NtStatus::eof_on_ghosted_range: os << TS("eof_on_ghosted_range"); //0xc000a007,
+		break; case NtStatus::cc_needs_callback_section_drain: os << TS("cc_needs_callback_section_drain"); //0xc000a008,
+		break; case NtStatus::ipsec_queue_overflow: os << TS("ipsec_queue_overflow"); //0xc000a010,
+		break; case NtStatus::nd_queue_overflow: os << TS("nd_queue_overflow"); //0xc000a011,
+		break; case NtStatus::hoplimit_exceeded: os << TS("hoplimit_exceeded"); //0xc000a012,
+		break; case NtStatus::protocol_not_supported: os << TS("protocol_not_supported"); //0xc000a013,
+		break; case NtStatus::fastpath_rejected: os << TS("fastpath_rejected"); //0xc000a014,
+		break; case NtStatus::lost_writebehind_data_network_disconnected: os << TS("lost_writebehind_data_network_disconnected"); //0xc000a080,
+		break; case NtStatus::lost_writebehind_data_network_server_error: os << TS("lost_writebehind_data_network_server_error"); //0xc000a081,
+		break; case NtStatus::lost_writebehind_data_local_disk_error: os << TS("lost_writebehind_data_local_disk_error"); //0xc000a082,
+		break; case NtStatus::xml_parse_error: os << TS("xml_parse_error"); //0xc000a083,
+		break; case NtStatus::xmldsig_error: os << TS("xmldsig_error"); //0xc000a084,
+		break; case NtStatus::wrong_compartment: os << TS("wrong_compartment"); //0xc000a085,
+		break; case NtStatus::authip_failure: os << TS("authip_failure"); //0xc000a086,
+		break; case NtStatus::ds_oid_mapped_group_cant_have_members: os << TS("ds_oid_mapped_group_cant_have_members"); //0xc000a087,
+		break; case NtStatus::ds_oid_not_found: os << TS("ds_oid_not_found"); //0xc000a088,
+		break; case NtStatus::incorrect_account_type: os << TS("incorrect_account_type"); //0xc000a089,
+		break; case NtStatus::local_policy_modification_not_supported: os << TS("local_policy_modification_not_supported"); //0xc000a08a,
+		break; case NtStatus::policy_controlled_account: os << TS("policy_controlled_account"); //0xc000a08b,
+		break; case NtStatus::laps_legacy_schema_missing: os << TS("laps_legacy_schema_missing"); //0xc000a08c,
+		break; case NtStatus::laps_schema_missing: os << TS("laps_schema_missing"); //0xc000a08d,
+		break; case NtStatus::laps_encryption_requires_2016_dfl: os << TS("laps_encryption_requires_2016_dfl"); //0xc000a08e,
+		break; case NtStatus::hash_not_supported: os << TS("hash_not_supported"); //0xc000a100,
+		break; case NtStatus::hash_not_present: os << TS("hash_not_present"); //0xc000a101,
+		break; case NtStatus::secondary_ic_provider_not_registered: os << TS("secondary_ic_provider_not_registered"); //0xc000a121,
+		break; case NtStatus::gpio_client_information_invalid: os << TS("gpio_client_information_invalid"); //0xc000a122,
+		break; case NtStatus::gpio_version_not_supported: os << TS("gpio_version_not_supported"); //0xc000a123,
+		break; case NtStatus::gpio_invalid_registration_packet: os << TS("gpio_invalid_registration_packet"); //0xc000a124,
+		break; case NtStatus::gpio_operation_denied: os << TS("gpio_operation_denied"); //0xc000a125,
+		break; case NtStatus::gpio_incompatible_connect_mode: os << TS("gpio_incompatible_connect_mode"); //0xc000a126,
+		break; case NtStatus::cannot_switch_runlevel: os << TS("cannot_switch_runlevel"); //0xc000a141,
+		break; case NtStatus::invalid_runlevel_setting: os << TS("invalid_runlevel_setting"); //0xc000a142,
+		break; case NtStatus::runlevel_switch_timeout: os << TS("runlevel_switch_timeout"); //0xc000a143,
+		break; case NtStatus::runlevel_switch_agent_timeout: os << TS("runlevel_switch_agent_timeout"); //0xc000a145,
+		break; case NtStatus::runlevel_switch_in_progress: os << TS("runlevel_switch_in_progress"); //0xc000a146,
+		break; case NtStatus::not_appcontainer: os << TS("not_appcontainer"); //0xc000a200,
+		break; case NtStatus::not_supported_in_appcontainer: os << TS("not_supported_in_appcontainer"); //0xc000a201,
+		break; case NtStatus::invalid_package_sid_length: os << TS("invalid_package_sid_length"); //0xc000a202,
+		break; case NtStatus::lpac_access_denied: os << TS("lpac_access_denied"); //0xc000a203,
+		break; case NtStatus::adminless_access_denied: os << TS("adminless_access_denied"); //0xc000a204,
+		break; case NtStatus::app_data_not_found: os << TS("app_data_not_found"); //0xc000a281,
+		break; case NtStatus::app_data_expired: os << TS("app_data_expired"); //0xc000a282,
+		break; case NtStatus::app_data_corrupt: os << TS("app_data_corrupt"); //0xc000a283,
+		break; case NtStatus::app_data_limit_exceeded: os << TS("app_data_limit_exceeded"); //0xc000a284,
+		break; case NtStatus::app_data_reboot_required: os << TS("app_data_reboot_required"); //0xc000a285,
+		break; case NtStatus::offload_read_flt_not_supported: os << TS("offload_read_flt_not_supported"); //0xc000a2a1,
+		break; case NtStatus::offload_write_flt_not_supported: os << TS("offload_write_flt_not_supported"); //0xc000a2a2,
+		break; case NtStatus::offload_read_file_not_supported: os << TS("offload_read_file_not_supported"); //0xc000a2a3,
+		break; case NtStatus::offload_write_file_not_supported: os << TS("offload_write_file_not_supported"); //0xc000a2a4,
+		break; case NtStatus::wof_wim_header_corrupt: os << TS("wof_wim_header_corrupt"); //0xc000a2a5,
+		break; case NtStatus::wof_wim_resource_table_corrupt: os << TS("wof_wim_resource_table_corrupt"); //0xc000a2a6,
+		break; case NtStatus::wof_file_resource_table_corrupt: os << TS("wof_file_resource_table_corrupt"); //0xc000a2a7,
+		break; case NtStatus::cimfs_image_corrupt: os << TS("cimfs_image_corrupt"); //0xc000c001,
+		break; case NtStatus::cimfs_image_version_not_supported: os << TS("cimfs_image_version_not_supported"); //0xc000c002,
+		break; case NtStatus::file_system_virtualization_unavailable: os << TS("file_system_virtualization_unavailable"); //0xc000ce01,
+		break; case NtStatus::file_system_virtualization_metadata_corrupt: os << TS("file_system_virtualization_metadata_corrupt"); //0xc000ce02,
+		break; case NtStatus::file_system_virtualization_busy: os << TS("file_system_virtualization_busy"); //0xc000ce03,
+		break; case NtStatus::file_system_virtualization_provider_unknown: os << TS("file_system_virtualization_provider_unknown"); //0xc000ce04,
+		break; case NtStatus::file_system_virtualization_invalid_operation: os << TS("file_system_virtualization_invalid_operation"); //0xc000ce05,
+		break; case NtStatus::cloud_file_sync_root_metadata_corrupt: os << TS("cloud_file_sync_root_metadata_corrupt"); //0xc000cf00,
+		break; case NtStatus::cloud_file_provider_not_running: os << TS("cloud_file_provider_not_running"); //0xc000cf01,
+		break; case NtStatus::cloud_file_metadata_corrupt: os << TS("cloud_file_metadata_corrupt"); //0xc000cf02,
+		break; case NtStatus::cloud_file_metadata_too_large: os << TS("cloud_file_metadata_too_large"); //0xc000cf03,
+		break; case NtStatus::cloud_file_property_version_not_supported: os << TS("cloud_file_property_version_not_supported"); //0xc000cf06,
+		break; case NtStatus::not_a_cloud_file: os << TS("not_a_cloud_file"); //0xc000cf07,
+		break; case NtStatus::cloud_file_not_in_sync: os << TS("cloud_file_not_in_sync"); //0xc000cf08,
+		break; case NtStatus::cloud_file_already_connected: os << TS("cloud_file_already_connected"); //0xc000cf09,
+		break; case NtStatus::cloud_file_not_supported: os << TS("cloud_file_not_supported"); //0xc000cf0a,
+		break; case NtStatus::cloud_file_invalid_request: os << TS("cloud_file_invalid_request"); //0xc000cf0b,
+		break; case NtStatus::cloud_file_read_only_volume: os << TS("cloud_file_read_only_volume"); //0xc000cf0c,
+		break; case NtStatus::cloud_file_connected_provider_only: os << TS("cloud_file_connected_provider_only"); //0xc000cf0d,
+		break; case NtStatus::cloud_file_validation_failed: os << TS("cloud_file_validation_failed"); //0xc000cf0e,
+		break; case NtStatus::cloud_file_authentication_failed: os << TS("cloud_file_authentication_failed"); //0xc000cf0f,
+		break; case NtStatus::cloud_file_insufficient_resources: os << TS("cloud_file_insufficient_resources"); //0xc000cf10,
+		break; case NtStatus::cloud_file_network_unavailable: os << TS("cloud_file_network_unavailable"); //0xc000cf11,
+		break; case NtStatus::cloud_file_unsuccessful: os << TS("cloud_file_unsuccessful"); //0xc000cf12,
+		break; case NtStatus::cloud_file_not_under_sync_root: os << TS("cloud_file_not_under_sync_root"); //0xc000cf13,
+		break; case NtStatus::cloud_file_in_use: os << TS("cloud_file_in_use"); //0xc000cf14,
+		break; case NtStatus::cloud_file_pinned: os << TS("cloud_file_pinned"); //0xc000cf15,
+		break; case NtStatus::cloud_file_request_aborted: os << TS("cloud_file_request_aborted"); //0xc000cf16,
+		break; case NtStatus::cloud_file_property_corrupt: os << TS("cloud_file_property_corrupt"); //0xc000cf17,
+		break; case NtStatus::cloud_file_access_denied: os << TS("cloud_file_access_denied"); //0xc000cf18,
+		break; case NtStatus::cloud_file_incompatible_hardlinks: os << TS("cloud_file_incompatible_hardlinks"); //0xc000cf19,
+		break; case NtStatus::cloud_file_property_lock_conflict: os << TS("cloud_file_property_lock_conflict"); //0xc000cf1a,
+		break; case NtStatus::cloud_file_request_canceled: os << TS("cloud_file_request_canceled"); //0xc000cf1b,
+		break; case NtStatus::cloud_file_provider_terminated: os << TS("cloud_file_provider_terminated"); //0xc000cf1d,
+		break; case NtStatus::not_a_cloud_sync_root: os << TS("not_a_cloud_sync_root"); //0xc000cf1e,
+		break; case NtStatus::cloud_file_request_timeout: os << TS("cloud_file_request_timeout"); //0xc000cf1f,
+		break; case NtStatus::cloud_file_dehydration_disallowed: os << TS("cloud_file_dehydration_disallowed"); //0xc000cf20,
+		break; case NtStatus::cloud_file_us_message_timeout: os << TS("cloud_file_us_message_timeout"); //0xc000cf21,
+		break; case NtStatus::file_snap_in_progress: os << TS("file_snap_in_progress"); //0xc000f500,
+		break; case NtStatus::file_snap_user_section_not_supported: os << TS("file_snap_user_section_not_supported"); //0xc000f501,
+		break; case NtStatus::file_snap_modify_not_supported: os << TS("file_snap_modify_not_supported"); //0xc000f502,
+		break; case NtStatus::file_snap_io_not_coordinated: os << TS("file_snap_io_not_coordinated"); //0xc000f503,
+		break; case NtStatus::file_snap_unexpected_error: os << TS("file_snap_unexpected_error"); //0xc000f504,
+		break; case NtStatus::file_snap_invalid_parameter: os << TS("file_snap_invalid_parameter"); //0xc000f505,
+		break; case NtStatus::dbg_exception_handled: os << TS("dbg_exception_handled"); //0x00010001,
+		break; case NtStatus::dbg_reply_later: os << TS("dbg_reply_later"); //0x40010001,
+		break; case NtStatus::dbg_exception_not_handled: os << TS("dbg_exception_not_handled"); //0x80010001,
+		break; case NtStatus::dbg_no_state_change: os << TS("dbg_no_state_change"); //0xc0010001,
+		break; case NtStatus::dbg_continue: os << TS("dbg_continue"); //0x00010002,
+		break; case NtStatus::dbg_unable_to_provide_handle: os << TS("dbg_unable_to_provide_handle"); //0x40010002,
+		break; case NtStatus::dbg_app_not_idle: os << TS("dbg_app_not_idle"); //0xc0010002,
+		break; case NtStatus::dbg_terminate_thread: os << TS("dbg_terminate_thread"); //0x40010003,
+		break; case NtStatus::dbg_terminate_process: os << TS("dbg_terminate_process"); //0x40010004,
+		break; case NtStatus::dbg_control_c: os << TS("dbg_control_c"); //0x40010005,
+		break; case NtStatus::dbg_printexception_c: os << TS("dbg_printexception_c"); //0x40010006,
+		break; case NtStatus::dbg_ripexception: os << TS("dbg_ripexception"); //0x40010007,
+		break; case NtStatus::dbg_control_break: os << TS("dbg_control_break"); //0x40010008,
+		break; case NtStatus::dbg_command_exception: os << TS("dbg_command_exception"); //0x40010009,
+		break; case NtStatus::dbg_printexception_wide_c: os << TS("dbg_printexception_wide_c"); //0x4001000a,
+		break; case NtStatus::rpc_nt_invalid_string_binding: os << TS("rpc_nt_invalid_string_binding"); //0xc0020001,
+		break; case NtStatus::rpc_nt_wrong_kind_of_binding: os << TS("rpc_nt_wrong_kind_of_binding"); //0xc0020002,
+		break; case NtStatus::rpc_nt_invalid_binding: os << TS("rpc_nt_invalid_binding"); //0xc0020003,
+		break; case NtStatus::rpc_nt_protseq_not_supported: os << TS("rpc_nt_protseq_not_supported"); //0xc0020004,
+		break; case NtStatus::rpc_nt_invalid_rpc_protseq: os << TS("rpc_nt_invalid_rpc_protseq"); //0xc0020005,
+		break; case NtStatus::rpc_nt_invalid_string_uuid: os << TS("rpc_nt_invalid_string_uuid"); //0xc0020006,
+		break; case NtStatus::rpc_nt_invalid_endpoint_format: os << TS("rpc_nt_invalid_endpoint_format"); //0xc0020007,
+		break; case NtStatus::rpc_nt_invalid_net_addr: os << TS("rpc_nt_invalid_net_addr"); //0xc0020008,
+		break; case NtStatus::rpc_nt_no_endpoint_found: os << TS("rpc_nt_no_endpoint_found"); //0xc0020009,
+		break; case NtStatus::rpc_nt_invalid_timeout: os << TS("rpc_nt_invalid_timeout"); //0xc002000a,
+		break; case NtStatus::rpc_nt_object_not_found: os << TS("rpc_nt_object_not_found"); //0xc002000b,
+		break; case NtStatus::rpc_nt_already_registered: os << TS("rpc_nt_already_registered"); //0xc002000c,
+		break; case NtStatus::rpc_nt_type_already_registered: os << TS("rpc_nt_type_already_registered"); //0xc002000d,
+		break; case NtStatus::rpc_nt_already_listening: os << TS("rpc_nt_already_listening"); //0xc002000e,
+		break; case NtStatus::rpc_nt_no_protseqs_registered: os << TS("rpc_nt_no_protseqs_registered"); //0xc002000f,
+		break; case NtStatus::rpc_nt_not_listening: os << TS("rpc_nt_not_listening"); //0xc0020010,
+		break; case NtStatus::rpc_nt_unknown_mgr_type: os << TS("rpc_nt_unknown_mgr_type"); //0xc0020011,
+		break; case NtStatus::rpc_nt_unknown_if: os << TS("rpc_nt_unknown_if"); //0xc0020012,
+		break; case NtStatus::rpc_nt_no_bindings: os << TS("rpc_nt_no_bindings"); //0xc0020013,
+		break; case NtStatus::rpc_nt_no_protseqs: os << TS("rpc_nt_no_protseqs"); //0xc0020014,
+		break; case NtStatus::rpc_nt_cant_create_endpoint: os << TS("rpc_nt_cant_create_endpoint"); //0xc0020015,
+		break; case NtStatus::rpc_nt_out_of_resources: os << TS("rpc_nt_out_of_resources"); //0xc0020016,
+		break; case NtStatus::rpc_nt_server_unavailable: os << TS("rpc_nt_server_unavailable"); //0xc0020017,
+		break; case NtStatus::rpc_nt_server_too_busy: os << TS("rpc_nt_server_too_busy"); //0xc0020018,
+		break; case NtStatus::rpc_nt_invalid_network_options: os << TS("rpc_nt_invalid_network_options"); //0xc0020019,
+		break; case NtStatus::rpc_nt_no_call_active: os << TS("rpc_nt_no_call_active"); //0xc002001a,
+		break; case NtStatus::rpc_nt_call_failed: os << TS("rpc_nt_call_failed"); //0xc002001b,
+		break; case NtStatus::rpc_nt_call_failed_dne: os << TS("rpc_nt_call_failed_dne"); //0xc002001c,
+		break; case NtStatus::rpc_nt_protocol_error: os << TS("rpc_nt_protocol_error"); //0xc002001d,
+		break; case NtStatus::rpc_nt_unsupported_trans_syn: os << TS("rpc_nt_unsupported_trans_syn"); //0xc002001f,
+		break; case NtStatus::rpc_nt_unsupported_type: os << TS("rpc_nt_unsupported_type"); //0xc0020021,
+		break; case NtStatus::rpc_nt_invalid_tag: os << TS("rpc_nt_invalid_tag"); //0xc0020022,
+		break; case NtStatus::rpc_nt_invalid_bound: os << TS("rpc_nt_invalid_bound"); //0xc0020023,
+		break; case NtStatus::rpc_nt_no_entry_name: os << TS("rpc_nt_no_entry_name"); //0xc0020024,
+		break; case NtStatus::rpc_nt_invalid_name_syntax: os << TS("rpc_nt_invalid_name_syntax"); //0xc0020025,
+		break; case NtStatus::rpc_nt_unsupported_name_syntax: os << TS("rpc_nt_unsupported_name_syntax"); //0xc0020026,
+		break; case NtStatus::rpc_nt_uuid_no_address: os << TS("rpc_nt_uuid_no_address"); //0xc0020028,
+		break; case NtStatus::rpc_nt_duplicate_endpoint: os << TS("rpc_nt_duplicate_endpoint"); //0xc0020029,
+		break; case NtStatus::rpc_nt_unknown_authn_type: os << TS("rpc_nt_unknown_authn_type"); //0xc002002a,
+		break; case NtStatus::rpc_nt_max_calls_too_small: os << TS("rpc_nt_max_calls_too_small"); //0xc002002b,
+		break; case NtStatus::rpc_nt_string_too_long: os << TS("rpc_nt_string_too_long"); //0xc002002c,
+		break; case NtStatus::rpc_nt_protseq_not_found: os << TS("rpc_nt_protseq_not_found"); //0xc002002d,
+		break; case NtStatus::rpc_nt_procnum_out_of_range: os << TS("rpc_nt_procnum_out_of_range"); //0xc002002e,
+		break; case NtStatus::rpc_nt_binding_has_no_auth: os << TS("rpc_nt_binding_has_no_auth"); //0xc002002f,
+		break; case NtStatus::rpc_nt_unknown_authn_service: os << TS("rpc_nt_unknown_authn_service"); //0xc0020030,
+		break; case NtStatus::rpc_nt_unknown_authn_level: os << TS("rpc_nt_unknown_authn_level"); //0xc0020031,
+		break; case NtStatus::rpc_nt_invalid_auth_identity: os << TS("rpc_nt_invalid_auth_identity"); //0xc0020032,
+		break; case NtStatus::rpc_nt_unknown_authz_service: os << TS("rpc_nt_unknown_authz_service"); //0xc0020033,
+		break; case NtStatus::ept_nt_invalid_entry: os << TS("ept_nt_invalid_entry"); //0xc0020034,
+		break; case NtStatus::ept_nt_cant_perform_op: os << TS("ept_nt_cant_perform_op"); //0xc0020035,
+		break; case NtStatus::ept_nt_not_registered: os << TS("ept_nt_not_registered"); //0xc0020036,
+		break; case NtStatus::rpc_nt_nothing_to_export: os << TS("rpc_nt_nothing_to_export"); //0xc0020037,
+		break; case NtStatus::rpc_nt_incomplete_name: os << TS("rpc_nt_incomplete_name"); //0xc0020038,
+		break; case NtStatus::rpc_nt_invalid_vers_option: os << TS("rpc_nt_invalid_vers_option"); //0xc0020039,
+		break; case NtStatus::rpc_nt_no_more_members: os << TS("rpc_nt_no_more_members"); //0xc002003a,
+		break; case NtStatus::rpc_nt_not_all_objs_unexported: os << TS("rpc_nt_not_all_objs_unexported"); //0xc002003b,
+		break; case NtStatus::rpc_nt_interface_not_found: os << TS("rpc_nt_interface_not_found"); //0xc002003c,
+		break; case NtStatus::rpc_nt_entry_already_exists: os << TS("rpc_nt_entry_already_exists"); //0xc002003d,
+		break; case NtStatus::rpc_nt_entry_not_found: os << TS("rpc_nt_entry_not_found"); //0xc002003e,
+		break; case NtStatus::rpc_nt_name_service_unavailable: os << TS("rpc_nt_name_service_unavailable"); //0xc002003f,
+		break; case NtStatus::rpc_nt_invalid_naf_id: os << TS("rpc_nt_invalid_naf_id"); //0xc0020040,
+		break; case NtStatus::rpc_nt_cannot_support: os << TS("rpc_nt_cannot_support"); //0xc0020041,
+		break; case NtStatus::rpc_nt_no_context_available: os << TS("rpc_nt_no_context_available"); //0xc0020042,
+		break; case NtStatus::rpc_nt_internal_error: os << TS("rpc_nt_internal_error"); //0xc0020043,
+		break; case NtStatus::rpc_nt_zero_divide: os << TS("rpc_nt_zero_divide"); //0xc0020044,
+		break; case NtStatus::rpc_nt_address_error: os << TS("rpc_nt_address_error"); //0xc0020045,
+		break; case NtStatus::rpc_nt_fp_div_zero: os << TS("rpc_nt_fp_div_zero"); //0xc0020046,
+		break; case NtStatus::rpc_nt_fp_underflow: os << TS("rpc_nt_fp_underflow"); //0xc0020047,
+		break; case NtStatus::rpc_nt_fp_overflow: os << TS("rpc_nt_fp_overflow"); //0xc0020048,
+		break; case NtStatus::rpc_nt_call_in_progress: os << TS("rpc_nt_call_in_progress"); //0xc0020049,
+		break; case NtStatus::rpc_nt_no_more_bindings: os << TS("rpc_nt_no_more_bindings"); //0xc002004a,
+		break; case NtStatus::rpc_nt_group_member_not_found: os << TS("rpc_nt_group_member_not_found"); //0xc002004b,
+		break; case NtStatus::ept_nt_cant_create: os << TS("ept_nt_cant_create"); //0xc002004c,
+		break; case NtStatus::rpc_nt_invalid_object: os << TS("rpc_nt_invalid_object"); //0xc002004d,
+		break; case NtStatus::rpc_nt_no_interfaces: os << TS("rpc_nt_no_interfaces"); //0xc002004f,
+		break; case NtStatus::rpc_nt_call_cancelled: os << TS("rpc_nt_call_cancelled"); //0xc0020050,
+		break; case NtStatus::rpc_nt_binding_incomplete: os << TS("rpc_nt_binding_incomplete"); //0xc0020051,
+		break; case NtStatus::rpc_nt_comm_failure: os << TS("rpc_nt_comm_failure"); //0xc0020052,
+		break; case NtStatus::rpc_nt_unsupported_authn_level: os << TS("rpc_nt_unsupported_authn_level"); //0xc0020053,
+		break; case NtStatus::rpc_nt_no_princ_name: os << TS("rpc_nt_no_princ_name"); //0xc0020054,
+		break; case NtStatus::rpc_nt_not_rpc_error: os << TS("rpc_nt_not_rpc_error"); //0xc0020055,
+		break; case NtStatus::rpc_nt_uuid_local_only: os << TS("rpc_nt_uuid_local_only"); //0x40020056,
+		break; case NtStatus::rpc_nt_sec_pkg_error: os << TS("rpc_nt_sec_pkg_error"); //0xc0020057,
+		break; case NtStatus::rpc_nt_not_cancelled: os << TS("rpc_nt_not_cancelled"); //0xc0020058,
+		break; case NtStatus::rpc_nt_invalid_async_handle: os << TS("rpc_nt_invalid_async_handle"); //0xc0020062,
+		break; case NtStatus::rpc_nt_invalid_async_call: os << TS("rpc_nt_invalid_async_call"); //0xc0020063,
+		break; case NtStatus::rpc_nt_proxy_access_denied: os << TS("rpc_nt_proxy_access_denied"); //0xc0020064,
+		break; case NtStatus::rpc_nt_cookie_auth_failed: os << TS("rpc_nt_cookie_auth_failed"); //0xc0020065,
+		break; case NtStatus::rpc_nt_send_incomplete: os << TS("rpc_nt_send_incomplete"); //0x400200af,
+		break; case NtStatus::rpc_nt_no_more_entries: os << TS("rpc_nt_no_more_entries"); //0xc0030001,
+		break; case NtStatus::rpc_nt_ss_char_trans_open_fail: os << TS("rpc_nt_ss_char_trans_open_fail"); //0xc0030002,
+		break; case NtStatus::rpc_nt_ss_char_trans_short_file: os << TS("rpc_nt_ss_char_trans_short_file"); //0xc0030003,
+		break; case NtStatus::rpc_nt_ss_in_null_context: os << TS("rpc_nt_ss_in_null_context"); //0xc0030004,
+		break; case NtStatus::rpc_nt_ss_context_mismatch: os << TS("rpc_nt_ss_context_mismatch"); //0xc0030005,
+		break; case NtStatus::rpc_nt_ss_context_damaged: os << TS("rpc_nt_ss_context_damaged"); //0xc0030006,
+		break; case NtStatus::rpc_nt_ss_handles_mismatch: os << TS("rpc_nt_ss_handles_mismatch"); //0xc0030007,
+		break; case NtStatus::rpc_nt_ss_cannot_get_call_handle: os << TS("rpc_nt_ss_cannot_get_call_handle"); //0xc0030008,
+		break; case NtStatus::rpc_nt_null_ref_pointer: os << TS("rpc_nt_null_ref_pointer"); //0xc0030009,
+		break; case NtStatus::rpc_nt_enum_value_out_of_range: os << TS("rpc_nt_enum_value_out_of_range"); //0xc003000a,
+		break; case NtStatus::rpc_nt_byte_count_too_small: os << TS("rpc_nt_byte_count_too_small"); //0xc003000b,
+		break; case NtStatus::rpc_nt_bad_stub_data: os << TS("rpc_nt_bad_stub_data"); //0xc003000c,
+		break; case NtStatus::rpc_nt_invalid_es_action: os << TS("rpc_nt_invalid_es_action"); //0xc0030059,
+		break; case NtStatus::rpc_nt_wrong_es_version: os << TS("rpc_nt_wrong_es_version"); //0xc003005a,
+		break; case NtStatus::rpc_nt_wrong_stub_version: os << TS("rpc_nt_wrong_stub_version"); //0xc003005b,
+		break; case NtStatus::rpc_nt_invalid_pipe_object: os << TS("rpc_nt_invalid_pipe_object"); //0xc003005c,
+		break; case NtStatus::rpc_nt_invalid_pipe_operation: os << TS("rpc_nt_invalid_pipe_operation"); //0xc003005d,
+		break; case NtStatus::rpc_nt_wrong_pipe_version: os << TS("rpc_nt_wrong_pipe_version"); //0xc003005e,
+		break; case NtStatus::rpc_nt_pipe_closed: os << TS("rpc_nt_pipe_closed"); //0xc003005f,
+		break; case NtStatus::rpc_nt_pipe_discipline_error: os << TS("rpc_nt_pipe_discipline_error"); //0xc0030060,
+		break; case NtStatus::rpc_nt_pipe_empty: os << TS("rpc_nt_pipe_empty"); //0xc0030061,
+		break; case NtStatus::pnp_bad_mps_table: os << TS("pnp_bad_mps_table"); //0xc0040035,
+		break; case NtStatus::pnp_translation_failed: os << TS("pnp_translation_failed"); //0xc0040036,
+		break; case NtStatus::pnp_irq_translation_failed: os << TS("pnp_irq_translation_failed"); //0xc0040037,
+		break; case NtStatus::pnp_invalid_id: os << TS("pnp_invalid_id"); //0xc0040038,
+		break; case NtStatus::io_reissue_as_cached: os << TS("io_reissue_as_cached"); //0xc0040039,
+		break; case NtStatus::ctx_winstation_name_invalid: os << TS("ctx_winstation_name_invalid"); //0xc00a0001,
+		break; case NtStatus::ctx_invalid_pd: os << TS("ctx_invalid_pd"); //0xc00a0002,
+		break; case NtStatus::ctx_pd_not_found: os << TS("ctx_pd_not_found"); //0xc00a0003,
+		break; case NtStatus::ctx_cdm_connect: os << TS("ctx_cdm_connect"); //0x400a0004,
+		break; case NtStatus::ctx_cdm_disconnect: os << TS("ctx_cdm_disconnect"); //0x400a0005,
+		break; case NtStatus::ctx_close_pending: os << TS("ctx_close_pending"); //0xc00a0006,
+		break; case NtStatus::ctx_no_outbuf: os << TS("ctx_no_outbuf"); //0xc00a0007,
+		break; case NtStatus::ctx_modem_inf_not_found: os << TS("ctx_modem_inf_not_found"); //0xc00a0008,
+		break; case NtStatus::ctx_invalid_modemname: os << TS("ctx_invalid_modemname"); //0xc00a0009,
+		break; case NtStatus::ctx_response_error: os << TS("ctx_response_error"); //0xc00a000a,
+		break; case NtStatus::ctx_modem_response_timeout: os << TS("ctx_modem_response_timeout"); //0xc00a000b,
+		break; case NtStatus::ctx_modem_response_no_carrier: os << TS("ctx_modem_response_no_carrier"); //0xc00a000c,
+		break; case NtStatus::ctx_modem_response_no_dialtone: os << TS("ctx_modem_response_no_dialtone"); //0xc00a000d,
+		break; case NtStatus::ctx_modem_response_busy: os << TS("ctx_modem_response_busy"); //0xc00a000e,
+		break; case NtStatus::ctx_modem_response_voice: os << TS("ctx_modem_response_voice"); //0xc00a000f,
+		break; case NtStatus::ctx_td_error: os << TS("ctx_td_error"); //0xc00a0010,
+		break; case NtStatus::ctx_license_client_invalid: os << TS("ctx_license_client_invalid"); //0xc00a0012,
+		break; case NtStatus::ctx_license_not_available: os << TS("ctx_license_not_available"); //0xc00a0013,
+		break; case NtStatus::ctx_license_expired: os << TS("ctx_license_expired"); //0xc00a0014,
+		break; case NtStatus::ctx_winstation_not_found: os << TS("ctx_winstation_not_found"); //0xc00a0015,
+		break; case NtStatus::ctx_winstation_name_collision: os << TS("ctx_winstation_name_collision"); //0xc00a0016,
+		break; case NtStatus::ctx_winstation_busy: os << TS("ctx_winstation_busy"); //0xc00a0017,
+		break; case NtStatus::ctx_bad_video_mode: os << TS("ctx_bad_video_mode"); //0xc00a0018,
+		break; case NtStatus::ctx_graphics_invalid: os << TS("ctx_graphics_invalid"); //0xc00a0022,
+		break; case NtStatus::ctx_not_console: os << TS("ctx_not_console"); //0xc00a0024,
+		break; case NtStatus::ctx_client_query_timeout: os << TS("ctx_client_query_timeout"); //0xc00a0026,
+		break; case NtStatus::ctx_console_disconnect: os << TS("ctx_console_disconnect"); //0xc00a0027,
+		break; case NtStatus::ctx_console_connect: os << TS("ctx_console_connect"); //0xc00a0028,
+		break; case NtStatus::ctx_shadow_denied: os << TS("ctx_shadow_denied"); //0xc00a002a,
+		break; case NtStatus::ctx_winstation_access_denied: os << TS("ctx_winstation_access_denied"); //0xc00a002b,
+		break; case NtStatus::ctx_invalid_wd: os << TS("ctx_invalid_wd"); //0xc00a002e,
+		break; case NtStatus::ctx_wd_not_found: os << TS("ctx_wd_not_found"); //0xc00a002f,
+		break; case NtStatus::ctx_shadow_invalid: os << TS("ctx_shadow_invalid"); //0xc00a0030,
+		break; case NtStatus::ctx_shadow_disabled: os << TS("ctx_shadow_disabled"); //0xc00a0031,
+		break; case NtStatus::rdp_protocol_error: os << TS("rdp_protocol_error"); //0xc00a0032,
+		break; case NtStatus::ctx_client_license_not_set: os << TS("ctx_client_license_not_set"); //0xc00a0033,
+		break; case NtStatus::ctx_client_license_in_use: os << TS("ctx_client_license_in_use"); //0xc00a0034,
+		break; case NtStatus::ctx_shadow_ended_by_mode_change: os << TS("ctx_shadow_ended_by_mode_change"); //0xc00a0035,
+		break; case NtStatus::ctx_shadow_not_running: os << TS("ctx_shadow_not_running"); //0xc00a0036,
+		break; case NtStatus::ctx_logon_disabled: os << TS("ctx_logon_disabled"); //0xc00a0037,
+		break; case NtStatus::ctx_security_layer_error: os << TS("ctx_security_layer_error"); //0xc00a0038,
+		break; case NtStatus::ts_incompatible_sessions: os << TS("ts_incompatible_sessions"); //0xc00a0039,
+		break; case NtStatus::ts_video_subsystem_error: os << TS("ts_video_subsystem_error"); //0xc00a003a,
+		break; case NtStatus::mui_file_not_found: os << TS("mui_file_not_found"); //0xc00b0001,
+		break; case NtStatus::mui_invalid_file: os << TS("mui_invalid_file"); //0xc00b0002,
+		break; case NtStatus::mui_invalid_rc_config: os << TS("mui_invalid_rc_config"); //0xc00b0003,
+		break; case NtStatus::mui_invalid_locale_name: os << TS("mui_invalid_locale_name"); //0xc00b0004,
+		break; case NtStatus::mui_invalid_ultimatefallback_name: os << TS("mui_invalid_ultimatefallback_name"); //0xc00b0005,
+		break; case NtStatus::mui_file_not_loaded: os << TS("mui_file_not_loaded"); //0xc00b0006,
+		break; case NtStatus::resource_enum_user_stop: os << TS("resource_enum_user_stop"); //0xc00b0007,
+		break; case NtStatus::cluster_node_already_up: os << TS("cluster_node_already_up"); //0x80130001,
+		break; case NtStatus::cluster_invalid_node: os << TS("cluster_invalid_node"); //0xc0130001,
+		break; case NtStatus::cluster_node_already_down: os << TS("cluster_node_already_down"); //0x80130002,
+		break; case NtStatus::cluster_node_exists: os << TS("cluster_node_exists"); //0xc0130002,
+		break; case NtStatus::cluster_network_already_online: os << TS("cluster_network_already_online"); //0x80130003,
+		break; case NtStatus::cluster_join_in_progress: os << TS("cluster_join_in_progress"); //0xc0130003,
+		break; case NtStatus::cluster_network_already_offline: os << TS("cluster_network_already_offline"); //0x80130004,
+		break; case NtStatus::cluster_node_not_found: os << TS("cluster_node_not_found"); //0xc0130004,
+		break; case NtStatus::cluster_node_already_member: os << TS("cluster_node_already_member"); //0x80130005,
+		break; case NtStatus::cluster_local_node_not_found: os << TS("cluster_local_node_not_found"); //0xc0130005,
+		break; case NtStatus::cluster_network_exists: os << TS("cluster_network_exists"); //0xc0130006,
+		break; case NtStatus::cluster_network_not_found: os << TS("cluster_network_not_found"); //0xc0130007,
+		break; case NtStatus::cluster_netinterface_exists: os << TS("cluster_netinterface_exists"); //0xc0130008,
+		break; case NtStatus::cluster_netinterface_not_found: os << TS("cluster_netinterface_not_found"); //0xc0130009,
+		break; case NtStatus::cluster_invalid_request: os << TS("cluster_invalid_request"); //0xc013000a,
+		break; case NtStatus::cluster_invalid_network_provider: os << TS("cluster_invalid_network_provider"); //0xc013000b,
+		break; case NtStatus::cluster_node_down: os << TS("cluster_node_down"); //0xc013000c,
+		break; case NtStatus::cluster_node_unreachable: os << TS("cluster_node_unreachable"); //0xc013000d,
+		break; case NtStatus::cluster_node_not_member: os << TS("cluster_node_not_member"); //0xc013000e,
+		break; case NtStatus::cluster_join_not_in_progress: os << TS("cluster_join_not_in_progress"); //0xc013000f,
+		break; case NtStatus::cluster_invalid_network: os << TS("cluster_invalid_network"); //0xc0130010,
+		break; case NtStatus::cluster_no_net_adapters: os << TS("cluster_no_net_adapters"); //0xc0130011,
+		break; case NtStatus::cluster_node_up: os << TS("cluster_node_up"); //0xc0130012,
+		break; case NtStatus::cluster_node_paused: os << TS("cluster_node_paused"); //0xc0130013,
+		break; case NtStatus::cluster_node_not_paused: os << TS("cluster_node_not_paused"); //0xc0130014,
+		break; case NtStatus::cluster_no_security_context: os << TS("cluster_no_security_context"); //0xc0130015,
+		break; case NtStatus::cluster_network_not_internal: os << TS("cluster_network_not_internal"); //0xc0130016,
+		break; case NtStatus::cluster_poisoned: os << TS("cluster_poisoned"); //0xc0130017,
+		break; case NtStatus::cluster_non_csv_path: os << TS("cluster_non_csv_path"); //0xc0130018,
+		break; case NtStatus::cluster_csv_volume_not_local: os << TS("cluster_csv_volume_not_local"); //0xc0130019,
+		break; case NtStatus::cluster_csv_read_oplock_break_in_progress: os << TS("cluster_csv_read_oplock_break_in_progress"); //0xc0130020,
+		break; case NtStatus::cluster_csv_auto_pause_error: os << TS("cluster_csv_auto_pause_error"); //0xc0130021,
+		break; case NtStatus::cluster_csv_redirected: os << TS("cluster_csv_redirected"); //0xc0130022,
+		break; case NtStatus::cluster_csv_not_redirected: os << TS("cluster_csv_not_redirected"); //0xc0130023,
+		break; case NtStatus::cluster_csv_volume_draining: os << TS("cluster_csv_volume_draining"); //0xc0130024,
+		break; case NtStatus::cluster_csv_snapshot_creation_in_progress: os << TS("cluster_csv_snapshot_creation_in_progress"); //0xc0130025,
+		break; case NtStatus::cluster_csv_volume_draining_succeeded_downlevel: os << TS("cluster_csv_volume_draining_succeeded_downlevel"); //0xc0130026,
+		break; case NtStatus::cluster_csv_no_snapshots: os << TS("cluster_csv_no_snapshots"); //0xc0130027,
+		break; case NtStatus::csv_io_pause_timeout: os << TS("csv_io_pause_timeout"); //0xc0130028,
+		break; case NtStatus::cluster_csv_invalid_handle: os << TS("cluster_csv_invalid_handle"); //0xc0130029,
+		break; case NtStatus::cluster_csv_supported_only_on_coordinator: os << TS("cluster_csv_supported_only_on_coordinator"); //0xc0130030,
+		break; case NtStatus::cluster_cam_ticket_replay_detected: os << TS("cluster_cam_ticket_replay_detected"); //0xc0130031,
+		break; case NtStatus::acpi_invalid_opcode: os << TS("acpi_invalid_opcode"); //0xc0140001,
+		break; case NtStatus::acpi_stack_overflow: os << TS("acpi_stack_overflow"); //0xc0140002,
+		break; case NtStatus::acpi_assert_failed: os << TS("acpi_assert_failed"); //0xc0140003,
+		break; case NtStatus::acpi_invalid_index: os << TS("acpi_invalid_index"); //0xc0140004,
+		break; case NtStatus::acpi_invalid_argument: os << TS("acpi_invalid_argument"); //0xc0140005,
+		break; case NtStatus::acpi_fatal: os << TS("acpi_fatal"); //0xc0140006,
+		break; case NtStatus::acpi_invalid_supername: os << TS("acpi_invalid_supername"); //0xc0140007,
+		break; case NtStatus::acpi_invalid_argtype: os << TS("acpi_invalid_argtype"); //0xc0140008,
+		break; case NtStatus::acpi_invalid_objtype: os << TS("acpi_invalid_objtype"); //0xc0140009,
+		break; case NtStatus::acpi_invalid_targettype: os << TS("acpi_invalid_targettype"); //0xc014000a,
+		break; case NtStatus::acpi_incorrect_argument_count: os << TS("acpi_incorrect_argument_count"); //0xc014000b,
+		break; case NtStatus::acpi_address_not_mapped: os << TS("acpi_address_not_mapped"); //0xc014000c,
+		break; case NtStatus::acpi_invalid_eventtype: os << TS("acpi_invalid_eventtype"); //0xc014000d,
+		break; case NtStatus::acpi_handler_collision: os << TS("acpi_handler_collision"); //0xc014000e,
+		break; case NtStatus::acpi_invalid_data: os << TS("acpi_invalid_data"); //0xc014000f,
+		break; case NtStatus::acpi_invalid_region: os << TS("acpi_invalid_region"); //0xc0140010,
+		break; case NtStatus::acpi_invalid_access_size: os << TS("acpi_invalid_access_size"); //0xc0140011,
+		break; case NtStatus::acpi_acquire_global_lock: os << TS("acpi_acquire_global_lock"); //0xc0140012,
+		break; case NtStatus::acpi_already_initialized: os << TS("acpi_already_initialized"); //0xc0140013,
+		break; case NtStatus::acpi_not_initialized: os << TS("acpi_not_initialized"); //0xc0140014,
+		break; case NtStatus::acpi_invalid_mutex_level: os << TS("acpi_invalid_mutex_level"); //0xc0140015,
+		break; case NtStatus::acpi_mutex_not_owned: os << TS("acpi_mutex_not_owned"); //0xc0140016,
+		break; case NtStatus::acpi_mutex_not_owner: os << TS("acpi_mutex_not_owner"); //0xc0140017,
+		break; case NtStatus::acpi_rs_access: os << TS("acpi_rs_access"); //0xc0140018,
+		break; case NtStatus::acpi_invalid_table: os << TS("acpi_invalid_table"); //0xc0140019,
+		break; case NtStatus::acpi_reg_handler_failed: os << TS("acpi_reg_handler_failed"); //0xc0140020,
+		break; case NtStatus::acpi_power_request_failed: os << TS("acpi_power_request_failed"); //0xc0140021,
+		break; case NtStatus::sxs_section_not_found: os << TS("sxs_section_not_found"); //0xc0150001,
+		break; case NtStatus::sxs_cant_gen_actctx: os << TS("sxs_cant_gen_actctx"); //0xc0150002,
+		break; case NtStatus::sxs_invalid_actctxdata_format: os << TS("sxs_invalid_actctxdata_format"); //0xc0150003,
+		break; case NtStatus::sxs_assembly_not_found: os << TS("sxs_assembly_not_found"); //0xc0150004,
+		break; case NtStatus::sxs_manifest_format_error: os << TS("sxs_manifest_format_error"); //0xc0150005,
+		break; case NtStatus::sxs_manifest_parse_error: os << TS("sxs_manifest_parse_error"); //0xc0150006,
+		break; case NtStatus::sxs_activation_context_disabled: os << TS("sxs_activation_context_disabled"); //0xc0150007,
+		break; case NtStatus::sxs_key_not_found: os << TS("sxs_key_not_found"); //0xc0150008,
+		break; case NtStatus::sxs_version_conflict: os << TS("sxs_version_conflict"); //0xc0150009,
+		break; case NtStatus::sxs_wrong_section_type: os << TS("sxs_wrong_section_type"); //0xc015000a,
+		break; case NtStatus::sxs_thread_queries_disabled: os << TS("sxs_thread_queries_disabled"); //0xc015000b,
+		break; case NtStatus::sxs_assembly_missing: os << TS("sxs_assembly_missing"); //0xc015000c,
+		break; case NtStatus::sxs_release_activation_context: os << TS("sxs_release_activation_context"); //0x4015000d,
+		break; case NtStatus::sxs_process_default_already_set: os << TS("sxs_process_default_already_set"); //0xc015000e,
+		break; case NtStatus::sxs_early_deactivation: os << TS("sxs_early_deactivation"); //0xc015000f,
+		break; case NtStatus::sxs_invalid_deactivation: os << TS("sxs_invalid_deactivation"); //0xc0150010,
+		break; case NtStatus::sxs_multiple_deactivation: os << TS("sxs_multiple_deactivation"); //0xc0150011,
+		break; case NtStatus::sxs_system_default_activation_context_empty: os << TS("sxs_system_default_activation_context_empty"); //0xc0150012,
+		break; case NtStatus::sxs_process_termination_requested: os << TS("sxs_process_termination_requested"); //0xc0150013,
+		break; case NtStatus::sxs_corrupt_activation_stack: os << TS("sxs_corrupt_activation_stack"); //0xc0150014,
+		break; case NtStatus::sxs_corruption: os << TS("sxs_corruption"); //0xc0150015,
+		break; case NtStatus::sxs_invalid_identity_attribute_value: os << TS("sxs_invalid_identity_attribute_value"); //0xc0150016,
+		break; case NtStatus::sxs_invalid_identity_attribute_name: os << TS("sxs_invalid_identity_attribute_name"); //0xc0150017,
+		break; case NtStatus::sxs_identity_duplicate_attribute: os << TS("sxs_identity_duplicate_attribute"); //0xc0150018,
+		break; case NtStatus::sxs_identity_parse_error: os << TS("sxs_identity_parse_error"); //0xc0150019,
+		break; case NtStatus::sxs_component_store_corrupt: os << TS("sxs_component_store_corrupt"); //0xc015001a,
+		break; case NtStatus::sxs_file_hash_mismatch: os << TS("sxs_file_hash_mismatch"); //0xc015001b,
+		break; case NtStatus::sxs_manifest_identity_same_but_contents_different: os << TS("sxs_manifest_identity_same_but_contents_different"); //0xc015001c,
+		break; case NtStatus::sxs_identities_different: os << TS("sxs_identities_different"); //0xc015001d,
+		break; case NtStatus::sxs_assembly_is_not_a_deployment: os << TS("sxs_assembly_is_not_a_deployment"); //0xc015001e,
+		break; case NtStatus::sxs_file_not_part_of_assembly: os << TS("sxs_file_not_part_of_assembly"); //0xc015001f,
+		break; case NtStatus::advanced_installer_failed: os << TS("advanced_installer_failed"); //0xc0150020,
+		break; case NtStatus::xml_encoding_mismatch: os << TS("xml_encoding_mismatch"); //0xc0150021,
+		break; case NtStatus::sxs_manifest_too_big: os << TS("sxs_manifest_too_big"); //0xc0150022,
+		break; case NtStatus::sxs_setting_not_registered: os << TS("sxs_setting_not_registered"); //0xc0150023,
+		break; case NtStatus::sxs_transaction_closure_incomplete: os << TS("sxs_transaction_closure_incomplete"); //0xc0150024,
+		break; case NtStatus::smi_primitive_installer_failed: os << TS("smi_primitive_installer_failed"); //0xc0150025,
+		break; case NtStatus::generic_command_failed: os << TS("generic_command_failed"); //0xc0150026,
+		break; case NtStatus::sxs_file_hash_missing: os << TS("sxs_file_hash_missing"); //0xc0150027,
+		break; case NtStatus::heuristic_damage_possible: os << TS("heuristic_damage_possible"); //0x40190001,
+		break; case NtStatus::transactional_conflict: os << TS("transactional_conflict"); //0xc0190001,
+		break; case NtStatus::invalid_transaction: os << TS("invalid_transaction"); //0xc0190002,
+		break; case NtStatus::transaction_not_active: os << TS("transaction_not_active"); //0xc0190003,
+		break; case NtStatus::tm_initialization_failed: os << TS("tm_initialization_failed"); //0xc0190004,
+		break; case NtStatus::rm_not_active: os << TS("rm_not_active"); //0xc0190005,
+		break; case NtStatus::rm_metadata_corrupt: os << TS("rm_metadata_corrupt"); //0xc0190006,
+		break; case NtStatus::transaction_not_joined: os << TS("transaction_not_joined"); //0xc0190007,
+		break; case NtStatus::directory_not_rm: os << TS("directory_not_rm"); //0xc0190008,
+		break; case NtStatus::could_not_resize_log: os << TS("could_not_resize_log"); //0x80190009,
+		break; case NtStatus::transactions_unsupported_remote: os << TS("transactions_unsupported_remote"); //0xc019000a,
+		break; case NtStatus::log_resize_invalid_size: os << TS("log_resize_invalid_size"); //0xc019000b,
+		break; case NtStatus::remote_file_version_mismatch: os << TS("remote_file_version_mismatch"); //0xc019000c,
+		break; case NtStatus::crm_protocol_already_exists: os << TS("crm_protocol_already_exists"); //0xc019000f,
+		break; case NtStatus::transaction_propagation_failed: os << TS("transaction_propagation_failed"); //0xc0190010,
+		break; case NtStatus::crm_protocol_not_found: os << TS("crm_protocol_not_found"); //0xc0190011,
+		break; case NtStatus::transaction_superior_exists: os << TS("transaction_superior_exists"); //0xc0190012,
+		break; case NtStatus::transaction_request_not_valid: os << TS("transaction_request_not_valid"); //0xc0190013,
+		break; case NtStatus::transaction_not_requested: os << TS("transaction_not_requested"); //0xc0190014,
+		break; case NtStatus::transaction_already_aborted: os << TS("transaction_already_aborted"); //0xc0190015,
+		break; case NtStatus::transaction_already_committed: os << TS("transaction_already_committed"); //0xc0190016,
+		break; case NtStatus::transaction_invalid_marshall_buffer: os << TS("transaction_invalid_marshall_buffer"); //0xc0190017,
+		break; case NtStatus::current_transaction_not_valid: os << TS("current_transaction_not_valid"); //0xc0190018,
+		break; case NtStatus::log_growth_failed: os << TS("log_growth_failed"); //0xc0190019,
+		break; case NtStatus::object_no_longer_exists: os << TS("object_no_longer_exists"); //0xc0190021,
+		break; case NtStatus::stream_miniversion_not_found: os << TS("stream_miniversion_not_found"); //0xc0190022,
+		break; case NtStatus::stream_miniversion_not_valid: os << TS("stream_miniversion_not_valid"); //0xc0190023,
+		break; case NtStatus::miniversion_inaccessible_from_specified_transaction: os << TS("miniversion_inaccessible_from_specified_transaction"); //0xc0190024,
+		break; case NtStatus::cant_open_miniversion_with_modify_intent: os << TS("cant_open_miniversion_with_modify_intent"); //0xc0190025,
+		break; case NtStatus::cant_create_more_stream_miniversions: os << TS("cant_create_more_stream_miniversions"); //0xc0190026,
+		break; case NtStatus::handle_no_longer_valid: os << TS("handle_no_longer_valid"); //0xc0190028,
+		break; case NtStatus::no_txf_metadata: os << TS("no_txf_metadata"); //0x80190029,
+		break; case NtStatus::log_corruption_detected: os << TS("log_corruption_detected"); //0xc0190030,
+		break; case NtStatus::cant_recover_with_handle_open: os << TS("cant_recover_with_handle_open"); //0x80190031,
+		break; case NtStatus::rm_disconnected: os << TS("rm_disconnected"); //0xc0190032,
+		break; case NtStatus::enlistment_not_superior: os << TS("enlistment_not_superior"); //0xc0190033,
+		break; case NtStatus::recovery_not_needed: os << TS("recovery_not_needed"); //0x40190034,
+		break; case NtStatus::rm_already_started: os << TS("rm_already_started"); //0x40190035,
+		break; case NtStatus::file_identity_not_persistent: os << TS("file_identity_not_persistent"); //0xc0190036,
+		break; case NtStatus::cant_break_transactional_dependency: os << TS("cant_break_transactional_dependency"); //0xc0190037,
+		break; case NtStatus::cant_cross_rm_boundary: os << TS("cant_cross_rm_boundary"); //0xc0190038,
+		break; case NtStatus::txf_dir_not_empty: os << TS("txf_dir_not_empty"); //0xc0190039,
+		break; case NtStatus::indoubt_transactions_exist: os << TS("indoubt_transactions_exist"); //0xc019003a,
+		break; case NtStatus::tm_volatile: os << TS("tm_volatile"); //0xc019003b,
+		break; case NtStatus::rollback_timer_expired: os << TS("rollback_timer_expired"); //0xc019003c,
+		break; case NtStatus::txf_attribute_corrupt: os << TS("txf_attribute_corrupt"); //0xc019003d,
+		break; case NtStatus::efs_not_allowed_in_transaction: os << TS("efs_not_allowed_in_transaction"); //0xc019003e,
+		break; case NtStatus::transactional_open_not_allowed: os << TS("transactional_open_not_allowed"); //0xc019003f,
+		break; case NtStatus::transacted_mapping_unsupported_remote: os << TS("transacted_mapping_unsupported_remote"); //0xc0190040,
+		break; case NtStatus::txf_metadata_already_present: os << TS("txf_metadata_already_present"); //0x80190041,
+		break; case NtStatus::transaction_scope_callbacks_not_set: os << TS("transaction_scope_callbacks_not_set"); //0x80190042,
+		break; case NtStatus::transaction_required_promotion: os << TS("transaction_required_promotion"); //0xc0190043,
+		break; case NtStatus::cannot_execute_file_in_transaction: os << TS("cannot_execute_file_in_transaction"); //0xc0190044,
+		break; case NtStatus::transactions_not_frozen: os << TS("transactions_not_frozen"); //0xc0190045,
+		break; case NtStatus::transaction_freeze_in_progress: os << TS("transaction_freeze_in_progress"); //0xc0190046,
+		break; case NtStatus::not_snapshot_volume: os << TS("not_snapshot_volume"); //0xc0190047,
+		break; case NtStatus::no_savepoint_with_open_files: os << TS("no_savepoint_with_open_files"); //0xc0190048,
+		break; case NtStatus::sparse_not_allowed_in_transaction: os << TS("sparse_not_allowed_in_transaction"); //0xc0190049,
+		break; case NtStatus::tm_identity_mismatch: os << TS("tm_identity_mismatch"); //0xc019004a,
+		break; case NtStatus::floated_section: os << TS("floated_section"); //0xc019004b,
+		break; case NtStatus::cannot_accept_transacted_work: os << TS("cannot_accept_transacted_work"); //0xc019004c,
+		break; case NtStatus::cannot_abort_transactions: os << TS("cannot_abort_transactions"); //0xc019004d,
+		break; case NtStatus::transaction_not_found: os << TS("transaction_not_found"); //0xc019004e,
+		break; case NtStatus::resourcemanager_not_found: os << TS("resourcemanager_not_found"); //0xc019004f,
+		break; case NtStatus::enlistment_not_found: os << TS("enlistment_not_found"); //0xc0190050,
+		break; case NtStatus::transactionmanager_not_found: os << TS("transactionmanager_not_found"); //0xc0190051,
+		break; case NtStatus::transactionmanager_not_online: os << TS("transactionmanager_not_online"); //0xc0190052,
+		break; case NtStatus::transactionmanager_recovery_name_collision: os << TS("transactionmanager_recovery_name_collision"); //0xc0190053,
+		break; case NtStatus::transaction_not_root: os << TS("transaction_not_root"); //0xc0190054,
+		break; case NtStatus::transaction_object_expired: os << TS("transaction_object_expired"); //0xc0190055,
+		break; case NtStatus::compression_not_allowed_in_transaction: os << TS("compression_not_allowed_in_transaction"); //0xc0190056,
+		break; case NtStatus::transaction_response_not_enlisted: os << TS("transaction_response_not_enlisted"); //0xc0190057,
+		break; case NtStatus::transaction_record_too_long: os << TS("transaction_record_too_long"); //0xc0190058,
+		break; case NtStatus::no_link_tracking_in_transaction: os << TS("no_link_tracking_in_transaction"); //0xc0190059,
+		break; case NtStatus::operation_not_supported_in_transaction: os << TS("operation_not_supported_in_transaction"); //0xc019005a,
+		break; case NtStatus::transaction_integrity_violated: os << TS("transaction_integrity_violated"); //0xc019005b,
+		break; case NtStatus::transactionmanager_identity_mismatch: os << TS("transactionmanager_identity_mismatch"); //0xc019005c,
+		break; case NtStatus::rm_cannot_be_frozen_for_snapshot: os << TS("rm_cannot_be_frozen_for_snapshot"); //0xc019005d,
+		break; case NtStatus::transaction_must_writethrough: os << TS("transaction_must_writethrough"); //0xc019005e,
+		break; case NtStatus::transaction_no_superior: os << TS("transaction_no_superior"); //0xc019005f,
+		break; case NtStatus::expired_handle: os << TS("expired_handle"); //0xc0190060,
+		break; case NtStatus::transaction_not_enlisted: os << TS("transaction_not_enlisted"); //0xc0190061,
+		break; case NtStatus::log_sector_invalid: os << TS("log_sector_invalid"); //0xc01a0001,
+		break; case NtStatus::log_sector_parity_invalid: os << TS("log_sector_parity_invalid"); //0xc01a0002,
+		break; case NtStatus::log_sector_remapped: os << TS("log_sector_remapped"); //0xc01a0003,
+		break; case NtStatus::log_block_incomplete: os << TS("log_block_incomplete"); //0xc01a0004,
+		break; case NtStatus::log_invalid_range: os << TS("log_invalid_range"); //0xc01a0005,
+		break; case NtStatus::log_blocks_exhausted: os << TS("log_blocks_exhausted"); //0xc01a0006,
+		break; case NtStatus::log_read_context_invalid: os << TS("log_read_context_invalid"); //0xc01a0007,
+		break; case NtStatus::log_restart_invalid: os << TS("log_restart_invalid"); //0xc01a0008,
+		break; case NtStatus::log_block_version: os << TS("log_block_version"); //0xc01a0009,
+		break; case NtStatus::log_block_invalid: os << TS("log_block_invalid"); //0xc01a000a,
+		break; case NtStatus::log_read_mode_invalid: os << TS("log_read_mode_invalid"); //0xc01a000b,
+		break; case NtStatus::log_no_restart: os << TS("log_no_restart"); //0x401a000c,
+		break; case NtStatus::log_metadata_corrupt: os << TS("log_metadata_corrupt"); //0xc01a000d,
+		break; case NtStatus::log_metadata_invalid: os << TS("log_metadata_invalid"); //0xc01a000e,
+		break; case NtStatus::log_metadata_inconsistent: os << TS("log_metadata_inconsistent"); //0xc01a000f,
+		break; case NtStatus::log_reservation_invalid: os << TS("log_reservation_invalid"); //0xc01a0010,
+		break; case NtStatus::log_cant_delete: os << TS("log_cant_delete"); //0xc01a0011,
+		break; case NtStatus::log_container_limit_exceeded: os << TS("log_container_limit_exceeded"); //0xc01a0012,
+		break; case NtStatus::log_start_of_log: os << TS("log_start_of_log"); //0xc01a0013,
+		break; case NtStatus::log_policy_already_installed: os << TS("log_policy_already_installed"); //0xc01a0014,
+		break; case NtStatus::log_policy_not_installed: os << TS("log_policy_not_installed"); //0xc01a0015,
+		break; case NtStatus::log_policy_invalid: os << TS("log_policy_invalid"); //0xc01a0016,
+		break; case NtStatus::log_policy_conflict: os << TS("log_policy_conflict"); //0xc01a0017,
+		break; case NtStatus::log_pinned_archive_tail: os << TS("log_pinned_archive_tail"); //0xc01a0018,
+		break; case NtStatus::log_record_nonexistent: os << TS("log_record_nonexistent"); //0xc01a0019,
+		break; case NtStatus::log_records_reserved_invalid: os << TS("log_records_reserved_invalid"); //0xc01a001a,
+		break; case NtStatus::log_space_reserved_invalid: os << TS("log_space_reserved_invalid"); //0xc01a001b,
+		break; case NtStatus::log_tail_invalid: os << TS("log_tail_invalid"); //0xc01a001c,
+		break; case NtStatus::log_full: os << TS("log_full"); //0xc01a001d,
+		break; case NtStatus::log_multiplexed: os << TS("log_multiplexed"); //0xc01a001e,
+		break; case NtStatus::log_dedicated: os << TS("log_dedicated"); //0xc01a001f,
+		break; case NtStatus::log_archive_not_in_progress: os << TS("log_archive_not_in_progress"); //0xc01a0020,
+		break; case NtStatus::log_archive_in_progress: os << TS("log_archive_in_progress"); //0xc01a0021,
+		break; case NtStatus::log_ephemeral: os << TS("log_ephemeral"); //0xc01a0022,
+		break; case NtStatus::log_not_enough_containers: os << TS("log_not_enough_containers"); //0xc01a0023,
+		break; case NtStatus::log_client_already_registered: os << TS("log_client_already_registered"); //0xc01a0024,
+		break; case NtStatus::log_client_not_registered: os << TS("log_client_not_registered"); //0xc01a0025,
+		break; case NtStatus::log_full_handler_in_progress: os << TS("log_full_handler_in_progress"); //0xc01a0026,
+		break; case NtStatus::log_container_read_failed: os << TS("log_container_read_failed"); //0xc01a0027,
+		break; case NtStatus::log_container_write_failed: os << TS("log_container_write_failed"); //0xc01a0028,
+		break; case NtStatus::log_container_open_failed: os << TS("log_container_open_failed"); //0xc01a0029,
+		break; case NtStatus::log_container_state_invalid: os << TS("log_container_state_invalid"); //0xc01a002a,
+		break; case NtStatus::log_state_invalid: os << TS("log_state_invalid"); //0xc01a002b,
+		break; case NtStatus::log_pinned: os << TS("log_pinned"); //0xc01a002c,
+		break; case NtStatus::log_metadata_flush_failed: os << TS("log_metadata_flush_failed"); //0xc01a002d,
+		break; case NtStatus::log_inconsistent_security: os << TS("log_inconsistent_security"); //0xc01a002e,
+		break; case NtStatus::log_appended_flush_failed: os << TS("log_appended_flush_failed"); //0xc01a002f,
+		break; case NtStatus::log_pinned_reservation: os << TS("log_pinned_reservation"); //0xc01a0030,
+		break; case NtStatus::video_hung_display_driver_thread: os << TS("video_hung_display_driver_thread"); //0xc01b00ea,
+		break; case NtStatus::video_hung_display_driver_thread_recovered: os << TS("video_hung_display_driver_thread_recovered"); //0x801b00eb,
+		break; case NtStatus::video_driver_debug_report_request: os << TS("video_driver_debug_report_request"); //0x401b00ec,
+		break; case NtStatus::flt_io_complete: os << TS("flt_io_complete"); //0x001c0001,
+		break; case NtStatus::flt_buffer_too_small: os << TS("flt_buffer_too_small"); //0x801c0001,
+		break; case NtStatus::flt_no_handler_defined: os << TS("flt_no_handler_defined"); //0xc01c0001,
+		break; case NtStatus::flt_context_already_defined: os << TS("flt_context_already_defined"); //0xc01c0002,
+		break; case NtStatus::flt_invalid_asynchronous_request: os << TS("flt_invalid_asynchronous_request"); //0xc01c0003,
+		break; case NtStatus::flt_disallow_fast_io: os << TS("flt_disallow_fast_io"); //0xc01c0004,
+		break; case NtStatus::flt_invalid_name_request: os << TS("flt_invalid_name_request"); //0xc01c0005,
+		break; case NtStatus::flt_not_safe_to_post_operation: os << TS("flt_not_safe_to_post_operation"); //0xc01c0006,
+		break; case NtStatus::flt_not_initialized: os << TS("flt_not_initialized"); //0xc01c0007,
+		break; case NtStatus::flt_filter_not_ready: os << TS("flt_filter_not_ready"); //0xc01c0008,
+		break; case NtStatus::flt_post_operation_cleanup: os << TS("flt_post_operation_cleanup"); //0xc01c0009,
+		break; case NtStatus::flt_internal_error: os << TS("flt_internal_error"); //0xc01c000a,
+		break; case NtStatus::flt_deleting_object: os << TS("flt_deleting_object"); //0xc01c000b,
+		break; case NtStatus::flt_must_be_nonpaged_pool: os << TS("flt_must_be_nonpaged_pool"); //0xc01c000c,
+		break; case NtStatus::flt_duplicate_entry: os << TS("flt_duplicate_entry"); //0xc01c000d,
+		break; case NtStatus::flt_cbdq_disabled: os << TS("flt_cbdq_disabled"); //0xc01c000e,
+		break; case NtStatus::flt_do_not_attach: os << TS("flt_do_not_attach"); //0xc01c000f,
+		break; case NtStatus::flt_do_not_detach: os << TS("flt_do_not_detach"); //0xc01c0010,
+		break; case NtStatus::flt_instance_altitude_collision: os << TS("flt_instance_altitude_collision"); //0xc01c0011,
+		break; case NtStatus::flt_instance_name_collision: os << TS("flt_instance_name_collision"); //0xc01c0012,
+		break; case NtStatus::flt_filter_not_found: os << TS("flt_filter_not_found"); //0xc01c0013,
+		break; case NtStatus::flt_volume_not_found: os << TS("flt_volume_not_found"); //0xc01c0014,
+		break; case NtStatus::flt_instance_not_found: os << TS("flt_instance_not_found"); //0xc01c0015,
+		break; case NtStatus::flt_context_allocation_not_found: os << TS("flt_context_allocation_not_found"); //0xc01c0016,
+		break; case NtStatus::flt_invalid_context_registration: os << TS("flt_invalid_context_registration"); //0xc01c0017,
+		break; case NtStatus::flt_name_cache_miss: os << TS("flt_name_cache_miss"); //0xc01c0018,
+		break; case NtStatus::flt_no_device_object: os << TS("flt_no_device_object"); //0xc01c0019,
+		break; case NtStatus::flt_volume_already_mounted: os << TS("flt_volume_already_mounted"); //0xc01c001a,
+		break; case NtStatus::flt_already_enlisted: os << TS("flt_already_enlisted"); //0xc01c001b,
+		break; case NtStatus::flt_context_already_linked: os << TS("flt_context_already_linked"); //0xc01c001c,
+		break; case NtStatus::flt_no_waiter_for_reply: os << TS("flt_no_waiter_for_reply"); //0xc01c0020,
+		break; case NtStatus::flt_registration_busy: os << TS("flt_registration_busy"); //0xc01c0023,
+		break; case NtStatus::flt_wcos_not_supported: os << TS("flt_wcos_not_supported"); //0xc01c0024,
+		break; case NtStatus::monitor_no_descriptor: os << TS("monitor_no_descriptor"); //0xc01d0001,
+		break; case NtStatus::monitor_unknown_descriptor_format: os << TS("monitor_unknown_descriptor_format"); //0xc01d0002,
+		break; case NtStatus::monitor_invalid_descriptor_checksum: os << TS("monitor_invalid_descriptor_checksum"); //0xc01d0003,
+		break; case NtStatus::monitor_invalid_standard_timing_block: os << TS("monitor_invalid_standard_timing_block"); //0xc01d0004,
+		break; case NtStatus::monitor_wmi_datablock_registration_failed: os << TS("monitor_wmi_datablock_registration_failed"); //0xc01d0005,
+		break; case NtStatus::monitor_invalid_serial_number_mondsc_block: os << TS("monitor_invalid_serial_number_mondsc_block"); //0xc01d0006,
+		break; case NtStatus::monitor_invalid_user_friendly_mondsc_block: os << TS("monitor_invalid_user_friendly_mondsc_block"); //0xc01d0007,
+		break; case NtStatus::monitor_no_more_descriptor_data: os << TS("monitor_no_more_descriptor_data"); //0xc01d0008,
+		break; case NtStatus::monitor_invalid_detailed_timing_block: os << TS("monitor_invalid_detailed_timing_block"); //0xc01d0009,
+		break; case NtStatus::monitor_invalid_manufacture_date: os << TS("monitor_invalid_manufacture_date"); //0xc01d000a,
+		break; case NtStatus::graphics_link_configuration_in_progress: os << TS("graphics_link_configuration_in_progress"); //0x801e0000,
+		break; case NtStatus::graphics_not_exclusive_mode_owner: os << TS("graphics_not_exclusive_mode_owner"); //0xc01e0000,
+		break; case NtStatus::graphics_insufficient_dma_buffer: os << TS("graphics_insufficient_dma_buffer"); //0xc01e0001,
+		break; case NtStatus::graphics_invalid_display_adapter: os << TS("graphics_invalid_display_adapter"); //0xc01e0002,
+		break; case NtStatus::graphics_adapter_was_reset: os << TS("graphics_adapter_was_reset"); //0xc01e0003,
+		break; case NtStatus::graphics_invalid_driver_model: os << TS("graphics_invalid_driver_model"); //0xc01e0004,
+		break; case NtStatus::graphics_present_mode_changed: os << TS("graphics_present_mode_changed"); //0xc01e0005,
+		break; case NtStatus::graphics_present_occluded: os << TS("graphics_present_occluded"); //0xc01e0006,
+		break; case NtStatus::graphics_present_denied: os << TS("graphics_present_denied"); //0xc01e0007,
+		break; case NtStatus::graphics_cannotcolorconvert: os << TS("graphics_cannotcolorconvert"); //0xc01e0008,
+		break; case NtStatus::graphics_driver_mismatch: os << TS("graphics_driver_mismatch"); //0xc01e0009,
+		break; case NtStatus::graphics_partial_data_populated: os << TS("graphics_partial_data_populated"); //0x401e000a,
+		break; case NtStatus::graphics_present_redirection_disabled: os << TS("graphics_present_redirection_disabled"); //0xc01e000b,
+		break; case NtStatus::graphics_present_unoccluded: os << TS("graphics_present_unoccluded"); //0xc01e000c,
+		break; case NtStatus::graphics_windowdc_not_available: os << TS("graphics_windowdc_not_available"); //0xc01e000d,
+		break; case NtStatus::graphics_windowless_present_disabled: os << TS("graphics_windowless_present_disabled"); //0xc01e000e,
+		break; case NtStatus::graphics_present_invalid_window: os << TS("graphics_present_invalid_window"); //0xc01e000f,
+		break; case NtStatus::graphics_present_buffer_not_bound: os << TS("graphics_present_buffer_not_bound"); //0xc01e0010,
+		break; case NtStatus::graphics_vail_state_changed: os << TS("graphics_vail_state_changed"); //0xc01e0011,
+		break; case NtStatus::graphics_indirect_display_abandon_swapchain: os << TS("graphics_indirect_display_abandon_swapchain"); //0xc01e0012,
+		break; case NtStatus::graphics_indirect_display_device_stopped: os << TS("graphics_indirect_display_device_stopped"); //0xc01e0013,
+		break; case NtStatus::graphics_mpo_allocation_unpinned: os << TS("graphics_mpo_allocation_unpinned"); //0xc01e0018,
+		break; case NtStatus::graphics_no_video_memory: os << TS("graphics_no_video_memory"); //0xc01e0100,
+		break; case NtStatus::graphics_cant_lock_memory: os << TS("graphics_cant_lock_memory"); //0xc01e0101,
+		break; case NtStatus::graphics_allocation_busy: os << TS("graphics_allocation_busy"); //0xc01e0102,
+		break; case NtStatus::graphics_too_many_references: os << TS("graphics_too_many_references"); //0xc01e0103,
+		break; case NtStatus::graphics_try_again_later: os << TS("graphics_try_again_later"); //0xc01e0104,
+		break; case NtStatus::graphics_try_again_now: os << TS("graphics_try_again_now"); //0xc01e0105,
+		break; case NtStatus::graphics_allocation_invalid: os << TS("graphics_allocation_invalid"); //0xc01e0106,
+		break; case NtStatus::graphics_unswizzling_aperture_unavailable: os << TS("graphics_unswizzling_aperture_unavailable"); //0xc01e0107,
+		break; case NtStatus::graphics_unswizzling_aperture_unsupported: os << TS("graphics_unswizzling_aperture_unsupported"); //0xc01e0108,
+		break; case NtStatus::graphics_cant_evict_pinned_allocation: os << TS("graphics_cant_evict_pinned_allocation"); //0xc01e0109,
+		break; case NtStatus::graphics_invalid_allocation_usage: os << TS("graphics_invalid_allocation_usage"); //0xc01e0110,
+		break; case NtStatus::graphics_cant_render_locked_allocation: os << TS("graphics_cant_render_locked_allocation"); //0xc01e0111,
+		break; case NtStatus::graphics_allocation_closed: os << TS("graphics_allocation_closed"); //0xc01e0112,
+		break; case NtStatus::graphics_invalid_allocation_instance: os << TS("graphics_invalid_allocation_instance"); //0xc01e0113,
+		break; case NtStatus::graphics_invalid_allocation_handle: os << TS("graphics_invalid_allocation_handle"); //0xc01e0114,
+		break; case NtStatus::graphics_wrong_allocation_device: os << TS("graphics_wrong_allocation_device"); //0xc01e0115,
+		break; case NtStatus::graphics_allocation_content_lost: os << TS("graphics_allocation_content_lost"); //0xc01e0116,
+		break; case NtStatus::graphics_gpu_exception_on_device: os << TS("graphics_gpu_exception_on_device"); //0xc01e0200,
+		break; case NtStatus::graphics_skip_allocation_preparation: os << TS("graphics_skip_allocation_preparation"); //0x401e0201,
+		break; case NtStatus::graphics_invalid_vidpn_topology: os << TS("graphics_invalid_vidpn_topology"); //0xc01e0300,
+		break; case NtStatus::graphics_vidpn_topology_not_supported: os << TS("graphics_vidpn_topology_not_supported"); //0xc01e0301,
+		break; case NtStatus::graphics_vidpn_topology_currently_not_supported: os << TS("graphics_vidpn_topology_currently_not_supported"); //0xc01e0302,
+		break; case NtStatus::graphics_invalid_vidpn: os << TS("graphics_invalid_vidpn"); //0xc01e0303,
+		break; case NtStatus::graphics_invalid_video_present_source: os << TS("graphics_invalid_video_present_source"); //0xc01e0304,
+		break; case NtStatus::graphics_invalid_video_present_target: os << TS("graphics_invalid_video_present_target"); //0xc01e0305,
+		break; case NtStatus::graphics_vidpn_modality_not_supported: os << TS("graphics_vidpn_modality_not_supported"); //0xc01e0306,
+		break; case NtStatus::graphics_mode_not_pinned: os << TS("graphics_mode_not_pinned"); //0x401e0307,
+		break; case NtStatus::graphics_invalid_vidpn_sourcemodeset: os << TS("graphics_invalid_vidpn_sourcemodeset"); //0xc01e0308,
+		break; case NtStatus::graphics_invalid_vidpn_targetmodeset: os << TS("graphics_invalid_vidpn_targetmodeset"); //0xc01e0309,
+		break; case NtStatus::graphics_invalid_frequency: os << TS("graphics_invalid_frequency"); //0xc01e030a,
+		break; case NtStatus::graphics_invalid_active_region: os << TS("graphics_invalid_active_region"); //0xc01e030b,
+		break; case NtStatus::graphics_invalid_total_region: os << TS("graphics_invalid_total_region"); //0xc01e030c,
+		break; case NtStatus::graphics_invalid_video_present_source_mode: os << TS("graphics_invalid_video_present_source_mode"); //0xc01e0310,
+		break; case NtStatus::graphics_invalid_video_present_target_mode: os << TS("graphics_invalid_video_present_target_mode"); //0xc01e0311,
+		break; case NtStatus::graphics_pinned_mode_must_remain_in_set: os << TS("graphics_pinned_mode_must_remain_in_set"); //0xc01e0312,
+		break; case NtStatus::graphics_path_already_in_topology: os << TS("graphics_path_already_in_topology"); //0xc01e0313,
+		break; case NtStatus::graphics_mode_already_in_modeset: os << TS("graphics_mode_already_in_modeset"); //0xc01e0314,
+		break; case NtStatus::graphics_invalid_videopresentsourceset: os << TS("graphics_invalid_videopresentsourceset"); //0xc01e0315,
+		break; case NtStatus::graphics_invalid_videopresenttargetset: os << TS("graphics_invalid_videopresenttargetset"); //0xc01e0316,
+		break; case NtStatus::graphics_source_already_in_set: os << TS("graphics_source_already_in_set"); //0xc01e0317,
+		break; case NtStatus::graphics_target_already_in_set: os << TS("graphics_target_already_in_set"); //0xc01e0318,
+		break; case NtStatus::graphics_invalid_vidpn_present_path: os << TS("graphics_invalid_vidpn_present_path"); //0xc01e0319,
+		break; case NtStatus::graphics_no_recommended_vidpn_topology: os << TS("graphics_no_recommended_vidpn_topology"); //0xc01e031a,
+		break; case NtStatus::graphics_invalid_monitor_frequencyrangeset: os << TS("graphics_invalid_monitor_frequencyrangeset"); //0xc01e031b,
+		break; case NtStatus::graphics_invalid_monitor_frequencyrange: os << TS("graphics_invalid_monitor_frequencyrange"); //0xc01e031c,
+		break; case NtStatus::graphics_frequencyrange_not_in_set: os << TS("graphics_frequencyrange_not_in_set"); //0xc01e031d,
+		break; case NtStatus::graphics_no_preferred_mode: os << TS("graphics_no_preferred_mode"); //0x401e031e,
+		break; case NtStatus::graphics_frequencyrange_already_in_set: os << TS("graphics_frequencyrange_already_in_set"); //0xc01e031f,
+		break; case NtStatus::graphics_stale_modeset: os << TS("graphics_stale_modeset"); //0xc01e0320,
+		break; case NtStatus::graphics_invalid_monitor_sourcemodeset: os << TS("graphics_invalid_monitor_sourcemodeset"); //0xc01e0321,
+		break; case NtStatus::graphics_invalid_monitor_source_mode: os << TS("graphics_invalid_monitor_source_mode"); //0xc01e0322,
+		break; case NtStatus::graphics_no_recommended_functional_vidpn: os << TS("graphics_no_recommended_functional_vidpn"); //0xc01e0323,
+		break; case NtStatus::graphics_mode_id_must_be_unique: os << TS("graphics_mode_id_must_be_unique"); //0xc01e0324,
+		break; case NtStatus::graphics_empty_adapter_monitor_mode_support_intersection: os << TS("graphics_empty_adapter_monitor_mode_support_intersection"); //0xc01e0325,
+		break; case NtStatus::graphics_video_present_targets_less_than_sources: os << TS("graphics_video_present_targets_less_than_sources"); //0xc01e0326,
+		break; case NtStatus::graphics_path_not_in_topology: os << TS("graphics_path_not_in_topology"); //0xc01e0327,
+		break; case NtStatus::graphics_adapter_must_have_at_least_one_source: os << TS("graphics_adapter_must_have_at_least_one_source"); //0xc01e0328,
+		break; case NtStatus::graphics_adapter_must_have_at_least_one_target: os << TS("graphics_adapter_must_have_at_least_one_target"); //0xc01e0329,
+		break; case NtStatus::graphics_invalid_monitordescriptorset: os << TS("graphics_invalid_monitordescriptorset"); //0xc01e032a,
+		break; case NtStatus::graphics_invalid_monitordescriptor: os << TS("graphics_invalid_monitordescriptor"); //0xc01e032b,
+		break; case NtStatus::graphics_monitordescriptor_not_in_set: os << TS("graphics_monitordescriptor_not_in_set"); //0xc01e032c,
+		break; case NtStatus::graphics_monitordescriptor_already_in_set: os << TS("graphics_monitordescriptor_already_in_set"); //0xc01e032d,
+		break; case NtStatus::graphics_monitordescriptor_id_must_be_unique: os << TS("graphics_monitordescriptor_id_must_be_unique"); //0xc01e032e,
+		break; case NtStatus::graphics_invalid_vidpn_target_subset_type: os << TS("graphics_invalid_vidpn_target_subset_type"); //0xc01e032f,
+		break; case NtStatus::graphics_resources_not_related: os << TS("graphics_resources_not_related"); //0xc01e0330,
+		break; case NtStatus::graphics_source_id_must_be_unique: os << TS("graphics_source_id_must_be_unique"); //0xc01e0331,
+		break; case NtStatus::graphics_target_id_must_be_unique: os << TS("graphics_target_id_must_be_unique"); //0xc01e0332,
+		break; case NtStatus::graphics_no_available_vidpn_target: os << TS("graphics_no_available_vidpn_target"); //0xc01e0333,
+		break; case NtStatus::graphics_monitor_could_not_be_associated_with_adapter: os << TS("graphics_monitor_could_not_be_associated_with_adapter"); //0xc01e0334,
+		break; case NtStatus::graphics_no_vidpnmgr: os << TS("graphics_no_vidpnmgr"); //0xc01e0335,
+		break; case NtStatus::graphics_no_active_vidpn: os << TS("graphics_no_active_vidpn"); //0xc01e0336,
+		break; case NtStatus::graphics_stale_vidpn_topology: os << TS("graphics_stale_vidpn_topology"); //0xc01e0337,
+		break; case NtStatus::graphics_monitor_not_connected: os << TS("graphics_monitor_not_connected"); //0xc01e0338,
+		break; case NtStatus::graphics_source_not_in_topology: os << TS("graphics_source_not_in_topology"); //0xc01e0339,
+		break; case NtStatus::graphics_invalid_primarysurface_size: os << TS("graphics_invalid_primarysurface_size"); //0xc01e033a,
+		break; case NtStatus::graphics_invalid_visibleregion_size: os << TS("graphics_invalid_visibleregion_size"); //0xc01e033b,
+		break; case NtStatus::graphics_invalid_stride: os << TS("graphics_invalid_stride"); //0xc01e033c,
+		break; case NtStatus::graphics_invalid_pixelformat: os << TS("graphics_invalid_pixelformat"); //0xc01e033d,
+		break; case NtStatus::graphics_invalid_colorbasis: os << TS("graphics_invalid_colorbasis"); //0xc01e033e,
+		break; case NtStatus::graphics_invalid_pixelvalueaccessmode: os << TS("graphics_invalid_pixelvalueaccessmode"); //0xc01e033f,
+		break; case NtStatus::graphics_target_not_in_topology: os << TS("graphics_target_not_in_topology"); //0xc01e0340,
+		break; case NtStatus::graphics_no_display_mode_management_support: os << TS("graphics_no_display_mode_management_support"); //0xc01e0341,
+		break; case NtStatus::graphics_vidpn_source_in_use: os << TS("graphics_vidpn_source_in_use"); //0xc01e0342,
+		break; case NtStatus::graphics_cant_access_active_vidpn: os << TS("graphics_cant_access_active_vidpn"); //0xc01e0343,
+		break; case NtStatus::graphics_invalid_path_importance_ordinal: os << TS("graphics_invalid_path_importance_ordinal"); //0xc01e0344,
+		break; case NtStatus::graphics_invalid_path_content_geometry_transformation: os << TS("graphics_invalid_path_content_geometry_transformation"); //0xc01e0345,
+		break; case NtStatus::graphics_path_content_geometry_transformation_not_supported: os << TS("graphics_path_content_geometry_transformation_not_supported"); //0xc01e0346,
+		break; case NtStatus::graphics_invalid_gamma_ramp: os << TS("graphics_invalid_gamma_ramp"); //0xc01e0347,
+		break; case NtStatus::graphics_gamma_ramp_not_supported: os << TS("graphics_gamma_ramp_not_supported"); //0xc01e0348,
+		break; case NtStatus::graphics_multisampling_not_supported: os << TS("graphics_multisampling_not_supported"); //0xc01e0349,
+		break; case NtStatus::graphics_mode_not_in_modeset: os << TS("graphics_mode_not_in_modeset"); //0xc01e034a,
+		break; case NtStatus::graphics_dataset_is_empty: os << TS("graphics_dataset_is_empty"); //0x401e034b,
+		break; case NtStatus::graphics_no_more_elements_in_dataset: os << TS("graphics_no_more_elements_in_dataset"); //0x401e034c,
+		break; case NtStatus::graphics_invalid_vidpn_topology_recommendation_reason: os << TS("graphics_invalid_vidpn_topology_recommendation_reason"); //0xc01e034d,
+		break; case NtStatus::graphics_invalid_path_content_type: os << TS("graphics_invalid_path_content_type"); //0xc01e034e,
+		break; case NtStatus::graphics_invalid_copyprotection_type: os << TS("graphics_invalid_copyprotection_type"); //0xc01e034f,
+		break; case NtStatus::graphics_unassigned_modeset_already_exists: os << TS("graphics_unassigned_modeset_already_exists"); //0xc01e0350,
+		break; case NtStatus::graphics_path_content_geometry_transformation_not_pinned: os << TS("graphics_path_content_geometry_transformation_not_pinned"); //0x401e0351,
+		break; case NtStatus::graphics_invalid_scanline_ordering: os << TS("graphics_invalid_scanline_ordering"); //0xc01e0352,
+		break; case NtStatus::graphics_topology_changes_not_allowed: os << TS("graphics_topology_changes_not_allowed"); //0xc01e0353,
+		break; case NtStatus::graphics_no_available_importance_ordinals: os << TS("graphics_no_available_importance_ordinals"); //0xc01e0354,
+		break; case NtStatus::graphics_incompatible_private_format: os << TS("graphics_incompatible_private_format"); //0xc01e0355,
+		break; case NtStatus::graphics_invalid_mode_pruning_algorithm: os << TS("graphics_invalid_mode_pruning_algorithm"); //0xc01e0356,
+		break; case NtStatus::graphics_invalid_monitor_capability_origin: os << TS("graphics_invalid_monitor_capability_origin"); //0xc01e0357,
+		break; case NtStatus::graphics_invalid_monitor_frequencyrange_constraint: os << TS("graphics_invalid_monitor_frequencyrange_constraint"); //0xc01e0358,
+		break; case NtStatus::graphics_max_num_paths_reached: os << TS("graphics_max_num_paths_reached"); //0xc01e0359,
+		break; case NtStatus::graphics_cancel_vidpn_topology_augmentation: os << TS("graphics_cancel_vidpn_topology_augmentation"); //0xc01e035a,
+		break; case NtStatus::graphics_invalid_client_type: os << TS("graphics_invalid_client_type"); //0xc01e035b,
+		break; case NtStatus::graphics_clientvidpn_not_set: os << TS("graphics_clientvidpn_not_set"); //0xc01e035c,
+		break; case NtStatus::graphics_specified_child_already_connected: os << TS("graphics_specified_child_already_connected"); //0xc01e0400,
+		break; case NtStatus::graphics_child_descriptor_not_supported: os << TS("graphics_child_descriptor_not_supported"); //0xc01e0401,
+		break; case NtStatus::graphics_unknown_child_status: os << TS("graphics_unknown_child_status"); //0x401e042f,
+		break; case NtStatus::graphics_not_a_linked_adapter: os << TS("graphics_not_a_linked_adapter"); //0xc01e0430,
+		break; case NtStatus::graphics_leadlink_not_enumerated: os << TS("graphics_leadlink_not_enumerated"); //0xc01e0431,
+		break; case NtStatus::graphics_chainlinks_not_enumerated: os << TS("graphics_chainlinks_not_enumerated"); //0xc01e0432,
+		break; case NtStatus::graphics_adapter_chain_not_ready: os << TS("graphics_adapter_chain_not_ready"); //0xc01e0433,
+		break; case NtStatus::graphics_chainlinks_not_started: os << TS("graphics_chainlinks_not_started"); //0xc01e0434,
+		break; case NtStatus::graphics_chainlinks_not_powered_on: os << TS("graphics_chainlinks_not_powered_on"); //0xc01e0435,
+		break; case NtStatus::graphics_inconsistent_device_link_state: os << TS("graphics_inconsistent_device_link_state"); //0xc01e0436,
+		break; case NtStatus::graphics_leadlink_start_deferred: os << TS("graphics_leadlink_start_deferred"); //0x401e0437,
+		break; case NtStatus::graphics_not_post_device_driver: os << TS("graphics_not_post_device_driver"); //0xc01e0438,
+		break; case NtStatus::graphics_polling_too_frequently: os << TS("graphics_polling_too_frequently"); //0x401e0439,
+		break; case NtStatus::graphics_start_deferred: os << TS("graphics_start_deferred"); //0x401e043a,
+		break; case NtStatus::graphics_adapter_access_not_excluded: os << TS("graphics_adapter_access_not_excluded"); //0xc01e043b,
+		break; case NtStatus::graphics_dependable_child_status: os << TS("graphics_dependable_child_status"); //0x401e043c,
+		break; case NtStatus::graphics_opm_not_supported: os << TS("graphics_opm_not_supported"); //0xc01e0500,
+		break; case NtStatus::graphics_copp_not_supported: os << TS("graphics_copp_not_supported"); //0xc01e0501,
+		break; case NtStatus::graphics_uab_not_supported: os << TS("graphics_uab_not_supported"); //0xc01e0502,
+		break; case NtStatus::graphics_opm_invalid_encrypted_parameters: os << TS("graphics_opm_invalid_encrypted_parameters"); //0xc01e0503,
+		break; case NtStatus::graphics_opm_no_protected_outputs_exist: os << TS("graphics_opm_no_protected_outputs_exist"); //0xc01e0505,
+		break; case NtStatus::graphics_opm_internal_error: os << TS("graphics_opm_internal_error"); //0xc01e050b,
+		break; case NtStatus::graphics_opm_invalid_handle: os << TS("graphics_opm_invalid_handle"); //0xc01e050c,
+		break; case NtStatus::graphics_pvp_invalid_certificate_length: os << TS("graphics_pvp_invalid_certificate_length"); //0xc01e050e,
+		break; case NtStatus::graphics_opm_spanning_mode_enabled: os << TS("graphics_opm_spanning_mode_enabled"); //0xc01e050f,
+		break; case NtStatus::graphics_opm_theater_mode_enabled: os << TS("graphics_opm_theater_mode_enabled"); //0xc01e0510,
+		break; case NtStatus::graphics_pvp_hfs_failed: os << TS("graphics_pvp_hfs_failed"); //0xc01e0511,
+		break; case NtStatus::graphics_opm_invalid_srm: os << TS("graphics_opm_invalid_srm"); //0xc01e0512,
+		break; case NtStatus::graphics_opm_output_does_not_support_hdcp: os << TS("graphics_opm_output_does_not_support_hdcp"); //0xc01e0513,
+		break; case NtStatus::graphics_opm_output_does_not_support_acp: os << TS("graphics_opm_output_does_not_support_acp"); //0xc01e0514,
+		break; case NtStatus::graphics_opm_output_does_not_support_cgmsa: os << TS("graphics_opm_output_does_not_support_cgmsa"); //0xc01e0515,
+		break; case NtStatus::graphics_opm_hdcp_srm_never_set: os << TS("graphics_opm_hdcp_srm_never_set"); //0xc01e0516,
+		break; case NtStatus::graphics_opm_resolution_too_high: os << TS("graphics_opm_resolution_too_high"); //0xc01e0517,
+		break; case NtStatus::graphics_opm_all_hdcp_hardware_already_in_use: os << TS("graphics_opm_all_hdcp_hardware_already_in_use"); //0xc01e0518,
+		break; case NtStatus::graphics_opm_protected_output_no_longer_exists: os << TS("graphics_opm_protected_output_no_longer_exists"); //0xc01e051a,
+		break; case NtStatus::graphics_opm_protected_output_does_not_have_copp_semantics: os << TS("graphics_opm_protected_output_does_not_have_copp_semantics"); //0xc01e051c,
+		break; case NtStatus::graphics_opm_invalid_information_request: os << TS("graphics_opm_invalid_information_request"); //0xc01e051d,
+		break; case NtStatus::graphics_opm_driver_internal_error: os << TS("graphics_opm_driver_internal_error"); //0xc01e051e,
+		break; case NtStatus::graphics_opm_protected_output_does_not_have_opm_semantics: os << TS("graphics_opm_protected_output_does_not_have_opm_semantics"); //0xc01e051f,
+		break; case NtStatus::graphics_opm_signaling_not_supported: os << TS("graphics_opm_signaling_not_supported"); //0xc01e0520,
+		break; case NtStatus::graphics_opm_invalid_configuration_request: os << TS("graphics_opm_invalid_configuration_request"); //0xc01e0521,
+		break; case NtStatus::graphics_i2c_not_supported: os << TS("graphics_i2c_not_supported"); //0xc01e0580,
+		break; case NtStatus::graphics_i2c_device_does_not_exist: os << TS("graphics_i2c_device_does_not_exist"); //0xc01e0581,
+		break; case NtStatus::graphics_i2c_error_transmitting_data: os << TS("graphics_i2c_error_transmitting_data"); //0xc01e0582,
+		break; case NtStatus::graphics_i2c_error_receiving_data: os << TS("graphics_i2c_error_receiving_data"); //0xc01e0583,
+		break; case NtStatus::graphics_ddcci_vcp_not_supported: os << TS("graphics_ddcci_vcp_not_supported"); //0xc01e0584,
+		break; case NtStatus::graphics_ddcci_invalid_data: os << TS("graphics_ddcci_invalid_data"); //0xc01e0585,
+		break; case NtStatus::graphics_ddcci_monitor_returned_invalid_timing_status_byte: os << TS("graphics_ddcci_monitor_returned_invalid_timing_status_byte"); //0xc01e0586,
+		break; case NtStatus::graphics_ddcci_invalid_capabilities_string: os << TS("graphics_ddcci_invalid_capabilities_string"); //0xc01e0587,
+		break; case NtStatus::graphics_mca_internal_error: os << TS("graphics_mca_internal_error"); //0xc01e0588,
+		break; case NtStatus::graphics_ddcci_invalid_message_command: os << TS("graphics_ddcci_invalid_message_command"); //0xc01e0589,
+		break; case NtStatus::graphics_ddcci_invalid_message_length: os << TS("graphics_ddcci_invalid_message_length"); //0xc01e058a,
+		break; case NtStatus::graphics_ddcci_invalid_message_checksum: os << TS("graphics_ddcci_invalid_message_checksum"); //0xc01e058b,
+		break; case NtStatus::graphics_invalid_physical_monitor_handle: os << TS("graphics_invalid_physical_monitor_handle"); //0xc01e058c,
+		break; case NtStatus::graphics_monitor_no_longer_exists: os << TS("graphics_monitor_no_longer_exists"); //0xc01e058d,
+		break; case NtStatus::graphics_only_console_session_supported: os << TS("graphics_only_console_session_supported"); //0xc01e05e0,
+		break; case NtStatus::graphics_no_display_device_corresponds_to_name: os << TS("graphics_no_display_device_corresponds_to_name"); //0xc01e05e1,
+		break; case NtStatus::graphics_display_device_not_attached_to_desktop: os << TS("graphics_display_device_not_attached_to_desktop"); //0xc01e05e2,
+		break; case NtStatus::graphics_mirroring_devices_not_supported: os << TS("graphics_mirroring_devices_not_supported"); //0xc01e05e3,
+		break; case NtStatus::graphics_invalid_pointer: os << TS("graphics_invalid_pointer"); //0xc01e05e4,
+		break; case NtStatus::graphics_no_monitors_correspond_to_display_device: os << TS("graphics_no_monitors_correspond_to_display_device"); //0xc01e05e5,
+		break; case NtStatus::graphics_parameter_array_too_small: os << TS("graphics_parameter_array_too_small"); //0xc01e05e6,
+		break; case NtStatus::graphics_internal_error: os << TS("graphics_internal_error"); //0xc01e05e7,
+		break; case NtStatus::graphics_session_type_change_in_progress: os << TS("graphics_session_type_change_in_progress"); //0xc01e05e8,
+		break; case NtStatus::fve_locked_volume: os << TS("fve_locked_volume"); //0xc0210000,
+		break; case NtStatus::fve_partial_metadata: os << TS("fve_partial_metadata"); //0x80210001,
+		break; case NtStatus::fve_not_encrypted: os << TS("fve_not_encrypted"); //0xc0210001,
+		break; case NtStatus::fve_transient_state: os << TS("fve_transient_state"); //0x80210002,
+		break; case NtStatus::fve_bad_information: os << TS("fve_bad_information"); //0xc0210002,
+		break; case NtStatus::fve_too_small: os << TS("fve_too_small"); //0xc0210003,
+		break; case NtStatus::fve_failed_wrong_fs: os << TS("fve_failed_wrong_fs"); //0xc0210004,
+		break; case NtStatus::fve_bad_partition_size: os << TS("fve_bad_partition_size"); //0xc0210005,
+		break; case NtStatus::fve_fs_not_extended: os << TS("fve_fs_not_extended"); //0xc0210006,
+		break; case NtStatus::fve_fs_mounted: os << TS("fve_fs_mounted"); //0xc0210007,
+		break; case NtStatus::fve_no_license: os << TS("fve_no_license"); //0xc0210008,
+		break; case NtStatus::fve_action_not_allowed: os << TS("fve_action_not_allowed"); //0xc0210009,
+		break; case NtStatus::fve_bad_data: os << TS("fve_bad_data"); //0xc021000a,
+		break; case NtStatus::fve_volume_not_bound: os << TS("fve_volume_not_bound"); //0xc021000b,
+		break; case NtStatus::fve_not_data_volume: os << TS("fve_not_data_volume"); //0xc021000c,
+		break; case NtStatus::fve_conv_read_error: os << TS("fve_conv_read_error"); //0xc021000d,
+		break; case NtStatus::fve_conv_write_error: os << TS("fve_conv_write_error"); //0xc021000e,
+		break; case NtStatus::fve_overlapped_update: os << TS("fve_overlapped_update"); //0xc021000f,
+		break; case NtStatus::fve_failed_sector_size: os << TS("fve_failed_sector_size"); //0xc0210010,
+		break; case NtStatus::fve_failed_authentication: os << TS("fve_failed_authentication"); //0xc0210011,
+		break; case NtStatus::fve_not_os_volume: os << TS("fve_not_os_volume"); //0xc0210012,
+		break; case NtStatus::fve_keyfile_not_found: os << TS("fve_keyfile_not_found"); //0xc0210013,
+		break; case NtStatus::fve_keyfile_invalid: os << TS("fve_keyfile_invalid"); //0xc0210014,
+		break; case NtStatus::fve_keyfile_no_vmk: os << TS("fve_keyfile_no_vmk"); //0xc0210015,
+		break; case NtStatus::fve_tpm_disabled: os << TS("fve_tpm_disabled"); //0xc0210016,
+		break; case NtStatus::fve_tpm_srk_auth_not_zero: os << TS("fve_tpm_srk_auth_not_zero"); //0xc0210017,
+		break; case NtStatus::fve_tpm_invalid_pcr: os << TS("fve_tpm_invalid_pcr"); //0xc0210018,
+		break; case NtStatus::fve_tpm_no_vmk: os << TS("fve_tpm_no_vmk"); //0xc0210019,
+		break; case NtStatus::fve_pin_invalid: os << TS("fve_pin_invalid"); //0xc021001a,
+		break; case NtStatus::fve_auth_invalid_application: os << TS("fve_auth_invalid_application"); //0xc021001b,
+		break; case NtStatus::fve_auth_invalid_config: os << TS("fve_auth_invalid_config"); //0xc021001c,
+		break; case NtStatus::fve_debugger_enabled: os << TS("fve_debugger_enabled"); //0xc021001d,
+		break; case NtStatus::fve_dry_run_failed: os << TS("fve_dry_run_failed"); //0xc021001e,
+		break; case NtStatus::fve_bad_metadata_pointer: os << TS("fve_bad_metadata_pointer"); //0xc021001f,
+		break; case NtStatus::fve_old_metadata_copy: os << TS("fve_old_metadata_copy"); //0xc0210020,
+		break; case NtStatus::fve_reboot_required: os << TS("fve_reboot_required"); //0xc0210021,
+		break; case NtStatus::fve_raw_access: os << TS("fve_raw_access"); //0xc0210022,
+		break; case NtStatus::fve_raw_blocked: os << TS("fve_raw_blocked"); //0xc0210023,
+		break; case NtStatus::fve_no_autounlock_master_key: os << TS("fve_no_autounlock_master_key"); //0xc0210024,
+		break; case NtStatus::fve_mor_failed: os << TS("fve_mor_failed"); //0xc0210025,
+		break; case NtStatus::fve_no_feature_license: os << TS("fve_no_feature_license"); //0xc0210026,
+		break; case NtStatus::fve_policy_user_disable_rdv_not_allowed: os << TS("fve_policy_user_disable_rdv_not_allowed"); //0xc0210027,
+		break; case NtStatus::fve_conv_recovery_failed: os << TS("fve_conv_recovery_failed"); //0xc0210028,
+		break; case NtStatus::fve_virtualized_space_too_big: os << TS("fve_virtualized_space_too_big"); //0xc0210029,
+		break; case NtStatus::fve_invalid_datum_type: os << TS("fve_invalid_datum_type"); //0xc021002a,
+		break; case NtStatus::fve_volume_too_small: os << TS("fve_volume_too_small"); //0xc0210030,
+		break; case NtStatus::fve_enh_pin_invalid: os << TS("fve_enh_pin_invalid"); //0xc0210031,
+		break; case NtStatus::fve_full_encryption_not_allowed_on_tp_storage: os << TS("fve_full_encryption_not_allowed_on_tp_storage"); //0xc0210032,
+		break; case NtStatus::fve_wipe_not_allowed_on_tp_storage: os << TS("fve_wipe_not_allowed_on_tp_storage"); //0xc0210033,
+		break; case NtStatus::fve_not_allowed_on_csv_stack: os << TS("fve_not_allowed_on_csv_stack"); //0xc0210034,
+		break; case NtStatus::fve_not_allowed_on_cluster: os << TS("fve_not_allowed_on_cluster"); //0xc0210035,
+		break; case NtStatus::fve_not_allowed_to_upgrade_while_converting: os << TS("fve_not_allowed_to_upgrade_while_converting"); //0xc0210036,
+		break; case NtStatus::fve_wipe_cancel_not_applicable: os << TS("fve_wipe_cancel_not_applicable"); //0xc0210037,
+		break; case NtStatus::fve_edrive_dry_run_failed: os << TS("fve_edrive_dry_run_failed"); //0xc0210038,
+		break; case NtStatus::fve_secureboot_disabled: os << TS("fve_secureboot_disabled"); //0xc0210039,
+		break; case NtStatus::fve_secureboot_config_change: os << TS("fve_secureboot_config_change"); //0xc021003a,
+		break; case NtStatus::fve_device_lockedout: os << TS("fve_device_lockedout"); //0xc021003b,
+		break; case NtStatus::fve_volume_extend_prevents_eow_decrypt: os << TS("fve_volume_extend_prevents_eow_decrypt"); //0xc021003c,
+		break; case NtStatus::fve_not_de_volume: os << TS("fve_not_de_volume"); //0xc021003d,
+		break; case NtStatus::fve_protection_disabled: os << TS("fve_protection_disabled"); //0xc021003e,
+		break; case NtStatus::fve_protection_cannot_be_disabled: os << TS("fve_protection_cannot_be_disabled"); //0xc021003f,
+		break; case NtStatus::fve_osv_ksr_not_allowed: os << TS("fve_osv_ksr_not_allowed"); //0xc0210040,
+		break; case NtStatus::fve_edrive_band_enumeration_failed: os << TS("fve_edrive_band_enumeration_failed"); //0xc0210041,
+		break; case NtStatus::fve_policy_on_rdv_exclusion_list: os << TS("fve_policy_on_rdv_exclusion_list"); //0xc0210042,
+		break; case NtStatus::fve_dataset_full: os << TS("fve_dataset_full"); //0xc0210043,
+		break; case NtStatus::fve_metadata_full: os << TS("fve_metadata_full"); //0xc0210044,
+		break; case NtStatus::fwp_callout_not_found: os << TS("fwp_callout_not_found"); //0xc0220001,
+		break; case NtStatus::fwp_condition_not_found: os << TS("fwp_condition_not_found"); //0xc0220002,
+		break; case NtStatus::fwp_filter_not_found: os << TS("fwp_filter_not_found"); //0xc0220003,
+		break; case NtStatus::fwp_layer_not_found: os << TS("fwp_layer_not_found"); //0xc0220004,
+		break; case NtStatus::fwp_provider_not_found: os << TS("fwp_provider_not_found"); //0xc0220005,
+		break; case NtStatus::fwp_provider_context_not_found: os << TS("fwp_provider_context_not_found"); //0xc0220006,
+		break; case NtStatus::fwp_sublayer_not_found: os << TS("fwp_sublayer_not_found"); //0xc0220007,
+		break; case NtStatus::fwp_not_found: os << TS("fwp_not_found"); //0xc0220008,
+		break; case NtStatus::fwp_already_exists: os << TS("fwp_already_exists"); //0xc0220009,
+		break; case NtStatus::fwp_in_use: os << TS("fwp_in_use"); //0xc022000a,
+		break; case NtStatus::fwp_dynamic_session_in_progress: os << TS("fwp_dynamic_session_in_progress"); //0xc022000b,
+		break; case NtStatus::fwp_wrong_session: os << TS("fwp_wrong_session"); //0xc022000c,
+		break; case NtStatus::fwp_no_txn_in_progress: os << TS("fwp_no_txn_in_progress"); //0xc022000d,
+		break; case NtStatus::fwp_txn_in_progress: os << TS("fwp_txn_in_progress"); //0xc022000e,
+		break; case NtStatus::fwp_txn_aborted: os << TS("fwp_txn_aborted"); //0xc022000f,
+		break; case NtStatus::fwp_session_aborted: os << TS("fwp_session_aborted"); //0xc0220010,
+		break; case NtStatus::fwp_incompatible_txn: os << TS("fwp_incompatible_txn"); //0xc0220011,
+		break; case NtStatus::fwp_timeout: os << TS("fwp_timeout"); //0xc0220012,
+		break; case NtStatus::fwp_net_events_disabled: os << TS("fwp_net_events_disabled"); //0xc0220013,
+		break; case NtStatus::fwp_incompatible_layer: os << TS("fwp_incompatible_layer"); //0xc0220014,
+		break; case NtStatus::fwp_km_clients_only: os << TS("fwp_km_clients_only"); //0xc0220015,
+		break; case NtStatus::fwp_lifetime_mismatch: os << TS("fwp_lifetime_mismatch"); //0xc0220016,
+		break; case NtStatus::fwp_builtin_object: os << TS("fwp_builtin_object"); //0xc0220017,
+		break; case NtStatus::fwp_too_many_callouts: os << TS("fwp_too_many_callouts"); //0xc0220018,
+		break; case NtStatus::fwp_notification_dropped: os << TS("fwp_notification_dropped"); //0xc0220019,
+		break; case NtStatus::fwp_traffic_mismatch: os << TS("fwp_traffic_mismatch"); //0xc022001a,
+		break; case NtStatus::fwp_incompatible_sa_state: os << TS("fwp_incompatible_sa_state"); //0xc022001b,
+		break; case NtStatus::fwp_null_pointer: os << TS("fwp_null_pointer"); //0xc022001c,
+		break; case NtStatus::fwp_invalid_enumerator: os << TS("fwp_invalid_enumerator"); //0xc022001d,
+		break; case NtStatus::fwp_invalid_flags: os << TS("fwp_invalid_flags"); //0xc022001e,
+		break; case NtStatus::fwp_invalid_net_mask: os << TS("fwp_invalid_net_mask"); //0xc022001f,
+		break; case NtStatus::fwp_invalid_range: os << TS("fwp_invalid_range"); //0xc0220020,
+		break; case NtStatus::fwp_invalid_interval: os << TS("fwp_invalid_interval"); //0xc0220021,
+		break; case NtStatus::fwp_zero_length_array: os << TS("fwp_zero_length_array"); //0xc0220022,
+		break; case NtStatus::fwp_null_display_name: os << TS("fwp_null_display_name"); //0xc0220023,
+		break; case NtStatus::fwp_invalid_action_type: os << TS("fwp_invalid_action_type"); //0xc0220024,
+		break; case NtStatus::fwp_invalid_weight: os << TS("fwp_invalid_weight"); //0xc0220025,
+		break; case NtStatus::fwp_match_type_mismatch: os << TS("fwp_match_type_mismatch"); //0xc0220026,
+		break; case NtStatus::fwp_type_mismatch: os << TS("fwp_type_mismatch"); //0xc0220027,
+		break; case NtStatus::fwp_out_of_bounds: os << TS("fwp_out_of_bounds"); //0xc0220028,
+		break; case NtStatus::fwp_reserved: os << TS("fwp_reserved"); //0xc0220029,
+		break; case NtStatus::fwp_duplicate_condition: os << TS("fwp_duplicate_condition"); //0xc022002a,
+		break; case NtStatus::fwp_duplicate_keymod: os << TS("fwp_duplicate_keymod"); //0xc022002b,
+		break; case NtStatus::fwp_action_incompatible_with_layer: os << TS("fwp_action_incompatible_with_layer"); //0xc022002c,
+		break; case NtStatus::fwp_action_incompatible_with_sublayer: os << TS("fwp_action_incompatible_with_sublayer"); //0xc022002d,
+		break; case NtStatus::fwp_context_incompatible_with_layer: os << TS("fwp_context_incompatible_with_layer"); //0xc022002e,
+		break; case NtStatus::fwp_context_incompatible_with_callout: os << TS("fwp_context_incompatible_with_callout"); //0xc022002f,
+		break; case NtStatus::fwp_incompatible_auth_method: os << TS("fwp_incompatible_auth_method"); //0xc0220030,
+		break; case NtStatus::fwp_incompatible_dh_group: os << TS("fwp_incompatible_dh_group"); //0xc0220031,
+		break; case NtStatus::fwp_em_not_supported: os << TS("fwp_em_not_supported"); //0xc0220032,
+		break; case NtStatus::fwp_never_match: os << TS("fwp_never_match"); //0xc0220033,
+		break; case NtStatus::fwp_provider_context_mismatch: os << TS("fwp_provider_context_mismatch"); //0xc0220034,
+		break; case NtStatus::fwp_invalid_parameter: os << TS("fwp_invalid_parameter"); //0xc0220035,
+		break; case NtStatus::fwp_too_many_sublayers: os << TS("fwp_too_many_sublayers"); //0xc0220036,
+		break; case NtStatus::fwp_callout_notification_failed: os << TS("fwp_callout_notification_failed"); //0xc0220037,
+		break; case NtStatus::fwp_invalid_auth_transform: os << TS("fwp_invalid_auth_transform"); //0xc0220038,
+		break; case NtStatus::fwp_invalid_cipher_transform: os << TS("fwp_invalid_cipher_transform"); //0xc0220039,
+		break; case NtStatus::fwp_incompatible_cipher_transform: os << TS("fwp_incompatible_cipher_transform"); //0xc022003a,
+		break; case NtStatus::fwp_invalid_transform_combination: os << TS("fwp_invalid_transform_combination"); //0xc022003b,
+		break; case NtStatus::fwp_duplicate_auth_method: os << TS("fwp_duplicate_auth_method"); //0xc022003c,
+		break; case NtStatus::fwp_invalid_tunnel_endpoint: os << TS("fwp_invalid_tunnel_endpoint"); //0xc022003d,
+		break; case NtStatus::fwp_l2_driver_not_ready: os << TS("fwp_l2_driver_not_ready"); //0xc022003e,
+		break; case NtStatus::fwp_key_dictator_already_registered: os << TS("fwp_key_dictator_already_registered"); //0xc022003f,
+		break; case NtStatus::fwp_key_dictation_invalid_keying_material: os << TS("fwp_key_dictation_invalid_keying_material"); //0xc0220040,
+		break; case NtStatus::fwp_connections_disabled: os << TS("fwp_connections_disabled"); //0xc0220041,
+		break; case NtStatus::fwp_invalid_dns_name: os << TS("fwp_invalid_dns_name"); //0xc0220042,
+		break; case NtStatus::fwp_still_on: os << TS("fwp_still_on"); //0xc0220043,
+		break; case NtStatus::fwp_ikeext_not_running: os << TS("fwp_ikeext_not_running"); //0xc0220044,
+		break; case NtStatus::fwp_tcpip_not_ready: os << TS("fwp_tcpip_not_ready"); //0xc0220100,
+		break; case NtStatus::fwp_inject_handle_closing: os << TS("fwp_inject_handle_closing"); //0xc0220101,
+		break; case NtStatus::fwp_inject_handle_stale: os << TS("fwp_inject_handle_stale"); //0xc0220102,
+		break; case NtStatus::fwp_cannot_pend: os << TS("fwp_cannot_pend"); //0xc0220103,
+		break; case NtStatus::fwp_drop_noicmp: os << TS("fwp_drop_noicmp"); //0xc0220104,
+		break; case NtStatus::ndis_indication_required: os << TS("ndis_indication_required"); //0x40230001,
+		break; case NtStatus::ndis_closing: os << TS("ndis_closing"); //0xc0230002,
+		break; case NtStatus::ndis_bad_version: os << TS("ndis_bad_version"); //0xc0230004,
+		break; case NtStatus::ndis_bad_characteristics: os << TS("ndis_bad_characteristics"); //0xc0230005,
+		break; case NtStatus::ndis_adapter_not_found: os << TS("ndis_adapter_not_found"); //0xc0230006,
+		break; case NtStatus::ndis_open_failed: os << TS("ndis_open_failed"); //0xc0230007,
+		break; case NtStatus::ndis_device_failed: os << TS("ndis_device_failed"); //0xc0230008,
+		break; case NtStatus::ndis_multicast_full: os << TS("ndis_multicast_full"); //0xc0230009,
+		break; case NtStatus::ndis_multicast_exists: os << TS("ndis_multicast_exists"); //0xc023000a,
+		break; case NtStatus::ndis_multicast_not_found: os << TS("ndis_multicast_not_found"); //0xc023000b,
+		break; case NtStatus::ndis_request_aborted: os << TS("ndis_request_aborted"); //0xc023000c,
+		break; case NtStatus::ndis_reset_in_progress: os << TS("ndis_reset_in_progress"); //0xc023000d,
+		break; case NtStatus::ndis_invalid_packet: os << TS("ndis_invalid_packet"); //0xc023000f,
+		break; case NtStatus::ndis_invalid_device_request: os << TS("ndis_invalid_device_request"); //0xc0230010,
+		break; case NtStatus::ndis_adapter_not_ready: os << TS("ndis_adapter_not_ready"); //0xc0230011,
+		break; case NtStatus::ndis_invalid_length: os << TS("ndis_invalid_length"); //0xc0230014,
+		break; case NtStatus::ndis_invalid_data: os << TS("ndis_invalid_data"); //0xc0230015,
+		break; case NtStatus::ndis_buffer_too_short: os << TS("ndis_buffer_too_short"); //0xc0230016,
+		break; case NtStatus::ndis_invalid_oid: os << TS("ndis_invalid_oid"); //0xc0230017,
+		break; case NtStatus::ndis_adapter_removed: os << TS("ndis_adapter_removed"); //0xc0230018,
+		break; case NtStatus::ndis_unsupported_media: os << TS("ndis_unsupported_media"); //0xc0230019,
+		break; case NtStatus::ndis_group_address_in_use: os << TS("ndis_group_address_in_use"); //0xc023001a,
+		break; case NtStatus::ndis_file_not_found: os << TS("ndis_file_not_found"); //0xc023001b,
+		break; case NtStatus::ndis_error_reading_file: os << TS("ndis_error_reading_file"); //0xc023001c,
+		break; case NtStatus::ndis_already_mapped: os << TS("ndis_already_mapped"); //0xc023001d,
+		break; case NtStatus::ndis_resource_conflict: os << TS("ndis_resource_conflict"); //0xc023001e,
+		break; case NtStatus::ndis_media_disconnected: os << TS("ndis_media_disconnected"); //0xc023001f,
+		break; case NtStatus::ndis_invalid_address: os << TS("ndis_invalid_address"); //0xc0230022,
+		break; case NtStatus::ndis_paused: os << TS("ndis_paused"); //0xc023002a,
+		break; case NtStatus::ndis_interface_not_found: os << TS("ndis_interface_not_found"); //0xc023002b,
+		break; case NtStatus::ndis_unsupported_revision: os << TS("ndis_unsupported_revision"); //0xc023002c,
+		break; case NtStatus::ndis_invalid_port: os << TS("ndis_invalid_port"); //0xc023002d,
+		break; case NtStatus::ndis_invalid_port_state: os << TS("ndis_invalid_port_state"); //0xc023002e,
+		break; case NtStatus::ndis_low_power_state: os << TS("ndis_low_power_state"); //0xc023002f,
+		break; case NtStatus::ndis_reinit_required: os << TS("ndis_reinit_required"); //0xc0230030,
+		break; case NtStatus::ndis_no_queues: os << TS("ndis_no_queues"); //0xc0230031,
+		break; case NtStatus::ndis_not_supported: os << TS("ndis_not_supported"); //0xc02300bb,
+		break; case NtStatus::ndis_offload_policy: os << TS("ndis_offload_policy"); //0xc023100f,
+		break; case NtStatus::ndis_offload_connection_rejected: os << TS("ndis_offload_connection_rejected"); //0xc0231012,
+		break; case NtStatus::ndis_offload_path_rejected: os << TS("ndis_offload_path_rejected"); //0xc0231013,
+		break; case NtStatus::ndis_dot11_auto_config_enabled: os << TS("ndis_dot11_auto_config_enabled"); //0xc0232000,
+		break; case NtStatus::ndis_dot11_media_in_use: os << TS("ndis_dot11_media_in_use"); //0xc0232001,
+		break; case NtStatus::ndis_dot11_power_state_invalid: os << TS("ndis_dot11_power_state_invalid"); //0xc0232002,
+		break; case NtStatus::ndis_pm_wol_pattern_list_full: os << TS("ndis_pm_wol_pattern_list_full"); //0xc0232003,
+		break; case NtStatus::ndis_pm_protocol_offload_list_full: os << TS("ndis_pm_protocol_offload_list_full"); //0xc0232004,
+		break; case NtStatus::ndis_dot11_ap_channel_currently_not_available: os << TS("ndis_dot11_ap_channel_currently_not_available"); //0xc0232005,
+		break; case NtStatus::ndis_dot11_ap_band_currently_not_available: os << TS("ndis_dot11_ap_band_currently_not_available"); //0xc0232006,
+		break; case NtStatus::ndis_dot11_ap_channel_not_allowed: os << TS("ndis_dot11_ap_channel_not_allowed"); //0xc0232007,
+		break; case NtStatus::ndis_dot11_ap_band_not_allowed: os << TS("ndis_dot11_ap_band_not_allowed"); //0xc0232008,
+		break; case NtStatus::quic_handshake_failure: os << TS("quic_handshake_failure"); //0xc0240000,
+		break; case NtStatus::quic_ver_neg_failure: os << TS("quic_ver_neg_failure"); //0xc0240001,
+		break; case NtStatus::quic_user_canceled: os << TS("quic_user_canceled"); //0xc0240002,
+		break; case NtStatus::quic_internal_error: os << TS("quic_internal_error"); //0xc0240003,
+		break; case NtStatus::quic_protocol_violation: os << TS("quic_protocol_violation"); //0xc0240004,
+		break; case NtStatus::quic_connection_idle: os << TS("quic_connection_idle"); //0xc0240005,
+		break; case NtStatus::quic_connection_timeout: os << TS("quic_connection_timeout"); //0xc0240006,
+		break; case NtStatus::quic_alpn_neg_failure: os << TS("quic_alpn_neg_failure"); //0xc0240007,
+		break; case NtStatus::tpm_error_mask: os << TS("tpm_error_mask"); //0xc0290000,
+		break; case NtStatus::tpm_authfail: os << TS("tpm_authfail"); //0xc0290001,
+		break; case NtStatus::tpm_badindex: os << TS("tpm_badindex"); //0xc0290002,
+		break; case NtStatus::tpm_bad_parameter: os << TS("tpm_bad_parameter"); //0xc0290003,
+		break; case NtStatus::tpm_auditfailure: os << TS("tpm_auditfailure"); //0xc0290004,
+		break; case NtStatus::tpm_clear_disabled: os << TS("tpm_clear_disabled"); //0xc0290005,
+		break; case NtStatus::tpm_deactivated: os << TS("tpm_deactivated"); //0xc0290006,
+		break; case NtStatus::tpm_disabled: os << TS("tpm_disabled"); //0xc0290007,
+		break; case NtStatus::tpm_disabled_cmd: os << TS("tpm_disabled_cmd"); //0xc0290008,
+		break; case NtStatus::tpm_fail: os << TS("tpm_fail"); //0xc0290009,
+		break; case NtStatus::tpm_bad_ordinal: os << TS("tpm_bad_ordinal"); //0xc029000a,
+		break; case NtStatus::tpm_install_disabled: os << TS("tpm_install_disabled"); //0xc029000b,
+		break; case NtStatus::tpm_invalid_keyhandle: os << TS("tpm_invalid_keyhandle"); //0xc029000c,
+		break; case NtStatus::tpm_keynotfound: os << TS("tpm_keynotfound"); //0xc029000d,
+		break; case NtStatus::tpm_inappropriate_enc: os << TS("tpm_inappropriate_enc"); //0xc029000e,
+		break; case NtStatus::tpm_migratefail: os << TS("tpm_migratefail"); //0xc029000f,
+		break; case NtStatus::tpm_invalid_pcr_info: os << TS("tpm_invalid_pcr_info"); //0xc0290010,
+		break; case NtStatus::tpm_nospace: os << TS("tpm_nospace"); //0xc0290011,
+		break; case NtStatus::tpm_nosrk: os << TS("tpm_nosrk"); //0xc0290012,
+		break; case NtStatus::tpm_notsealed_blob: os << TS("tpm_notsealed_blob"); //0xc0290013,
+		break; case NtStatus::tpm_owner_set: os << TS("tpm_owner_set"); //0xc0290014,
+		break; case NtStatus::tpm_resources: os << TS("tpm_resources"); //0xc0290015,
+		break; case NtStatus::tpm_shortrandom: os << TS("tpm_shortrandom"); //0xc0290016,
+		break; case NtStatus::tpm_size: os << TS("tpm_size"); //0xc0290017,
+		break; case NtStatus::tpm_wrongpcrval: os << TS("tpm_wrongpcrval"); //0xc0290018,
+		break; case NtStatus::tpm_bad_param_size: os << TS("tpm_bad_param_size"); //0xc0290019,
+		break; case NtStatus::tpm_sha_thread: os << TS("tpm_sha_thread"); //0xc029001a,
+		break; case NtStatus::tpm_sha_error: os << TS("tpm_sha_error"); //0xc029001b,
+		break; case NtStatus::tpm_failedselftest: os << TS("tpm_failedselftest"); //0xc029001c,
+		break; case NtStatus::tpm_auth2fail: os << TS("tpm_auth2fail"); //0xc029001d,
+		break; case NtStatus::tpm_badtag: os << TS("tpm_badtag"); //0xc029001e,
+		break; case NtStatus::tpm_ioerror: os << TS("tpm_ioerror"); //0xc029001f,
+		break; case NtStatus::tpm_encrypt_error: os << TS("tpm_encrypt_error"); //0xc0290020,
+		break; case NtStatus::tpm_decrypt_error: os << TS("tpm_decrypt_error"); //0xc0290021,
+		break; case NtStatus::tpm_invalid_authhandle: os << TS("tpm_invalid_authhandle"); //0xc0290022,
+		break; case NtStatus::tpm_no_endorsement: os << TS("tpm_no_endorsement"); //0xc0290023,
+		break; case NtStatus::tpm_invalid_keyusage: os << TS("tpm_invalid_keyusage"); //0xc0290024,
+		break; case NtStatus::tpm_wrong_entitytype: os << TS("tpm_wrong_entitytype"); //0xc0290025,
+		break; case NtStatus::tpm_invalid_postinit: os << TS("tpm_invalid_postinit"); //0xc0290026,
+		break; case NtStatus::tpm_inappropriate_sig: os << TS("tpm_inappropriate_sig"); //0xc0290027,
+		break; case NtStatus::tpm_bad_key_property: os << TS("tpm_bad_key_property"); //0xc0290028,
+		break; case NtStatus::tpm_bad_migration: os << TS("tpm_bad_migration"); //0xc0290029,
+		break; case NtStatus::tpm_bad_scheme: os << TS("tpm_bad_scheme"); //0xc029002a,
+		break; case NtStatus::tpm_bad_datasize: os << TS("tpm_bad_datasize"); //0xc029002b,
+		break; case NtStatus::tpm_bad_mode: os << TS("tpm_bad_mode"); //0xc029002c,
+		break; case NtStatus::tpm_bad_presence: os << TS("tpm_bad_presence"); //0xc029002d,
+		break; case NtStatus::tpm_bad_version: os << TS("tpm_bad_version"); //0xc029002e,
+		break; case NtStatus::tpm_no_wrap_transport: os << TS("tpm_no_wrap_transport"); //0xc029002f,
+		break; case NtStatus::tpm_auditfail_unsuccessful: os << TS("tpm_auditfail_unsuccessful"); //0xc0290030,
+		break; case NtStatus::tpm_auditfail_successful: os << TS("tpm_auditfail_successful"); //0xc0290031,
+		break; case NtStatus::tpm_notresetable: os << TS("tpm_notresetable"); //0xc0290032,
+		break; case NtStatus::tpm_notlocal: os << TS("tpm_notlocal"); //0xc0290033,
+		break; case NtStatus::tpm_bad_type: os << TS("tpm_bad_type"); //0xc0290034,
+		break; case NtStatus::tpm_invalid_resource: os << TS("tpm_invalid_resource"); //0xc0290035,
+		break; case NtStatus::tpm_notfips: os << TS("tpm_notfips"); //0xc0290036,
+		break; case NtStatus::tpm_invalid_family: os << TS("tpm_invalid_family"); //0xc0290037,
+		break; case NtStatus::tpm_no_nv_permission: os << TS("tpm_no_nv_permission"); //0xc0290038,
+		break; case NtStatus::tpm_requires_sign: os << TS("tpm_requires_sign"); //0xc0290039,
+		break; case NtStatus::tpm_key_notsupported: os << TS("tpm_key_notsupported"); //0xc029003a,
+		break; case NtStatus::tpm_auth_conflict: os << TS("tpm_auth_conflict"); //0xc029003b,
+		break; case NtStatus::tpm_area_locked: os << TS("tpm_area_locked"); //0xc029003c,
+		break; case NtStatus::tpm_bad_locality: os << TS("tpm_bad_locality"); //0xc029003d,
+		break; case NtStatus::tpm_read_only: os << TS("tpm_read_only"); //0xc029003e,
+		break; case NtStatus::tpm_per_nowrite: os << TS("tpm_per_nowrite"); //0xc029003f,
+		break; case NtStatus::tpm_familycount: os << TS("tpm_familycount"); //0xc0290040,
+		break; case NtStatus::tpm_write_locked: os << TS("tpm_write_locked"); //0xc0290041,
+		break; case NtStatus::tpm_bad_attributes: os << TS("tpm_bad_attributes"); //0xc0290042,
+		break; case NtStatus::tpm_invalid_structure: os << TS("tpm_invalid_structure"); //0xc0290043,
+		break; case NtStatus::tpm_key_owner_control: os << TS("tpm_key_owner_control"); //0xc0290044,
+		break; case NtStatus::tpm_bad_counter: os << TS("tpm_bad_counter"); //0xc0290045,
+		break; case NtStatus::tpm_not_fullwrite: os << TS("tpm_not_fullwrite"); //0xc0290046,
+		break; case NtStatus::tpm_context_gap: os << TS("tpm_context_gap"); //0xc0290047,
+		break; case NtStatus::tpm_maxnvwrites: os << TS("tpm_maxnvwrites"); //0xc0290048,
+		break; case NtStatus::tpm_nooperator: os << TS("tpm_nooperator"); //0xc0290049,
+		break; case NtStatus::tpm_resourcemissing: os << TS("tpm_resourcemissing"); //0xc029004a,
+		break; case NtStatus::tpm_delegate_lock: os << TS("tpm_delegate_lock"); //0xc029004b,
+		break; case NtStatus::tpm_delegate_family: os << TS("tpm_delegate_family"); //0xc029004c,
+		break; case NtStatus::tpm_delegate_admin: os << TS("tpm_delegate_admin"); //0xc029004d,
+		break; case NtStatus::tpm_transport_notexclusive: os << TS("tpm_transport_notexclusive"); //0xc029004e,
+		break; case NtStatus::tpm_owner_control: os << TS("tpm_owner_control"); //0xc029004f,
+		break; case NtStatus::tpm_daa_resources: os << TS("tpm_daa_resources"); //0xc0290050,
+		break; case NtStatus::tpm_daa_input_data0: os << TS("tpm_daa_input_data0"); //0xc0290051,
+		break; case NtStatus::tpm_daa_input_data1: os << TS("tpm_daa_input_data1"); //0xc0290052,
+		break; case NtStatus::tpm_daa_issuer_settings: os << TS("tpm_daa_issuer_settings"); //0xc0290053,
+		break; case NtStatus::tpm_daa_tpm_settings: os << TS("tpm_daa_tpm_settings"); //0xc0290054,
+		break; case NtStatus::tpm_daa_stage: os << TS("tpm_daa_stage"); //0xc0290055,
+		break; case NtStatus::tpm_daa_issuer_validity: os << TS("tpm_daa_issuer_validity"); //0xc0290056,
+		break; case NtStatus::tpm_daa_wrong_w: os << TS("tpm_daa_wrong_w"); //0xc0290057,
+		break; case NtStatus::tpm_bad_handle: os << TS("tpm_bad_handle"); //0xc0290058,
+		break; case NtStatus::tpm_bad_delegate: os << TS("tpm_bad_delegate"); //0xc0290059,
+		break; case NtStatus::tpm_badcontext: os << TS("tpm_badcontext"); //0xc029005a,
+		break; case NtStatus::tpm_toomanycontexts: os << TS("tpm_toomanycontexts"); //0xc029005b,
+		break; case NtStatus::tpm_ma_ticket_signature: os << TS("tpm_ma_ticket_signature"); //0xc029005c,
+		break; case NtStatus::tpm_ma_destination: os << TS("tpm_ma_destination"); //0xc029005d,
+		break; case NtStatus::tpm_ma_source: os << TS("tpm_ma_source"); //0xc029005e,
+		break; case NtStatus::tpm_ma_authority: os << TS("tpm_ma_authority"); //0xc029005f,
+		break; case NtStatus::tpm_permanentek: os << TS("tpm_permanentek"); //0xc0290061,
+		break; case NtStatus::tpm_bad_signature: os << TS("tpm_bad_signature"); //0xc0290062,
+		break; case NtStatus::tpm_nocontextspace: os << TS("tpm_nocontextspace"); //0xc0290063,
+		break; case NtStatus::tpm_20_e_asymmetric: os << TS("tpm_20_e_asymmetric"); //0xc0290081,
+		break; case NtStatus::tpm_20_e_attributes: os << TS("tpm_20_e_attributes"); //0xc0290082,
+		break; case NtStatus::tpm_20_e_hash: os << TS("tpm_20_e_hash"); //0xc0290083,
+		break; case NtStatus::tpm_20_e_value: os << TS("tpm_20_e_value"); //0xc0290084,
+		break; case NtStatus::tpm_20_e_hierarchy: os << TS("tpm_20_e_hierarchy"); //0xc0290085,
+		break; case NtStatus::tpm_20_e_key_size: os << TS("tpm_20_e_key_size"); //0xc0290087,
+		break; case NtStatus::tpm_20_e_mgf: os << TS("tpm_20_e_mgf"); //0xc0290088,
+		break; case NtStatus::tpm_20_e_mode: os << TS("tpm_20_e_mode"); //0xc0290089,
+		break; case NtStatus::tpm_20_e_type: os << TS("tpm_20_e_type"); //0xc029008a,
+		break; case NtStatus::tpm_20_e_handle: os << TS("tpm_20_e_handle"); //0xc029008b,
+		break; case NtStatus::tpm_20_e_kdf: os << TS("tpm_20_e_kdf"); //0xc029008c,
+		break; case NtStatus::tpm_20_e_range: os << TS("tpm_20_e_range"); //0xc029008d,
+		break; case NtStatus::tpm_20_e_auth_fail: os << TS("tpm_20_e_auth_fail"); //0xc029008e,
+		break; case NtStatus::tpm_20_e_nonce: os << TS("tpm_20_e_nonce"); //0xc029008f,
+		break; case NtStatus::tpm_20_e_pp: os << TS("tpm_20_e_pp"); //0xc0290090,
+		break; case NtStatus::tpm_20_e_scheme: os << TS("tpm_20_e_scheme"); //0xc0290092,
+		break; case NtStatus::tpm_20_e_size: os << TS("tpm_20_e_size"); //0xc0290095,
+		break; case NtStatus::tpm_20_e_symmetric: os << TS("tpm_20_e_symmetric"); //0xc0290096,
+		break; case NtStatus::tpm_20_e_tag: os << TS("tpm_20_e_tag"); //0xc0290097,
+		break; case NtStatus::tpm_20_e_selector: os << TS("tpm_20_e_selector"); //0xc0290098,
+		break; case NtStatus::tpm_20_e_insufficient: os << TS("tpm_20_e_insufficient"); //0xc029009a,
+		break; case NtStatus::tpm_20_e_signature: os << TS("tpm_20_e_signature"); //0xc029009b,
+		break; case NtStatus::tpm_20_e_key: os << TS("tpm_20_e_key"); //0xc029009c,
+		break; case NtStatus::tpm_20_e_policy_fail: os << TS("tpm_20_e_policy_fail"); //0xc029009d,
+		break; case NtStatus::tpm_20_e_integrity: os << TS("tpm_20_e_integrity"); //0xc029009f,
+		break; case NtStatus::tpm_20_e_ticket: os << TS("tpm_20_e_ticket"); //0xc02900a0,
+		break; case NtStatus::tpm_20_e_reserved_bits: os << TS("tpm_20_e_reserved_bits"); //0xc02900a1,
+		break; case NtStatus::tpm_20_e_bad_auth: os << TS("tpm_20_e_bad_auth"); //0xc02900a2,
+		break; case NtStatus::tpm_20_e_expired: os << TS("tpm_20_e_expired"); //0xc02900a3,
+		break; case NtStatus::tpm_20_e_policy_cc: os << TS("tpm_20_e_policy_cc"); //0xc02900a4,
+		break; case NtStatus::tpm_20_e_binding: os << TS("tpm_20_e_binding"); //0xc02900a5,
+		break; case NtStatus::tpm_20_e_curve: os << TS("tpm_20_e_curve"); //0xc02900a6,
+		break; case NtStatus::tpm_20_e_ecc_point: os << TS("tpm_20_e_ecc_point"); //0xc02900a7,
+		break; case NtStatus::tpm_20_e_initialize: os << TS("tpm_20_e_initialize"); //0xc0290100,
+		break; case NtStatus::tpm_20_e_failure: os << TS("tpm_20_e_failure"); //0xc0290101,
+		break; case NtStatus::tpm_20_e_sequence: os << TS("tpm_20_e_sequence"); //0xc0290103,
+		break; case NtStatus::tpm_20_e_private: os << TS("tpm_20_e_private"); //0xc029010b,
+		break; case NtStatus::tpm_20_e_hmac: os << TS("tpm_20_e_hmac"); //0xc0290119,
+		break; case NtStatus::tpm_20_e_disabled: os << TS("tpm_20_e_disabled"); //0xc0290120,
+		break; case NtStatus::tpm_20_e_exclusive: os << TS("tpm_20_e_exclusive"); //0xc0290121,
+		break; case NtStatus::tpm_20_e_ecc_curve: os << TS("tpm_20_e_ecc_curve"); //0xc0290123,
+		break; case NtStatus::tpm_20_e_auth_type: os << TS("tpm_20_e_auth_type"); //0xc0290124,
+		break; case NtStatus::tpm_20_e_auth_missing: os << TS("tpm_20_e_auth_missing"); //0xc0290125,
+		break; case NtStatus::tpm_20_e_policy: os << TS("tpm_20_e_policy"); //0xc0290126,
+		break; case NtStatus::tpm_20_e_pcr: os << TS("tpm_20_e_pcr"); //0xc0290127,
+		break; case NtStatus::tpm_20_e_pcr_changed: os << TS("tpm_20_e_pcr_changed"); //0xc0290128,
+		break; case NtStatus::tpm_20_e_upgrade: os << TS("tpm_20_e_upgrade"); //0xc029012d,
+		break; case NtStatus::tpm_20_e_too_many_contexts: os << TS("tpm_20_e_too_many_contexts"); //0xc029012e,
+		break; case NtStatus::tpm_20_e_auth_unavailable: os << TS("tpm_20_e_auth_unavailable"); //0xc029012f,
+		break; case NtStatus::tpm_20_e_reboot: os << TS("tpm_20_e_reboot"); //0xc0290130,
+		break; case NtStatus::tpm_20_e_unbalanced: os << TS("tpm_20_e_unbalanced"); //0xc0290131,
+		break; case NtStatus::tpm_20_e_command_size: os << TS("tpm_20_e_command_size"); //0xc0290142,
+		break; case NtStatus::tpm_20_e_command_code: os << TS("tpm_20_e_command_code"); //0xc0290143,
+		break; case NtStatus::tpm_20_e_authsize: os << TS("tpm_20_e_authsize"); //0xc0290144,
+		break; case NtStatus::tpm_20_e_auth_context: os << TS("tpm_20_e_auth_context"); //0xc0290145,
+		break; case NtStatus::tpm_20_e_nv_range: os << TS("tpm_20_e_nv_range"); //0xc0290146,
+		break; case NtStatus::tpm_20_e_nv_size: os << TS("tpm_20_e_nv_size"); //0xc0290147,
+		break; case NtStatus::tpm_20_e_nv_locked: os << TS("tpm_20_e_nv_locked"); //0xc0290148,
+		break; case NtStatus::tpm_20_e_nv_authorization: os << TS("tpm_20_e_nv_authorization"); //0xc0290149,
+		break; case NtStatus::tpm_20_e_nv_uninitialized: os << TS("tpm_20_e_nv_uninitialized"); //0xc029014a,
+		break; case NtStatus::tpm_20_e_nv_space: os << TS("tpm_20_e_nv_space"); //0xc029014b,
+		break; case NtStatus::tpm_20_e_nv_defined: os << TS("tpm_20_e_nv_defined"); //0xc029014c,
+		break; case NtStatus::tpm_20_e_bad_context: os << TS("tpm_20_e_bad_context"); //0xc0290150,
+		break; case NtStatus::tpm_20_e_cphash: os << TS("tpm_20_e_cphash"); //0xc0290151,
+		break; case NtStatus::tpm_20_e_parent: os << TS("tpm_20_e_parent"); //0xc0290152,
+		break; case NtStatus::tpm_20_e_needs_test: os << TS("tpm_20_e_needs_test"); //0xc0290153,
+		break; case NtStatus::tpm_20_e_no_result: os << TS("tpm_20_e_no_result"); //0xc0290154,
+		break; case NtStatus::tpm_20_e_sensitive: os << TS("tpm_20_e_sensitive"); //0xc0290155,
+		break; case NtStatus::tpm_command_blocked: os << TS("tpm_command_blocked"); //0xc0290400,
+		break; case NtStatus::tpm_invalid_handle: os << TS("tpm_invalid_handle"); //0xc0290401,
+		break; case NtStatus::tpm_duplicate_vhandle: os << TS("tpm_duplicate_vhandle"); //0xc0290402,
+		break; case NtStatus::tpm_embedded_command_blocked: os << TS("tpm_embedded_command_blocked"); //0xc0290403,
+		break; case NtStatus::tpm_embedded_command_unsupported: os << TS("tpm_embedded_command_unsupported"); //0xc0290404,
+		break; case NtStatus::tpm_retry: os << TS("tpm_retry"); //0xc0290800,
+		break; case NtStatus::tpm_needs_selftest: os << TS("tpm_needs_selftest"); //0xc0290801,
+		break; case NtStatus::tpm_doing_selftest: os << TS("tpm_doing_selftest"); //0xc0290802,
+		break; case NtStatus::tpm_defend_lock_running: os << TS("tpm_defend_lock_running"); //0xc0290803,
+		break; case NtStatus::tpm_command_canceled: os << TS("tpm_command_canceled"); //0xc0291001,
+		break; case NtStatus::tpm_too_many_contexts: os << TS("tpm_too_many_contexts"); //0xc0291002,
+		break; case NtStatus::tpm_not_found: os << TS("tpm_not_found"); //0xc0291003,
+		break; case NtStatus::tpm_access_denied: os << TS("tpm_access_denied"); //0xc0291004,
+		break; case NtStatus::tpm_insufficient_buffer: os << TS("tpm_insufficient_buffer"); //0xc0291005,
+		break; case NtStatus::tpm_ppi_function_unsupported: os << TS("tpm_ppi_function_unsupported"); //0xc0291006,
+		break; case NtStatus::pcp_error_mask: os << TS("pcp_error_mask"); //0xc0292000,
+		break; case NtStatus::pcp_device_not_ready: os << TS("pcp_device_not_ready"); //0xc0292001,
+		break; case NtStatus::pcp_invalid_handle: os << TS("pcp_invalid_handle"); //0xc0292002,
+		break; case NtStatus::pcp_invalid_parameter: os << TS("pcp_invalid_parameter"); //0xc0292003,
+		break; case NtStatus::pcp_flag_not_supported: os << TS("pcp_flag_not_supported"); //0xc0292004,
+		break; case NtStatus::pcp_not_supported: os << TS("pcp_not_supported"); //0xc0292005,
+		break; case NtStatus::pcp_buffer_too_small: os << TS("pcp_buffer_too_small"); //0xc0292006,
+		break; case NtStatus::pcp_internal_error: os << TS("pcp_internal_error"); //0xc0292007,
+		break; case NtStatus::pcp_authentication_failed: os << TS("pcp_authentication_failed"); //0xc0292008,
+		break; case NtStatus::pcp_authentication_ignored: os << TS("pcp_authentication_ignored"); //0xc0292009,
+		break; case NtStatus::pcp_policy_not_found: os << TS("pcp_policy_not_found"); //0xc029200a,
+		break; case NtStatus::pcp_profile_not_found: os << TS("pcp_profile_not_found"); //0xc029200b,
+		break; case NtStatus::pcp_validation_failed: os << TS("pcp_validation_failed"); //0xc029200c,
+		break; case NtStatus::pcp_device_not_found: os << TS("pcp_device_not_found"); //0xc029200d,
+		break; case NtStatus::pcp_wrong_parent: os << TS("pcp_wrong_parent"); //0xc029200e,
+		break; case NtStatus::pcp_key_not_loaded: os << TS("pcp_key_not_loaded"); //0xc029200f,
+		break; case NtStatus::pcp_no_key_certification: os << TS("pcp_no_key_certification"); //0xc0292010,
+		break; case NtStatus::pcp_key_not_finalized: os << TS("pcp_key_not_finalized"); //0xc0292011,
+		break; case NtStatus::pcp_attestation_challenge_not_set: os << TS("pcp_attestation_challenge_not_set"); //0xc0292012,
+		break; case NtStatus::pcp_not_pcr_bound: os << TS("pcp_not_pcr_bound"); //0xc0292013,
+		break; case NtStatus::pcp_key_already_finalized: os << TS("pcp_key_already_finalized"); //0xc0292014,
+		break; case NtStatus::pcp_key_usage_policy_not_supported: os << TS("pcp_key_usage_policy_not_supported"); //0xc0292015,
+		break; case NtStatus::pcp_key_usage_policy_invalid: os << TS("pcp_key_usage_policy_invalid"); //0xc0292016,
+		break; case NtStatus::pcp_soft_key_error: os << TS("pcp_soft_key_error"); //0xc0292017,
+		break; case NtStatus::pcp_key_not_authenticated: os << TS("pcp_key_not_authenticated"); //0xc0292018,
+		break; case NtStatus::pcp_key_not_aik: os << TS("pcp_key_not_aik"); //0xc0292019,
+		break; case NtStatus::pcp_key_not_signing_key: os << TS("pcp_key_not_signing_key"); //0xc029201a,
+		break; case NtStatus::pcp_locked_out: os << TS("pcp_locked_out"); //0xc029201b,
+		break; case NtStatus::pcp_claim_type_not_supported: os << TS("pcp_claim_type_not_supported"); //0xc029201c,
+		break; case NtStatus::pcp_tpm_version_not_supported: os << TS("pcp_tpm_version_not_supported"); //0xc029201d,
+		break; case NtStatus::pcp_buffer_length_mismatch: os << TS("pcp_buffer_length_mismatch"); //0xc029201e,
+		break; case NtStatus::pcp_ifx_rsa_key_creation_blocked: os << TS("pcp_ifx_rsa_key_creation_blocked"); //0xc029201f,
+		break; case NtStatus::pcp_ticket_missing: os << TS("pcp_ticket_missing"); //0xc0292020,
+		break; case NtStatus::pcp_raw_policy_not_supported: os << TS("pcp_raw_policy_not_supported"); //0xc0292021,
+		break; case NtStatus::pcp_key_handle_invalidated: os << TS("pcp_key_handle_invalidated"); //0xc0292022,
+		break; case NtStatus::pcp_unsupported_pss_salt: os << TS("pcp_unsupported_pss_salt"); //0x40292023,
+		break; case NtStatus::rtpm_context_continue: os << TS("rtpm_context_continue"); //0x00293000,
+		break; case NtStatus::rtpm_context_complete: os << TS("rtpm_context_complete"); //0x00293001,
+		break; case NtStatus::rtpm_no_result: os << TS("rtpm_no_result"); //0xc0293002,
+		break; case NtStatus::rtpm_pcr_read_incomplete: os << TS("rtpm_pcr_read_incomplete"); //0xc0293003,
+		break; case NtStatus::rtpm_invalid_context: os << TS("rtpm_invalid_context"); //0xc0293004,
+		break; case NtStatus::rtpm_unsupported_cmd: os << TS("rtpm_unsupported_cmd"); //0xc0293005,
+		break; case NtStatus::tpm_zero_exhaust_enabled: os << TS("tpm_zero_exhaust_enabled"); //0xc0294000,
+		break; case NtStatus::hv_invalid_hypercall_code: os << TS("hv_invalid_hypercall_code"); //0xc0350002,
+		break; case NtStatus::hv_invalid_hypercall_input: os << TS("hv_invalid_hypercall_input"); //0xc0350003,
+		break; case NtStatus::hv_invalid_alignment: os << TS("hv_invalid_alignment"); //0xc0350004,
+		break; case NtStatus::hv_invalid_parameter: os << TS("hv_invalid_parameter"); //0xc0350005,
+		break; case NtStatus::hv_access_denied: os << TS("hv_access_denied"); //0xc0350006,
+		break; case NtStatus::hv_invalid_partition_state: os << TS("hv_invalid_partition_state"); //0xc0350007,
+		break; case NtStatus::hv_operation_denied: os << TS("hv_operation_denied"); //0xc0350008,
+		break; case NtStatus::hv_unknown_property: os << TS("hv_unknown_property"); //0xc0350009,
+		break; case NtStatus::hv_property_value_out_of_range: os << TS("hv_property_value_out_of_range"); //0xc035000a,
+		break; case NtStatus::hv_insufficient_memory: os << TS("hv_insufficient_memory"); //0xc035000b,
+		break; case NtStatus::hv_partition_too_deep: os << TS("hv_partition_too_deep"); //0xc035000c,
+		break; case NtStatus::hv_invalid_partition_id: os << TS("hv_invalid_partition_id"); //0xc035000d,
+		break; case NtStatus::hv_invalid_vp_index: os << TS("hv_invalid_vp_index"); //0xc035000e,
+		break; case NtStatus::hv_invalid_port_id: os << TS("hv_invalid_port_id"); //0xc0350011,
+		break; case NtStatus::hv_invalid_connection_id: os << TS("hv_invalid_connection_id"); //0xc0350012,
+		break; case NtStatus::hv_insufficient_buffers: os << TS("hv_insufficient_buffers"); //0xc0350013,
+		break; case NtStatus::hv_not_acknowledged: os << TS("hv_not_acknowledged"); //0xc0350014,
+		break; case NtStatus::hv_invalid_vp_state: os << TS("hv_invalid_vp_state"); //0xc0350015,
+		break; case NtStatus::hv_acknowledged: os << TS("hv_acknowledged"); //0xc0350016,
+		break; case NtStatus::hv_invalid_save_restore_state: os << TS("hv_invalid_save_restore_state"); //0xc0350017,
+		break; case NtStatus::hv_invalid_synic_state: os << TS("hv_invalid_synic_state"); //0xc0350018,
+		break; case NtStatus::hv_object_in_use: os << TS("hv_object_in_use"); //0xc0350019,
+		break; case NtStatus::hv_invalid_proximity_domain_info: os << TS("hv_invalid_proximity_domain_info"); //0xc035001a,
+		break; case NtStatus::hv_no_data: os << TS("hv_no_data"); //0xc035001b,
+		break; case NtStatus::hv_inactive: os << TS("hv_inactive"); //0xc035001c,
+		break; case NtStatus::hv_no_resources: os << TS("hv_no_resources"); //0xc035001d,
+		break; case NtStatus::hv_feature_unavailable: os << TS("hv_feature_unavailable"); //0xc035001e,
+		break; case NtStatus::hv_insufficient_buffer: os << TS("hv_insufficient_buffer"); //0xc0350033,
+		break; case NtStatus::hv_insufficient_device_domains: os << TS("hv_insufficient_device_domains"); //0xc0350038,
+		break; case NtStatus::hv_cpuid_feature_validation_error: os << TS("hv_cpuid_feature_validation_error"); //0xc035003c,
+		break; case NtStatus::hv_cpuid_xsave_feature_validation_error: os << TS("hv_cpuid_xsave_feature_validation_error"); //0xc035003d,
+		break; case NtStatus::hv_processor_startup_timeout: os << TS("hv_processor_startup_timeout"); //0xc035003e,
+		break; case NtStatus::hv_smx_enabled: os << TS("hv_smx_enabled"); //0xc035003f,
+		break; case NtStatus::hv_invalid_lp_index: os << TS("hv_invalid_lp_index"); //0xc0350041,
+		break; case NtStatus::hv_invalid_register_value: os << TS("hv_invalid_register_value"); //0xc0350050,
+		break; case NtStatus::hv_invalid_vtl_state: os << TS("hv_invalid_vtl_state"); //0xc0350051,
+		break; case NtStatus::hv_nx_not_detected: os << TS("hv_nx_not_detected"); //0xc0350055,
+		break; case NtStatus::hv_invalid_device_id: os << TS("hv_invalid_device_id"); //0xc0350057,
+		break; case NtStatus::hv_invalid_device_state: os << TS("hv_invalid_device_state"); //0xc0350058,
+		break; case NtStatus::hv_pending_page_requests: os << TS("hv_pending_page_requests"); //0x00350059,
+		break; case NtStatus::hv_page_request_invalid: os << TS("hv_page_request_invalid"); //0xc0350060,
+		break; case NtStatus::hv_invalid_cpu_group_id: os << TS("hv_invalid_cpu_group_id"); //0xc035006f,
+		break; case NtStatus::hv_invalid_cpu_group_state: os << TS("hv_invalid_cpu_group_state"); //0xc0350070,
+		break; case NtStatus::hv_operation_failed: os << TS("hv_operation_failed"); //0xc0350071,
+		break; case NtStatus::hv_not_allowed_with_nested_virt_active: os << TS("hv_not_allowed_with_nested_virt_active"); //0xc0350072,
+		break; case NtStatus::hv_insufficient_root_memory: os << TS("hv_insufficient_root_memory"); //0xc0350073,
+		break; case NtStatus::hv_event_buffer_already_freed: os << TS("hv_event_buffer_already_freed"); //0xc0350074,
+		break; case NtStatus::hv_insufficient_contiguous_memory: os << TS("hv_insufficient_contiguous_memory"); //0xc0350075,
+		break; case NtStatus::hv_device_not_in_domain: os << TS("hv_device_not_in_domain"); //0xc0350076,
+		break; case NtStatus::hv_nested_vm_exit: os << TS("hv_nested_vm_exit"); //0xc0350077,
+		break; case NtStatus::hv_call_pending: os << TS("hv_call_pending"); //0xc0350079,
+		break; case NtStatus::hv_msr_access_failed: os << TS("hv_msr_access_failed"); //0xc0350080,
+		break; case NtStatus::hv_insufficient_memory_mirroring: os << TS("hv_insufficient_memory_mirroring"); //0xc0350081,
+		break; case NtStatus::hv_insufficient_contiguous_memory_mirroring: os << TS("hv_insufficient_contiguous_memory_mirroring"); //0xc0350082,
+		break; case NtStatus::hv_insufficient_contiguous_root_memory: os << TS("hv_insufficient_contiguous_root_memory"); //0xc0350083,
+		break; case NtStatus::hv_insufficient_root_memory_mirroring: os << TS("hv_insufficient_root_memory_mirroring"); //0xc0350084,
+		break; case NtStatus::hv_insufficient_contiguous_root_memory_mirroring: os << TS("hv_insufficient_contiguous_root_memory_mirroring"); //0xc0350085,
+		break; case NtStatus::hv_not_present: os << TS("hv_not_present"); //0xc0351000,
+		break; case NtStatus::ipsec_bad_spi: os << TS("ipsec_bad_spi"); //0xc0360001,
+		break; case NtStatus::ipsec_sa_lifetime_expired: os << TS("ipsec_sa_lifetime_expired"); //0xc0360002,
+		break; case NtStatus::ipsec_wrong_sa: os << TS("ipsec_wrong_sa"); //0xc0360003,
+		break; case NtStatus::ipsec_replay_check_failed: os << TS("ipsec_replay_check_failed"); //0xc0360004,
+		break; case NtStatus::ipsec_invalid_packet: os << TS("ipsec_invalid_packet"); //0xc0360005,
+		break; case NtStatus::ipsec_integrity_check_failed: os << TS("ipsec_integrity_check_failed"); //0xc0360006,
+		break; case NtStatus::ipsec_clear_text_drop: os << TS("ipsec_clear_text_drop"); //0xc0360007,
+		break; case NtStatus::ipsec_auth_firewall_drop: os << TS("ipsec_auth_firewall_drop"); //0xc0360008,
+		break; case NtStatus::ipsec_throttle_drop: os << TS("ipsec_throttle_drop"); //0xc0360009,
+		break; case NtStatus::ipsec_dosp_block: os << TS("ipsec_dosp_block"); //0xc0368000,
+		break; case NtStatus::ipsec_dosp_received_multicast: os << TS("ipsec_dosp_received_multicast"); //0xc0368001,
+		break; case NtStatus::ipsec_dosp_invalid_packet: os << TS("ipsec_dosp_invalid_packet"); //0xc0368002,
+		break; case NtStatus::ipsec_dosp_state_lookup_failed: os << TS("ipsec_dosp_state_lookup_failed"); //0xc0368003,
+		break; case NtStatus::ipsec_dosp_max_entries: os << TS("ipsec_dosp_max_entries"); //0xc0368004,
+		break; case NtStatus::ipsec_dosp_keymod_not_allowed: os << TS("ipsec_dosp_keymod_not_allowed"); //0xc0368005,
+		break; case NtStatus::ipsec_dosp_max_per_ip_ratelimit_queues: os << TS("ipsec_dosp_max_per_ip_ratelimit_queues"); //0xc0368006,
+		break; case NtStatus::vid_remote_node_parent_gpa_pages_used: os << TS("vid_remote_node_parent_gpa_pages_used"); //0x80370001,
+		break; case NtStatus::vid_duplicate_handler: os << TS("vid_duplicate_handler"); //0xc0370001,
+		break; case NtStatus::vid_too_many_handlers: os << TS("vid_too_many_handlers"); //0xc0370002,
+		break; case NtStatus::vid_queue_full: os << TS("vid_queue_full"); //0xc0370003,
+		break; case NtStatus::vid_handler_not_present: os << TS("vid_handler_not_present"); //0xc0370004,
+		break; case NtStatus::vid_invalid_object_name: os << TS("vid_invalid_object_name"); //0xc0370005,
+		break; case NtStatus::vid_partition_name_too_long: os << TS("vid_partition_name_too_long"); //0xc0370006,
+		break; case NtStatus::vid_message_queue_name_too_long: os << TS("vid_message_queue_name_too_long"); //0xc0370007,
+		break; case NtStatus::vid_partition_already_exists: os << TS("vid_partition_already_exists"); //0xc0370008,
+		break; case NtStatus::vid_partition_does_not_exist: os << TS("vid_partition_does_not_exist"); //0xc0370009,
+		break; case NtStatus::vid_partition_name_not_found: os << TS("vid_partition_name_not_found"); //0xc037000a,
+		break; case NtStatus::vid_message_queue_already_exists: os << TS("vid_message_queue_already_exists"); //0xc037000b,
+		break; case NtStatus::vid_exceeded_mbp_entry_map_limit: os << TS("vid_exceeded_mbp_entry_map_limit"); //0xc037000c,
+		break; case NtStatus::vid_mb_still_referenced: os << TS("vid_mb_still_referenced"); //0xc037000d,
+		break; case NtStatus::vid_child_gpa_page_set_corrupted: os << TS("vid_child_gpa_page_set_corrupted"); //0xc037000e,
+		break; case NtStatus::vid_invalid_numa_settings: os << TS("vid_invalid_numa_settings"); //0xc037000f,
+		break; case NtStatus::vid_invalid_numa_node_index: os << TS("vid_invalid_numa_node_index"); //0xc0370010,
+		break; case NtStatus::vid_notification_queue_already_associated: os << TS("vid_notification_queue_already_associated"); //0xc0370011,
+		break; case NtStatus::vid_invalid_memory_block_handle: os << TS("vid_invalid_memory_block_handle"); //0xc0370012,
+		break; case NtStatus::vid_page_range_overflow: os << TS("vid_page_range_overflow"); //0xc0370013,
+		break; case NtStatus::vid_invalid_message_queue_handle: os << TS("vid_invalid_message_queue_handle"); //0xc0370014,
+		break; case NtStatus::vid_invalid_gpa_range_handle: os << TS("vid_invalid_gpa_range_handle"); //0xc0370015,
+		break; case NtStatus::vid_no_memory_block_notification_queue: os << TS("vid_no_memory_block_notification_queue"); //0xc0370016,
+		break; case NtStatus::vid_memory_block_lock_count_exceeded: os << TS("vid_memory_block_lock_count_exceeded"); //0xc0370017,
+		break; case NtStatus::vid_invalid_ppm_handle: os << TS("vid_invalid_ppm_handle"); //0xc0370018,
+		break; case NtStatus::vid_mbps_are_locked: os << TS("vid_mbps_are_locked"); //0xc0370019,
+		break; case NtStatus::vid_message_queue_closed: os << TS("vid_message_queue_closed"); //0xc037001a,
+		break; case NtStatus::vid_virtual_processor_limit_exceeded: os << TS("vid_virtual_processor_limit_exceeded"); //0xc037001b,
+		break; case NtStatus::vid_stop_pending: os << TS("vid_stop_pending"); //0xc037001c,
+		break; case NtStatus::vid_invalid_processor_state: os << TS("vid_invalid_processor_state"); //0xc037001d,
+		break; case NtStatus::vid_exceeded_km_context_count_limit: os << TS("vid_exceeded_km_context_count_limit"); //0xc037001e,
+		break; case NtStatus::vid_km_interface_already_initialized: os << TS("vid_km_interface_already_initialized"); //0xc037001f,
+		break; case NtStatus::vid_mb_property_already_set_reset: os << TS("vid_mb_property_already_set_reset"); //0xc0370020,
+		break; case NtStatus::vid_mmio_range_destroyed: os << TS("vid_mmio_range_destroyed"); //0xc0370021,
+		break; case NtStatus::vid_invalid_child_gpa_page_set: os << TS("vid_invalid_child_gpa_page_set"); //0xc0370022,
+		break; case NtStatus::vid_reserve_page_set_is_being_used: os << TS("vid_reserve_page_set_is_being_used"); //0xc0370023,
+		break; case NtStatus::vid_reserve_page_set_too_small: os << TS("vid_reserve_page_set_too_small"); //0xc0370024,
+		break; case NtStatus::vid_mbp_already_locked_using_reserved_page: os << TS("vid_mbp_already_locked_using_reserved_page"); //0xc0370025,
+		break; case NtStatus::vid_mbp_count_exceeded_limit: os << TS("vid_mbp_count_exceeded_limit"); //0xc0370026,
+		break; case NtStatus::vid_saved_state_corrupt: os << TS("vid_saved_state_corrupt"); //0xc0370027,
+		break; case NtStatus::vid_saved_state_unrecognized_item: os << TS("vid_saved_state_unrecognized_item"); //0xc0370028,
+		break; case NtStatus::vid_saved_state_incompatible: os << TS("vid_saved_state_incompatible"); //0xc0370029,
+		break; case NtStatus::vid_vtl_access_denied: os << TS("vid_vtl_access_denied"); //0xc037002a,
+		break; case NtStatus::vid_insufficient_resources_reserve: os << TS("vid_insufficient_resources_reserve"); //0xc037002b,
+		break; case NtStatus::vid_insufficient_resources_physical_buffer: os << TS("vid_insufficient_resources_physical_buffer"); //0xc037002c,
+		break; case NtStatus::vid_insufficient_resources_hv_deposit: os << TS("vid_insufficient_resources_hv_deposit"); //0xc037002d,
+		break; case NtStatus::vid_memory_type_not_supported: os << TS("vid_memory_type_not_supported"); //0xc037002e,
+		break; case NtStatus::vid_insufficient_resources_withdraw: os << TS("vid_insufficient_resources_withdraw"); //0xc037002f,
+		break; case NtStatus::vid_process_already_set: os << TS("vid_process_already_set"); //0xc0370030,
+		break; case NtStatus::dm_operation_limit_exceeded: os << TS("dm_operation_limit_exceeded"); //0xc0370600,
+		break; case NtStatus::volmgr_incomplete_regeneration: os << TS("volmgr_incomplete_regeneration"); //0x80380001,
+		break; case NtStatus::volmgr_database_full: os << TS("volmgr_database_full"); //0xc0380001,
+		break; case NtStatus::volmgr_incomplete_disk_migration: os << TS("volmgr_incomplete_disk_migration"); //0x80380002,
+		break; case NtStatus::volmgr_disk_configuration_corrupted: os << TS("volmgr_disk_configuration_corrupted"); //0xc0380002,
+		break; case NtStatus::volmgr_disk_configuration_not_in_sync: os << TS("volmgr_disk_configuration_not_in_sync"); //0xc0380003,
+		break; case NtStatus::volmgr_pack_config_update_failed: os << TS("volmgr_pack_config_update_failed"); //0xc0380004,
+		break; case NtStatus::volmgr_disk_contains_non_simple_volume: os << TS("volmgr_disk_contains_non_simple_volume"); //0xc0380005,
+		break; case NtStatus::volmgr_disk_duplicate: os << TS("volmgr_disk_duplicate"); //0xc0380006,
+		break; case NtStatus::volmgr_disk_dynamic: os << TS("volmgr_disk_dynamic"); //0xc0380007,
+		break; case NtStatus::volmgr_disk_id_invalid: os << TS("volmgr_disk_id_invalid"); //0xc0380008,
+		break; case NtStatus::volmgr_disk_invalid: os << TS("volmgr_disk_invalid"); //0xc0380009,
+		break; case NtStatus::volmgr_disk_last_voter: os << TS("volmgr_disk_last_voter"); //0xc038000a,
+		break; case NtStatus::volmgr_disk_layout_invalid: os << TS("volmgr_disk_layout_invalid"); //0xc038000b,
+		break; case NtStatus::volmgr_disk_layout_non_basic_between_basic_partitions: os << TS("volmgr_disk_layout_non_basic_between_basic_partitions"); //0xc038000c,
+		break; case NtStatus::volmgr_disk_layout_not_cylinder_aligned: os << TS("volmgr_disk_layout_not_cylinder_aligned"); //0xc038000d,
+		break; case NtStatus::volmgr_disk_layout_partitions_too_small: os << TS("volmgr_disk_layout_partitions_too_small"); //0xc038000e,
+		break; case NtStatus::volmgr_disk_layout_primary_between_logical_partitions: os << TS("volmgr_disk_layout_primary_between_logical_partitions"); //0xc038000f,
+		break; case NtStatus::volmgr_disk_layout_too_many_partitions: os << TS("volmgr_disk_layout_too_many_partitions"); //0xc0380010,
+		break; case NtStatus::volmgr_disk_missing: os << TS("volmgr_disk_missing"); //0xc0380011,
+		break; case NtStatus::volmgr_disk_not_empty: os << TS("volmgr_disk_not_empty"); //0xc0380012,
+		break; case NtStatus::volmgr_disk_not_enough_space: os << TS("volmgr_disk_not_enough_space"); //0xc0380013,
+		break; case NtStatus::volmgr_disk_revectoring_failed: os << TS("volmgr_disk_revectoring_failed"); //0xc0380014,
+		break; case NtStatus::volmgr_disk_sector_size_invalid: os << TS("volmgr_disk_sector_size_invalid"); //0xc0380015,
+		break; case NtStatus::volmgr_disk_set_not_contained: os << TS("volmgr_disk_set_not_contained"); //0xc0380016,
+		break; case NtStatus::volmgr_disk_used_by_multiple_members: os << TS("volmgr_disk_used_by_multiple_members"); //0xc0380017,
+		break; case NtStatus::volmgr_disk_used_by_multiple_plexes: os << TS("volmgr_disk_used_by_multiple_plexes"); //0xc0380018,
+		break; case NtStatus::volmgr_dynamic_disk_not_supported: os << TS("volmgr_dynamic_disk_not_supported"); //0xc0380019,
+		break; case NtStatus::volmgr_extent_already_used: os << TS("volmgr_extent_already_used"); //0xc038001a,
+		break; case NtStatus::volmgr_extent_not_contiguous: os << TS("volmgr_extent_not_contiguous"); //0xc038001b,
+		break; case NtStatus::volmgr_extent_not_in_public_region: os << TS("volmgr_extent_not_in_public_region"); //0xc038001c,
+		break; case NtStatus::volmgr_extent_not_sector_aligned: os << TS("volmgr_extent_not_sector_aligned"); //0xc038001d,
+		break; case NtStatus::volmgr_extent_overlaps_ebr_partition: os << TS("volmgr_extent_overlaps_ebr_partition"); //0xc038001e,
+		break; case NtStatus::volmgr_extent_volume_lengths_do_not_match: os << TS("volmgr_extent_volume_lengths_do_not_match"); //0xc038001f,
+		break; case NtStatus::volmgr_fault_tolerant_not_supported: os << TS("volmgr_fault_tolerant_not_supported"); //0xc0380020,
+		break; case NtStatus::volmgr_interleave_length_invalid: os << TS("volmgr_interleave_length_invalid"); //0xc0380021,
+		break; case NtStatus::volmgr_maximum_registered_users: os << TS("volmgr_maximum_registered_users"); //0xc0380022,
+		break; case NtStatus::volmgr_member_in_sync: os << TS("volmgr_member_in_sync"); //0xc0380023,
+		break; case NtStatus::volmgr_member_index_duplicate: os << TS("volmgr_member_index_duplicate"); //0xc0380024,
+		break; case NtStatus::volmgr_member_index_invalid: os << TS("volmgr_member_index_invalid"); //0xc0380025,
+		break; case NtStatus::volmgr_member_missing: os << TS("volmgr_member_missing"); //0xc0380026,
+		break; case NtStatus::volmgr_member_not_detached: os << TS("volmgr_member_not_detached"); //0xc0380027,
+		break; case NtStatus::volmgr_member_regenerating: os << TS("volmgr_member_regenerating"); //0xc0380028,
+		break; case NtStatus::volmgr_all_disks_failed: os << TS("volmgr_all_disks_failed"); //0xc0380029,
+		break; case NtStatus::volmgr_no_registered_users: os << TS("volmgr_no_registered_users"); //0xc038002a,
+		break; case NtStatus::volmgr_no_such_user: os << TS("volmgr_no_such_user"); //0xc038002b,
+		break; case NtStatus::volmgr_notification_reset: os << TS("volmgr_notification_reset"); //0xc038002c,
+		break; case NtStatus::volmgr_number_of_members_invalid: os << TS("volmgr_number_of_members_invalid"); //0xc038002d,
+		break; case NtStatus::volmgr_number_of_plexes_invalid: os << TS("volmgr_number_of_plexes_invalid"); //0xc038002e,
+		break; case NtStatus::volmgr_pack_duplicate: os << TS("volmgr_pack_duplicate"); //0xc038002f,
+		break; case NtStatus::volmgr_pack_id_invalid: os << TS("volmgr_pack_id_invalid"); //0xc0380030,
+		break; case NtStatus::volmgr_pack_invalid: os << TS("volmgr_pack_invalid"); //0xc0380031,
+		break; case NtStatus::volmgr_pack_name_invalid: os << TS("volmgr_pack_name_invalid"); //0xc0380032,
+		break; case NtStatus::volmgr_pack_offline: os << TS("volmgr_pack_offline"); //0xc0380033,
+		break; case NtStatus::volmgr_pack_has_quorum: os << TS("volmgr_pack_has_quorum"); //0xc0380034,
+		break; case NtStatus::volmgr_pack_without_quorum: os << TS("volmgr_pack_without_quorum"); //0xc0380035,
+		break; case NtStatus::volmgr_partition_style_invalid: os << TS("volmgr_partition_style_invalid"); //0xc0380036,
+		break; case NtStatus::volmgr_partition_update_failed: os << TS("volmgr_partition_update_failed"); //0xc0380037,
+		break; case NtStatus::volmgr_plex_in_sync: os << TS("volmgr_plex_in_sync"); //0xc0380038,
+		break; case NtStatus::volmgr_plex_index_duplicate: os << TS("volmgr_plex_index_duplicate"); //0xc0380039,
+		break; case NtStatus::volmgr_plex_index_invalid: os << TS("volmgr_plex_index_invalid"); //0xc038003a,
+		break; case NtStatus::volmgr_plex_last_active: os << TS("volmgr_plex_last_active"); //0xc038003b,
+		break; case NtStatus::volmgr_plex_missing: os << TS("volmgr_plex_missing"); //0xc038003c,
+		break; case NtStatus::volmgr_plex_regenerating: os << TS("volmgr_plex_regenerating"); //0xc038003d,
+		break; case NtStatus::volmgr_plex_type_invalid: os << TS("volmgr_plex_type_invalid"); //0xc038003e,
+		break; case NtStatus::volmgr_plex_not_raid5: os << TS("volmgr_plex_not_raid5"); //0xc038003f,
+		break; case NtStatus::volmgr_plex_not_simple: os << TS("volmgr_plex_not_simple"); //0xc0380040,
+		break; case NtStatus::volmgr_structure_size_invalid: os << TS("volmgr_structure_size_invalid"); //0xc0380041,
+		break; case NtStatus::volmgr_too_many_notification_requests: os << TS("volmgr_too_many_notification_requests"); //0xc0380042,
+		break; case NtStatus::volmgr_transaction_in_progress: os << TS("volmgr_transaction_in_progress"); //0xc0380043,
+		break; case NtStatus::volmgr_unexpected_disk_layout_change: os << TS("volmgr_unexpected_disk_layout_change"); //0xc0380044,
+		break; case NtStatus::volmgr_volume_contains_missing_disk: os << TS("volmgr_volume_contains_missing_disk"); //0xc0380045,
+		break; case NtStatus::volmgr_volume_id_invalid: os << TS("volmgr_volume_id_invalid"); //0xc0380046,
+		break; case NtStatus::volmgr_volume_length_invalid: os << TS("volmgr_volume_length_invalid"); //0xc0380047,
+		break; case NtStatus::volmgr_volume_length_not_sector_size_multiple: os << TS("volmgr_volume_length_not_sector_size_multiple"); //0xc0380048,
+		break; case NtStatus::volmgr_volume_not_mirrored: os << TS("volmgr_volume_not_mirrored"); //0xc0380049,
+		break; case NtStatus::volmgr_volume_not_retained: os << TS("volmgr_volume_not_retained"); //0xc038004a,
+		break; case NtStatus::volmgr_volume_offline: os << TS("volmgr_volume_offline"); //0xc038004b,
+		break; case NtStatus::volmgr_volume_retained: os << TS("volmgr_volume_retained"); //0xc038004c,
+		break; case NtStatus::volmgr_number_of_extents_invalid: os << TS("volmgr_number_of_extents_invalid"); //0xc038004d,
+		break; case NtStatus::volmgr_different_sector_size: os << TS("volmgr_different_sector_size"); //0xc038004e,
+		break; case NtStatus::volmgr_bad_boot_disk: os << TS("volmgr_bad_boot_disk"); //0xc038004f,
+		break; case NtStatus::volmgr_pack_config_offline: os << TS("volmgr_pack_config_offline"); //0xc0380050,
+		break; case NtStatus::volmgr_pack_config_online: os << TS("volmgr_pack_config_online"); //0xc0380051,
+		break; case NtStatus::volmgr_not_primary_pack: os << TS("volmgr_not_primary_pack"); //0xc0380052,
+		break; case NtStatus::volmgr_pack_log_update_failed: os << TS("volmgr_pack_log_update_failed"); //0xc0380053,
+		break; case NtStatus::volmgr_number_of_disks_in_plex_invalid: os << TS("volmgr_number_of_disks_in_plex_invalid"); //0xc0380054,
+		break; case NtStatus::volmgr_number_of_disks_in_member_invalid: os << TS("volmgr_number_of_disks_in_member_invalid"); //0xc0380055,
+		break; case NtStatus::volmgr_volume_mirrored: os << TS("volmgr_volume_mirrored"); //0xc0380056,
+		break; case NtStatus::volmgr_plex_not_simple_spanned: os << TS("volmgr_plex_not_simple_spanned"); //0xc0380057,
+		break; case NtStatus::volmgr_no_valid_log_copies: os << TS("volmgr_no_valid_log_copies"); //0xc0380058,
+		break; case NtStatus::volmgr_primary_pack_present: os << TS("volmgr_primary_pack_present"); //0xc0380059,
+		break; case NtStatus::volmgr_number_of_disks_invalid: os << TS("volmgr_number_of_disks_invalid"); //0xc038005a,
+		break; case NtStatus::volmgr_mirror_not_supported: os << TS("volmgr_mirror_not_supported"); //0xc038005b,
+		break; case NtStatus::volmgr_raid5_not_supported: os << TS("volmgr_raid5_not_supported"); //0xc038005c,
+		break; case NtStatus::bcd_not_all_entries_imported: os << TS("bcd_not_all_entries_imported"); //0x80390001,
+		break; case NtStatus::bcd_too_many_elements: os << TS("bcd_too_many_elements"); //0xc0390002,
+		break; case NtStatus::bcd_not_all_entries_synchronized: os << TS("bcd_not_all_entries_synchronized"); //0x80390003,
+		break; case NtStatus::query_storage_error: os << TS("query_storage_error"); //0x803a0001,
+		break; case NtStatus::vhd_drive_footer_missing: os << TS("vhd_drive_footer_missing"); //0xc03a0001,
+		break; case NtStatus::vhd_drive_footer_checksum_mismatch: os << TS("vhd_drive_footer_checksum_mismatch"); //0xc03a0002,
+		break; case NtStatus::vhd_drive_footer_corrupt: os << TS("vhd_drive_footer_corrupt"); //0xc03a0003,
+		break; case NtStatus::vhd_format_unknown: os << TS("vhd_format_unknown"); //0xc03a0004,
+		break; case NtStatus::vhd_format_unsupported_version: os << TS("vhd_format_unsupported_version"); //0xc03a0005,
+		break; case NtStatus::vhd_sparse_header_checksum_mismatch: os << TS("vhd_sparse_header_checksum_mismatch"); //0xc03a0006,
+		break; case NtStatus::vhd_sparse_header_unsupported_version: os << TS("vhd_sparse_header_unsupported_version"); //0xc03a0007,
+		break; case NtStatus::vhd_sparse_header_corrupt: os << TS("vhd_sparse_header_corrupt"); //0xc03a0008,
+		break; case NtStatus::vhd_block_allocation_failure: os << TS("vhd_block_allocation_failure"); //0xc03a0009,
+		break; case NtStatus::vhd_block_allocation_table_corrupt: os << TS("vhd_block_allocation_table_corrupt"); //0xc03a000a,
+		break; case NtStatus::vhd_invalid_block_size: os << TS("vhd_invalid_block_size"); //0xc03a000b,
+		break; case NtStatus::vhd_bitmap_mismatch: os << TS("vhd_bitmap_mismatch"); //0xc03a000c,
+		break; case NtStatus::vhd_parent_vhd_not_found: os << TS("vhd_parent_vhd_not_found"); //0xc03a000d,
+		break; case NtStatus::vhd_child_parent_id_mismatch: os << TS("vhd_child_parent_id_mismatch"); //0xc03a000e,
+		break; case NtStatus::vhd_child_parent_timestamp_mismatch: os << TS("vhd_child_parent_timestamp_mismatch"); //0xc03a000f,
+		break; case NtStatus::vhd_metadata_read_failure: os << TS("vhd_metadata_read_failure"); //0xc03a0010,
+		break; case NtStatus::vhd_metadata_write_failure: os << TS("vhd_metadata_write_failure"); //0xc03a0011,
+		break; case NtStatus::vhd_invalid_size: os << TS("vhd_invalid_size"); //0xc03a0012,
+		break; case NtStatus::vhd_invalid_file_size: os << TS("vhd_invalid_file_size"); //0xc03a0013,
+		break; case NtStatus::virtdisk_provider_not_found: os << TS("virtdisk_provider_not_found"); //0xc03a0014,
+		break; case NtStatus::virtdisk_not_virtual_disk: os << TS("virtdisk_not_virtual_disk"); //0xc03a0015,
+		break; case NtStatus::vhd_parent_vhd_access_denied: os << TS("vhd_parent_vhd_access_denied"); //0xc03a0016,
+		break; case NtStatus::vhd_child_parent_size_mismatch: os << TS("vhd_child_parent_size_mismatch"); //0xc03a0017,
+		break; case NtStatus::vhd_differencing_chain_cycle_detected: os << TS("vhd_differencing_chain_cycle_detected"); //0xc03a0018,
+		break; case NtStatus::vhd_differencing_chain_error_in_parent: os << TS("vhd_differencing_chain_error_in_parent"); //0xc03a0019,
+		break; case NtStatus::virtual_disk_limitation: os << TS("virtual_disk_limitation"); //0xc03a001a,
+		break; case NtStatus::vhd_invalid_type: os << TS("vhd_invalid_type"); //0xc03a001b,
+		break; case NtStatus::vhd_invalid_state: os << TS("vhd_invalid_state"); //0xc03a001c,
+		break; case NtStatus::virtdisk_unsupported_disk_sector_size: os << TS("virtdisk_unsupported_disk_sector_size"); //0xc03a001d,
+		break; case NtStatus::virtdisk_disk_already_owned: os << TS("virtdisk_disk_already_owned"); //0xc03a001e,
+		break; case NtStatus::virtdisk_disk_online_and_writable: os << TS("virtdisk_disk_online_and_writable"); //0xc03a001f,
+		break; case NtStatus::ctlog_tracking_not_initialized: os << TS("ctlog_tracking_not_initialized"); //0xc03a0020,
+		break; case NtStatus::ctlog_logfile_size_exceeded_maxsize: os << TS("ctlog_logfile_size_exceeded_maxsize"); //0xc03a0021,
+		break; case NtStatus::ctlog_vhd_changed_offline: os << TS("ctlog_vhd_changed_offline"); //0xc03a0022,
+		break; case NtStatus::ctlog_invalid_tracking_state: os << TS("ctlog_invalid_tracking_state"); //0xc03a0023,
+		break; case NtStatus::ctlog_inconsistent_tracking_file: os << TS("ctlog_inconsistent_tracking_file"); //0xc03a0024,
+		break; case NtStatus::vhd_metadata_full: os << TS("vhd_metadata_full"); //0xc03a0028,
+		break; case NtStatus::vhd_invalid_change_tracking_id: os << TS("vhd_invalid_change_tracking_id"); //0xc03a0029,
+		break; case NtStatus::vhd_change_tracking_disabled: os << TS("vhd_change_tracking_disabled"); //0xc03a002a,
+		break; case NtStatus::vhd_missing_change_tracking_information: os << TS("vhd_missing_change_tracking_information"); //0xc03a0030,
+		break; case NtStatus::vhd_resize_would_truncate_data: os << TS("vhd_resize_would_truncate_data"); //0xc03a0031,
+		break; case NtStatus::vhd_could_not_compute_minimum_virtual_size: os << TS("vhd_could_not_compute_minimum_virtual_size"); //0xc03a0032,
+		break; case NtStatus::vhd_already_at_or_below_minimum_virtual_size: os << TS("vhd_already_at_or_below_minimum_virtual_size"); //0xc03a0033,
+		break; case NtStatus::gdi_handle_leak: os << TS("gdi_handle_leak"); //0x803f0001,
+		break; case NtStatus::rkf_key_not_found: os << TS("rkf_key_not_found"); //0xc0400001,
+		break; case NtStatus::rkf_duplicate_key: os << TS("rkf_duplicate_key"); //0xc0400002,
+		break; case NtStatus::rkf_blob_full: os << TS("rkf_blob_full"); //0xc0400003,
+		break; case NtStatus::rkf_store_full: os << TS("rkf_store_full"); //0xc0400004,
+		break; case NtStatus::rkf_file_blocked: os << TS("rkf_file_blocked"); //0xc0400005,
+		break; case NtStatus::rkf_active_key: os << TS("rkf_active_key"); //0xc0400006,
+		break; case NtStatus::rdbss_restart_operation: os << TS("rdbss_restart_operation"); //0xc0410001,
+		break; case NtStatus::rdbss_continue_operation: os << TS("rdbss_continue_operation"); //0xc0410002,
+		break; case NtStatus::rdbss_post_operation: os << TS("rdbss_post_operation"); //0xc0410003,
+		break; case NtStatus::rdbss_retry_lookup: os << TS("rdbss_retry_lookup"); //0xc0410004,
+		break; case NtStatus::bth_att_invalid_handle: os << TS("bth_att_invalid_handle"); //0xc0420001,
+		break; case NtStatus::bth_att_read_not_permitted: os << TS("bth_att_read_not_permitted"); //0xc0420002,
+		break; case NtStatus::bth_att_write_not_permitted: os << TS("bth_att_write_not_permitted"); //0xc0420003,
+		break; case NtStatus::bth_att_invalid_pdu: os << TS("bth_att_invalid_pdu"); //0xc0420004,
+		break; case NtStatus::bth_att_insufficient_authentication: os << TS("bth_att_insufficient_authentication"); //0xc0420005,
+		break; case NtStatus::bth_att_request_not_supported: os << TS("bth_att_request_not_supported"); //0xc0420006,
+		break; case NtStatus::bth_att_invalid_offset: os << TS("bth_att_invalid_offset"); //0xc0420007,
+		break; case NtStatus::bth_att_insufficient_authorization: os << TS("bth_att_insufficient_authorization"); //0xc0420008,
+		break; case NtStatus::bth_att_prepare_queue_full: os << TS("bth_att_prepare_queue_full"); //0xc0420009,
+		break; case NtStatus::bth_att_attribute_not_found: os << TS("bth_att_attribute_not_found"); //0xc042000a,
+		break; case NtStatus::bth_att_attribute_not_long: os << TS("bth_att_attribute_not_long"); //0xc042000b,
+		break; case NtStatus::bth_att_insufficient_encryption_key_size: os << TS("bth_att_insufficient_encryption_key_size"); //0xc042000c,
+		break; case NtStatus::bth_att_invalid_attribute_value_length: os << TS("bth_att_invalid_attribute_value_length"); //0xc042000d,
+		break; case NtStatus::bth_att_unlikely: os << TS("bth_att_unlikely"); //0xc042000e,
+		break; case NtStatus::bth_att_insufficient_encryption: os << TS("bth_att_insufficient_encryption"); //0xc042000f,
+		break; case NtStatus::bth_att_unsupported_group_type: os << TS("bth_att_unsupported_group_type"); //0xc0420010,
+		break; case NtStatus::bth_att_insufficient_resources: os << TS("bth_att_insufficient_resources"); //0xc0420011,
+		break; case NtStatus::bth_att_unknown_error: os << TS("bth_att_unknown_error"); //0xc0421000,
+		break; case NtStatus::secureboot_rollback_detected: os << TS("secureboot_rollback_detected"); //0xc0430001,
+		break; case NtStatus::secureboot_policy_violation: os << TS("secureboot_policy_violation"); //0xc0430002,
+		break; case NtStatus::secureboot_invalid_policy: os << TS("secureboot_invalid_policy"); //0xc0430003,
+		break; case NtStatus::secureboot_policy_publisher_not_found: os << TS("secureboot_policy_publisher_not_found"); //0xc0430004,
+		break; case NtStatus::secureboot_policy_not_signed: os << TS("secureboot_policy_not_signed"); //0xc0430005,
+		break; case NtStatus::secureboot_not_enabled: os << TS("secureboot_not_enabled"); //0x80430006,
+		break; case NtStatus::secureboot_file_replaced: os << TS("secureboot_file_replaced"); //0xc0430007,
+		break; case NtStatus::secureboot_policy_not_authorized: os << TS("secureboot_policy_not_authorized"); //0xc0430008,
+		break; case NtStatus::secureboot_policy_unknown: os << TS("secureboot_policy_unknown"); //0xc0430009,
+		break; case NtStatus::secureboot_policy_missing_antirollbackversion: os << TS("secureboot_policy_missing_antirollbackversion"); //0xc043000a,
+		break; case NtStatus::secureboot_platform_id_mismatch: os << TS("secureboot_platform_id_mismatch"); //0xc043000b,
+		break; case NtStatus::secureboot_policy_rollback_detected: os << TS("secureboot_policy_rollback_detected"); //0xc043000c,
+		break; case NtStatus::secureboot_policy_upgrade_mismatch: os << TS("secureboot_policy_upgrade_mismatch"); //0xc043000d,
+		break; case NtStatus::secureboot_required_policy_file_missing: os << TS("secureboot_required_policy_file_missing"); //0xc043000e,
+		break; case NtStatus::secureboot_not_base_policy: os << TS("secureboot_not_base_policy"); //0xc043000f,
+		break; case NtStatus::secureboot_not_supplemental_policy: os << TS("secureboot_not_supplemental_policy"); //0xc0430010,
+		break; case NtStatus::audio_engine_node_not_found: os << TS("audio_engine_node_not_found"); //0xc0440001,
+		break; case NtStatus::hdaudio_empty_connection_list: os << TS("hdaudio_empty_connection_list"); //0xc0440002,
+		break; case NtStatus::hdaudio_connection_list_not_supported: os << TS("hdaudio_connection_list_not_supported"); //0xc0440003,
+		break; case NtStatus::hdaudio_no_logical_devices_created: os << TS("hdaudio_no_logical_devices_created"); //0xc0440004,
+		break; case NtStatus::hdaudio_null_linked_list_entry: os << TS("hdaudio_null_linked_list_entry"); //0xc0440005,
+		break; case NtStatus::vsm_not_initialized: os << TS("vsm_not_initialized"); //0xc0450000,
+		break; case NtStatus::vsm_dma_protection_not_in_use: os << TS("vsm_dma_protection_not_in_use"); //0xc0450001,
+		break; case NtStatus::ioring_required_flag_not_supported: os << TS("ioring_required_flag_not_supported"); //0xc0460001,
+		break; case NtStatus::ioring_submission_queue_full: os << TS("ioring_submission_queue_full"); //0xc0460002,
+		break; case NtStatus::ioring_version_not_supported: os << TS("ioring_version_not_supported"); //0xc0460003,
+		break; case NtStatus::ioring_submission_queue_too_big: os << TS("ioring_submission_queue_too_big"); //0xc0460004,
+		break; case NtStatus::ioring_completion_queue_too_big: os << TS("ioring_completion_queue_too_big"); //0xc0460005,
+		break; case NtStatus::ioring_submit_in_progress: os << TS("ioring_submit_in_progress"); //0xc0460006,
+		break; case NtStatus::ioring_corrupt: os << TS("ioring_corrupt"); //0xc0460007,
+		break; case NtStatus::ioring_completion_queue_too_full: os << TS("ioring_completion_queue_too_full"); //0xc0460008,
+		break; case NtStatus::volsnap_bootfile_not_valid: os << TS("volsnap_bootfile_not_valid"); //0xc0500003,
+		break; case NtStatus::volsnap_activation_timeout: os << TS("volsnap_activation_timeout"); //0xc0500004,
+		break; case NtStatus::volsnap_no_bypassio_with_snapshot: os << TS("volsnap_no_bypassio_with_snapshot"); //0xc0500005,
+		break; case NtStatus::io_preempted: os << TS("io_preempted"); //0xc0510001,
+		break; case NtStatus::svhdx_error_stored: os << TS("svhdx_error_stored"); //0xc05c0000,
+		break; case NtStatus::svhdx_error_not_available: os << TS("svhdx_error_not_available"); //0xc05cff00,
+		break; case NtStatus::svhdx_unit_attention_available: os << TS("svhdx_unit_attention_available"); //0xc05cff01,
+		break; case NtStatus::svhdx_unit_attention_capacity_data_changed: os << TS("svhdx_unit_attention_capacity_data_changed"); //0xc05cff02,
+		break; case NtStatus::svhdx_unit_attention_reservations_preempted: os << TS("svhdx_unit_attention_reservations_preempted"); //0xc05cff03,
+		break; case NtStatus::svhdx_unit_attention_reservations_released: os << TS("svhdx_unit_attention_reservations_released"); //0xc05cff04,
+		break; case NtStatus::svhdx_unit_attention_registrations_preempted: os << TS("svhdx_unit_attention_registrations_preempted"); //0xc05cff05,
+		break; case NtStatus::svhdx_unit_attention_operating_definition_changed: os << TS("svhdx_unit_attention_operating_definition_changed"); //0xc05cff06,
+		break; case NtStatus::svhdx_reservation_conflict: os << TS("svhdx_reservation_conflict"); //0xc05cff07,
+		break; case NtStatus::svhdx_wrong_file_type: os << TS("svhdx_wrong_file_type"); //0xc05cff08,
+		break; case NtStatus::svhdx_version_mismatch: os << TS("svhdx_version_mismatch"); //0xc05cff09,
+		break; case NtStatus::vhd_shared: os << TS("vhd_shared"); //0xc05cff0a,
+		break; case NtStatus::svhdx_no_initiator: os << TS("svhdx_no_initiator"); //0xc05cff0b,
+		break; case NtStatus::vhdset_backing_storage_not_found: os << TS("vhdset_backing_storage_not_found"); //0xc05cff0c,
+		break; case NtStatus::smb_no_preauth_integrity_hash_overlap: os << TS("smb_no_preauth_integrity_hash_overlap"); //0xc05d0000,
+		break; case NtStatus::smb_bad_cluster_dialect: os << TS("smb_bad_cluster_dialect"); //0xc05d0001,
+		break; case NtStatus::smb_guest_logon_blocked: os << TS("smb_guest_logon_blocked"); //0xc05d0002,
+		break; case NtStatus::smb_no_signing_algorithm_overlap: os << TS("smb_no_signing_algorithm_overlap"); //0xc05d0003,
+		break; case NtStatus::network_authentication_prompt_canceled: os << TS("network_authentication_prompt_canceled"); //0xc05d0004,
+		break; case NtStatus::spaces_repaired: os << TS("spaces_repaired"); //0x00e70000,
+		break; case NtStatus::spaces_pause: os << TS("spaces_pause"); //0x00e70001,
+		break; case NtStatus::spaces_fault_domain_type_invalid: os << TS("spaces_fault_domain_type_invalid"); //0xc0e70001,
+		break; case NtStatus::spaces_complete: os << TS("spaces_complete"); //0x00e70002,
+		break; case NtStatus::spaces_redirect: os << TS("spaces_redirect"); //0x00e70003,
+		break; case NtStatus::spaces_resiliency_type_invalid: os << TS("spaces_resiliency_type_invalid"); //0xc0e70003,
+		break; case NtStatus::spaces_drive_sector_size_invalid: os << TS("spaces_drive_sector_size_invalid"); //0xc0e70004,
+		break; case NtStatus::spaces_drive_redundancy_invalid: os << TS("spaces_drive_redundancy_invalid"); //0xc0e70006,
+		break; case NtStatus::spaces_number_of_data_copies_invalid: os << TS("spaces_number_of_data_copies_invalid"); //0xc0e70007,
+		break; case NtStatus::spaces_interleave_length_invalid: os << TS("spaces_interleave_length_invalid"); //0xc0e70009,
+		break; case NtStatus::spaces_number_of_columns_invalid: os << TS("spaces_number_of_columns_invalid"); //0xc0e7000a,
+		break; case NtStatus::spaces_not_enough_drives: os << TS("spaces_not_enough_drives"); //0xc0e7000b,
+		break; case NtStatus::spaces_extended_error: os << TS("spaces_extended_error"); //0xc0e7000c,
+		break; case NtStatus::spaces_provisioning_type_invalid: os << TS("spaces_provisioning_type_invalid"); //0xc0e7000d,
+		break; case NtStatus::spaces_allocation_size_invalid: os << TS("spaces_allocation_size_invalid"); //0xc0e7000e,
+		break; case NtStatus::spaces_enclosure_aware_invalid: os << TS("spaces_enclosure_aware_invalid"); //0xc0e7000f,
+		break; case NtStatus::spaces_write_cache_size_invalid: os << TS("spaces_write_cache_size_invalid"); //0xc0e70010,
+		break; case NtStatus::spaces_number_of_groups_invalid: os << TS("spaces_number_of_groups_invalid"); //0xc0e70011,
+		break; case NtStatus::spaces_drive_operational_state_invalid: os << TS("spaces_drive_operational_state_invalid"); //0xc0e70012,
+		break; case NtStatus::spaces_update_column_state: os << TS("spaces_update_column_state"); //0xc0e70013,
+		break; case NtStatus::spaces_map_required: os << TS("spaces_map_required"); //0xc0e70014,
+		break; case NtStatus::spaces_unsupported_version: os << TS("spaces_unsupported_version"); //0xc0e70015,
+		break; case NtStatus::spaces_corrupt_metadata: os << TS("spaces_corrupt_metadata"); //0xc0e70016,
+		break; case NtStatus::spaces_drt_full: os << TS("spaces_drt_full"); //0xc0e70017,
+		break; case NtStatus::spaces_inconsistency: os << TS("spaces_inconsistency"); //0xc0e70018,
+		break; case NtStatus::spaces_log_not_ready: os << TS("spaces_log_not_ready"); //0xc0e70019,
+		break; case NtStatus::spaces_no_redundancy: os << TS("spaces_no_redundancy"); //0xc0e7001a,
+		break; case NtStatus::spaces_drive_not_ready: os << TS("spaces_drive_not_ready"); //0xc0e7001b,
+		break; case NtStatus::spaces_drive_split: os << TS("spaces_drive_split"); //0xc0e7001c,
+		break; case NtStatus::spaces_drive_lost_data: os << TS("spaces_drive_lost_data"); //0xc0e7001d,
+		break; case NtStatus::spaces_entry_incomplete: os << TS("spaces_entry_incomplete"); //0xc0e7001e,
+		break; case NtStatus::spaces_entry_invalid: os << TS("spaces_entry_invalid"); //0xc0e7001f,
+		break; case NtStatus::spaces_mark_dirty: os << TS("spaces_mark_dirty"); //0xc0e70020,
+		break; case NtStatus::spaces_pd_not_found: os << TS("spaces_pd_not_found"); //0xc0e70021,
+		break; case NtStatus::spaces_pd_length_mismatch: os << TS("spaces_pd_length_mismatch"); //0xc0e70022,
+		break; case NtStatus::spaces_pd_unsupported_version: os << TS("spaces_pd_unsupported_version"); //0xc0e70023,
+		break; case NtStatus::spaces_pd_invalid_data: os << TS("spaces_pd_invalid_data"); //0xc0e70024,
+		break; case NtStatus::spaces_flush_metadata: os << TS("spaces_flush_metadata"); //0xc0e70025,
+		break; case NtStatus::spaces_cache_full: os << TS("spaces_cache_full"); //0xc0e70026,
+		break; case NtStatus::spaces_repair_in_progress: os << TS("spaces_repair_in_progress"); //0xc0e70027,
+		break; case NtStatus::seccore_invalid_command: os << TS("seccore_invalid_command"); //0xc0e80000,
+		break; case NtStatus::system_integrity_rollback_detected: os << TS("system_integrity_rollback_detected"); //0xc0e90001,
+		break; case NtStatus::system_integrity_policy_violation: os << TS("system_integrity_policy_violation"); //0xc0e90002,
+		break; case NtStatus::system_integrity_invalid_policy: os << TS("system_integrity_invalid_policy"); //0xc0e90003,
+		break; case NtStatus::system_integrity_policy_not_signed: os << TS("system_integrity_policy_not_signed"); //0xc0e90004,
+		break; case NtStatus::system_integrity_too_many_policies: os << TS("system_integrity_too_many_policies"); //0xc0e90005,
+		break; case NtStatus::system_integrity_supplemental_policy_not_authorized: os << TS("system_integrity_supplemental_policy_not_authorized"); //0xc0e90006,
+		break; case NtStatus::system_integrity_reputation_malicious: os << TS("system_integrity_reputation_malicious"); //0xc0e90007,
+		break; case NtStatus::system_integrity_reputation_pua: os << TS("system_integrity_reputation_pua"); //0xc0e90008,
+		break; case NtStatus::system_integrity_reputation_dangerous_ext: os << TS("system_integrity_reputation_dangerous_ext"); //0xc0e90009,
+		break; case NtStatus::system_integrity_reputation_offline: os << TS("system_integrity_reputation_offline"); //0xc0e9000a,
+		break; case NtStatus::system_integrity_reputation_unfriendly_file: os << TS("system_integrity_reputation_unfriendly_file"); //0xc0e9000b,
+		break; case NtStatus::system_integrity_reputation_unattainable: os << TS("system_integrity_reputation_unattainable"); //0xc0e9000c,
+		break; case NtStatus::system_integrity_reputation_explicit_deny_file: os << TS("system_integrity_reputation_explicit_deny_file"); //0xc0e9000d,
+		break; case NtStatus::no_applicable_app_licenses_found: os << TS("no_applicable_app_licenses_found"); //0xc0ea0001,
+		break; case NtStatus::clip_license_not_found: os << TS("clip_license_not_found"); //0xc0ea0002,
+		break; case NtStatus::clip_device_license_missing: os << TS("clip_device_license_missing"); //0xc0ea0003,
+		break; case NtStatus::clip_license_invalid_signature: os << TS("clip_license_invalid_signature"); //0xc0ea0004,
+		break; case NtStatus::clip_keyholder_license_missing_or_invalid: os << TS("clip_keyholder_license_missing_or_invalid"); //0xc0ea0005,
+		break; case NtStatus::clip_license_expired: os << TS("clip_license_expired"); //0xc0ea0006,
+		break; case NtStatus::clip_license_signed_by_unknown_source: os << TS("clip_license_signed_by_unknown_source"); //0xc0ea0007,
+		break; case NtStatus::clip_license_not_signed: os << TS("clip_license_not_signed"); //0xc0ea0008,
+		break; case NtStatus::clip_license_hardware_id_out_of_tolerance: os << TS("clip_license_hardware_id_out_of_tolerance"); //0xc0ea0009,
+		break; case NtStatus::clip_license_device_id_mismatch: os << TS("clip_license_device_id_mismatch"); //0xc0ea000a,
+		break; case NtStatus::platform_manifest_not_authorized: os << TS("platform_manifest_not_authorized"); //0xc0eb0001,
+		break; case NtStatus::platform_manifest_invalid: os << TS("platform_manifest_invalid"); //0xc0eb0002,
+		break; case NtStatus::platform_manifest_file_not_authorized: os << TS("platform_manifest_file_not_authorized"); //0xc0eb0003,
+		break; case NtStatus::platform_manifest_catalog_not_authorized: os << TS("platform_manifest_catalog_not_authorized"); //0xc0eb0004,
+		break; case NtStatus::platform_manifest_binary_id_not_found: os << TS("platform_manifest_binary_id_not_found"); //0xc0eb0005,
+		break; case NtStatus::platform_manifest_not_active: os << TS("platform_manifest_not_active"); //0xc0eb0006,
+		break; case NtStatus::platform_manifest_not_signed: os << TS("platform_manifest_not_signed"); //0xc0eb0007,
+		break; case NtStatus::appexec_condition_not_satisfied: os << TS("appexec_condition_not_satisfied"); //0xc0ec0000,
+		break; case NtStatus::appexec_handle_invalidated: os << TS("appexec_handle_invalidated"); //0xc0ec0001,
+		break; case NtStatus::appexec_invalid_host_generation: os << TS("appexec_invalid_host_generation"); //0xc0ec0002,
+		break; case NtStatus::appexec_unexpected_process_registration: os << TS("appexec_unexpected_process_registration"); //0xc0ec0003,
+		break; case NtStatus::appexec_invalid_host_state: os << TS("appexec_invalid_host_state"); //0xc0ec0004,
+		break; case NtStatus::appexec_no_donor: os << TS("appexec_no_donor"); //0xc0ec0005,
+		break; case NtStatus::appexec_host_id_mismatch: os << TS("appexec_host_id_mismatch"); //0xc0ec0006,
+		break; case NtStatus::appexec_unknown_user: os << TS("appexec_unknown_user"); //0xc0ec0007,
+		break; case NtStatus::appexec_app_compat_block: os << TS("appexec_app_compat_block"); //0xc0ec0008,
+		break; case NtStatus::appexec_caller_wait_timeout: os << TS("appexec_caller_wait_timeout"); //0xc0ec0009,
+		break; case NtStatus::appexec_caller_wait_timeout_termination: os << TS("appexec_caller_wait_timeout_termination"); //0xc0ec000a,
+		break; case NtStatus::appexec_caller_wait_timeout_licensing: os << TS("appexec_caller_wait_timeout_licensing"); //0xc0ec000b,
+		break; case NtStatus::appexec_caller_wait_timeout_resources: os << TS("appexec_caller_wait_timeout_resources"); //0xc0ec000c
 		break; default:os << hex(UNDERLYING(status));
 	}
 	return os;
@@ -21044,6 +21585,7 @@ namespace NTDLL
 {
 	INLINE HANDLE NtCurrentProcess() noexcept { return HANDLE(-1); }
 	INLINE HANDLE NtCurrentThread() noexcept { return HANDLE(-2); }
+	DLLCALL_CALLER_CACHED(NtdllDefWindowProc_W, __stdcall, LRESULT, (HWND, hWnd), (UINT, Msg), (WPARAM, wParam), (LPARAM, lParam));
 	DLLCALL_CALLER(LdrSetDefaultDllDirectories, __stdcall, NtStatus, (u32, flags));
 	DLLCALL_CALLER(LdrLoadDll, __stdcall, NtStatus, (c16*,pSearchPath), (u32*,pDllCharacteristics),(UnicodeString*, pPath),(void**,pBase));
 	DEF_NTDLL_SYSCALL(NtQueryInformationProcess, NtStatus, (HANDLE, hProcess), (Windows::ProcessInfoClass, infoClass), (void*, pProcessInformation), (u32, size),(u32*,pReturnLength));
@@ -21249,9 +21791,9 @@ namespace Ole32
 	DLLCALL_CALLER(CoCreateInstance, __stdcall, HRESULT, (REFCLSID, rclsid), (IUnknown*, pUnkOuter), (u32, dwClsContext), (REFIID, riid), (void**, ppv));
 	DLLCALL_CALLER(CoUninitialize, __stdcall, HRESULT);
 
-	//constexpr DllCaller CoInitializeEx{ dllCaller<Stateless, HRESULT(__stdcall*)(void* pvReserved, u32 dwCoInit)>(TS8("CoInitializeEx")) };
-	//constexpr DllCaller CoCreateInstance{ dllCaller<Stateless, HRESULT(__stdcall*)(REFCLSID rclsid,IUnknown* pUnkOuter,u32 dwClsContext,REFIID riid,void** ppv)>(TS8("CoCreateInstance")) };
-	//constexpr DllCaller CoUninitialize{ dllCaller<Stateless, HRESULT(__stdcall*)()>(TS8("CoUninitialize")) };
+	//constexpr DllCaller CoInitializeEx{ dllCaller<Stateless, HRESULT(__stdcall*)(void* pvReserved, u32 dwCoInit)>(TS("CoInitializeEx")) };
+	//constexpr DllCaller CoCreateInstance{ dllCaller<Stateless, HRESULT(__stdcall*)(REFCLSID rclsid,IUnknown* pUnkOuter,u32 dwClsContext,REFIID riid,void** ppv)>(TS("CoCreateInstance")) };
+	//constexpr DllCaller CoUninitialize{ dllCaller<Stateless, HRESULT(__stdcall*)()>(TS("CoUninitialize")) };
 };
 namespace Windows::COM
 {
@@ -21385,7 +21927,7 @@ public:
 		static constexpr auto [...I] { iota<N - 1> };
 		(..., CTOR_CONST_AT(__builtin_addressof(m_array[constant<I>]), str[constant<I>]));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(__builtin_addressof(m_array[I]), str[I]));
 		}(std::make_index_sequence<N - 1>{});
@@ -21398,7 +21940,7 @@ public:
 		static constexpr auto [...I] { iota<N - 1> };
 		(..., CTOR_CONST_AT(m_ptr + constant<I>, str[constant<I>]));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(m_ptr + I, str[I]));
 		}(std::make_index_sequence<N - 1>{});
@@ -21414,7 +21956,7 @@ public:
 		static constexpr auto [...I] { iota<sizeof...(args)> };
 		(..., CTOR_CONST_AT(__builtin_addressof(m_array[constant<I>]), FWD(args)));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(__builtin_addressof(m_array[I]), FWD(args)));
 		}(std::make_index_sequence<sizeof...(args)>{});
@@ -21427,7 +21969,7 @@ public:
 		static constexpr auto [...I] { iota<sizeof...(args)> };
 		(..., CTOR_CONST_AT(m_ptr + constant<I>, FWD(args)));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(m_ptr + I, FWD(args)));
 		}(std::make_index_sequence<sizeof...(args)>{});
@@ -21472,7 +22014,7 @@ public:
 		static constexpr auto [...I] { iota<static_size<decltype(container)>> };
 		(..., CTOR_CONST_AT(__builtin_addressof(m_array[constant<I>]), FWD(container)[constant<I>]));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(__builtin_addressof(m_array[I]), FWD(container)[I]));
 		}(std::make_index_sequence<static_size<decltype(container)>>{});
@@ -21486,7 +22028,7 @@ public:
 		static constexpr auto [...I] { iota<static_size<decltype(container)>> };
 		(..., CTOR_CONST_AT(m_ptr + constant<I>, FWD(container)[constant<I>]));
 #else
-		[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+		[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			(..., CTOR_CONST_AT(m_ptr + I, FWD(container)[I]));
 		}(std::make_index_sequence<static_size<decltype(container)>>{});
@@ -22393,19 +22935,19 @@ public:
 	template<class Stream>
 	friend Stream& operator<<(Stream& os, const AudioCapture& capture)noexcept
 	{
-		if (!capture.m_pWaveFormatEx)os << TS8("Not initialized");
+		if (!capture.m_pWaveFormatEx)os << TS("Not initialized");
 		else
 		{
-			os << TS8(  "Name           = ") << capture.endpointName();
-			os << TS8("\nDuration       = ") << capture.sampleWindowTimeMs() << TS8("ms");
-			os << TS8("\nIsF32          = ") << capture.isF32();
-			os << TS8("\nTag            = ") << static_cast<WaveFormat>(capture.m_pWaveFormatEx->wFormatTag);
-			os << TS8("\nChannels       = ") << capture.m_pWaveFormatEx->nChannels;
-			os << TS8("\nSamplesPerSec  = ") << capture.m_pWaveFormatEx->nSamplesPerSec;
-			os << TS8("\nAvgBytesPerSec = ") << capture.m_pWaveFormatEx->nAvgBytesPerSec;
-			os << TS8("\nBlockAlign     = ") << capture.m_pWaveFormatEx->nBlockAlign;
-			os << TS8("\nBitsPerSample  = ") << capture.m_pWaveFormatEx->wBitsPerSample;
-			os << TS8("\nbSize          = ") << capture.m_pWaveFormatEx->cbSize;
+			os << TS(  "Name           = ") << capture.endpointName();
+			os << TS("\nDuration       = ") << capture.sampleWindowTimeMs() << TS("ms");
+			os << TS("\nIsF32          = ") << capture.isF32();
+			os << TS("\nTag            = ") << static_cast<WaveFormat>(capture.m_pWaveFormatEx->wFormatTag);
+			os << TS("\nChannels       = ") << capture.m_pWaveFormatEx->nChannels;
+			os << TS("\nSamplesPerSec  = ") << capture.m_pWaveFormatEx->nSamplesPerSec;
+			os << TS("\nAvgBytesPerSec = ") << capture.m_pWaveFormatEx->nAvgBytesPerSec;
+			os << TS("\nBlockAlign     = ") << capture.m_pWaveFormatEx->nBlockAlign;
+			os << TS("\nBitsPerSample  = ") << capture.m_pWaveFormatEx->wBitsPerSample;
+			os << TS("\nbSize          = ") << capture.m_pWaveFormatEx->cbSize;
 		}
 		return os;
 	}
@@ -22436,7 +22978,7 @@ struct DynamicArray
 	INLINE constexpr DynamicArray(Uninitialized, S s)noexcept : m_ptr{ ::allocate<T>(s) }, m_size{ s } {}
 	INLINE constexpr DynamicArray($CvrefOf<T> auto&&...args)noexcept : DynamicArray{ uninitialized, S{sizeof...(args)} } 
 	{
-		[&] <auto...I>(std::index_sequence<I...>) 
+		[&] <usize...I>(std::index_sequence<I...>) 
 		{
 			(..., CTOR_CONST_AT(m_ptr + I, FWD(args)));
 		}(std::make_index_sequence<sizeof...(args)>{});
@@ -22643,7 +23185,7 @@ namespace details::DynamicArrayTests
 		using Element = ElementOf<Container>;
 		static constexpr auto verify{ [] (const Container& vector, auto...e)static
 		{
-			return[&]<auto...I, auto...J>(std::index_sequence<I...>, std::index_sequence<J...>)
+			return[&]<usize...I, usize...J>(std::index_sequence<I...>, std::index_sequence<J...>)
 			{
 				if (vector.size() != sizeof...(e))return false;
 				if constexpr (sizeof...(e))
@@ -23001,8 +23543,8 @@ namespace Windows
 	INLINE constexpr DosPath operator/(DosPathView filepath, $StringOfCharSizeAny<1,2> auto&& rhs)noexcept { return details::pathAppend<DosPath>(filepath, FWD(rhs)); }
 	INLINE constexpr NtPath  operator/(NtPathView  filepath, $StringOfCharSizeAny<1,2> auto&& rhs)noexcept { return details::pathAppend<NtPath >(filepath, FWD(rhs)); }
 
-	INLINE constexpr DosPath operator/(DosPathView filepath, $TString auto rhs)noexcept { return details::pathAppend<DosPath, fstring<rhs>>(filepath); }
-	INLINE constexpr NtPath  operator/(NtPathView  filepath, $TString auto rhs)noexcept { return details::pathAppend<NtPath , fstring<rhs>>(filepath); }
+	INLINE constexpr DosPath operator/(DosPathView filepath, $TString auto rhs)noexcept { return details::pathAppend<DosPath, rhs.chars>(filepath); }
+	INLINE constexpr NtPath  operator/(NtPathView  filepath, $TString auto rhs)noexcept { return details::pathAppend<NtPath , rhs.chars>(filepath); }
 }
 
 STATIC_ASSERT(Windows::DosPathView{ LR"(c:\abc.txt)" } == 
@@ -23019,7 +23561,7 @@ STATIC_ASSERT(Windows::DosPathView{ LR"(C:\)" }.parent_path() == Windows::DosPat
 STATIC_ASSERT(Windows::NtPathView{ LR"(\??\C:\)" }.parent_path() == Windows::NtPathView{ LR"(\??\)" });
 STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Dir\Sub\file.txt)" }.parent_path() == Windows::DosPathView{ LR"(C:\Dir\Sub\)" });
 STATIC_ASSERT(Windows::NtPathView{ LR"(\Device\HarddiskVolume3\Dir\File.ext)" }.parent_path() == Windows::NtPathView{ LR"(\Device\HarddiskVolume3\Dir\)" });
-STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root)" } / TS16(L"Sub") / TS16(L"file.txt") == Windows::DosPathView{ LR"(C:\Root\Sub\file.txt)" });
+STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root)" } / TS(L"Sub") / TS(L"file.txt") == Windows::DosPathView{ LR"(C:\Root\Sub\file.txt)" });
 STATIC_ASSERT(Windows::DosPathView{ LR"(D:\noext)" }.extension().empty());
 
 STATIC_ASSERT([] static
@@ -23088,9 +23630,9 @@ namespace Windows
 		friend Stream& operator<<(Stream& os, const FileDirInfo& info)noexcept
 		{
 			if (info.isDirectory())
-				os << TS8("Directory = \"");
+				os << TS("Directory = \"");
 			else
-				os << TS8("File      = \"");
+				os << TS("File      = \"");
 			os << info.name() << '"';
 			return os;
 		}
@@ -23133,7 +23675,7 @@ namespace Windows
 
 	struct File: BasicFile
 	{
-		bool openDirEx(const auto& path, bool createIfNotExist, ACCESS_MASK desiredAccess = FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE) noexcept
+		bool openDirImpl(const auto& path, bool createIfNotExist, ACCESS_MASK desiredAccess = FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE) noexcept
 		{
 			return createImpl(path, desiredAccess, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, createIfNotExist ? FILE_OPEN_IF : FILE_OPEN, FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT);
 		}
@@ -23212,35 +23754,35 @@ namespace Windows
 			return createImpl(path, FILE_GENERIC_READ, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_SYNCHRONOUS_IO_NONALERT);
 		}
 
-		bool openToReadEx(const auto& path) noexcept
+		bool openToReadImpl(const auto& path) noexcept
 		{
 			return openImpl(path, FILE_GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT);
 		}
 
-		bool createToWriteEx(const auto& path, ACCESS_MASK desiredAccess, bool createIfNotExist) noexcept
+		bool createToWriteImpl(const auto& path, ACCESS_MASK desiredAccess, bool createIfNotExist) noexcept
 		{
 			return createImpl(path, desiredAccess, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, createIfNotExist ? FILE_OVERWRITE_IF : FILE_OVERWRITE, FILE_SYNCHRONOUS_IO_NONALERT);
 		}
 
-		bool openFileToDeleteEx(const auto& path) noexcept
+		bool openFileToDeleteImpl(const auto& path) noexcept
 		{
 			return openImpl(path, DELETE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_NON_DIRECTORY_FILE);
 		}
 
-		bool openSymlinkFileToDeleteEx(const auto& path) noexcept
+		bool openSymlinkFileToDeleteImpl(const auto& path) noexcept
 		{
 			return openImpl(path, DELETE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_NON_DIRECTORY_FILE | FILE_OPEN_REPARSE_POINT);
 		}
 
-		bool openSymlinkDirectoryToDeleteEx(const auto& path) noexcept
+		bool openSymlinkDirectoryToDeleteImpl(const auto& path) noexcept
 		{
 			return openImpl(path, DELETE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_DIRECTORY_FILE | FILE_OPEN_REPARSE_POINT);
 		}
 
-		//bool createToWriteTransactedEx(const Transaction& transaction, const auto& path, ACCESS_MASK desiredAccess, bool createIfNotExist) noexcept
+		//bool createToWriteTransactedImpl(const Transaction& transaction, const auto& path, ACCESS_MASK desiredAccess, bool createIfNotExist) noexcept
 		//{
 		//	transaction.start();
-		//	const bool result{ createToWriteEx(path, desiredAccess, createIfNotExist) };
+		//	const bool result{ createToWriteImpl(path, desiredAccess, createIfNotExist) };
 		//	transaction.end();
 		//	return result;
 		//}
@@ -23252,29 +23794,29 @@ namespace Windows
 
 		constexpr File()noexcept {}
 
-		bool openToRead(DosPathView path) noexcept { return openToReadEx(path); /*return createToRead(path);*/ }
-		bool openToRead(NtPathView path)  noexcept { return openToReadEx(path); /*return createToRead(path);*/ }
+		bool openToRead(DosPathView path) noexcept { return openToReadImpl(path); /*return createToRead(path);*/ }
+		bool openToRead(NtPathView path)  noexcept { return openToReadImpl(path); /*return createToRead(path);*/ }
 
-		bool createToWrite(DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteEx(path, desiredAccess, createIfNotExist); }
-		bool createToWrite(NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteEx(path, desiredAccess, createIfNotExist); }
+		bool createToWrite(DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteImpl(path, desiredAccess, createIfNotExist); }
+		bool createToWrite(NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteImpl(path, desiredAccess, createIfNotExist); }
 
-		bool createToWriteDelete(DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE | DELETE, bool createIfNotExist = true) noexcept { return createToWriteEx(path, desiredAccess, createIfNotExist); }
-		bool createToWriteDelete(NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE | DELETE, bool createIfNotExist = true) noexcept { return createToWriteEx(path, desiredAccess, createIfNotExist); }
+		bool createToWriteDelete(DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE | DELETE, bool createIfNotExist = true) noexcept { return createToWriteImpl(path, desiredAccess, createIfNotExist); }
+		bool createToWriteDelete(NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE | DELETE, bool createIfNotExist = true) noexcept { return createToWriteImpl(path, desiredAccess, createIfNotExist); }
 
-		//bool createToWriteTransacted(const Transaction& transaction, DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteTransactedEx(transaction, path, desiredAccess, createIfNotExist); }
-		//bool createToWriteTransacted(const Transaction& transaction, NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteTransactedEx(transaction, path, desiredAccess, createIfNotExist); }
+		//bool createToWriteTransacted(const Transaction& transaction, DosPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteTransactedImpl(transaction, path, desiredAccess, createIfNotExist); }
+		//bool createToWriteTransacted(const Transaction& transaction, NtPathView path, ACCESS_MASK desiredAccess = FILE_GENERIC_WRITE, bool createIfNotExist = true) noexcept { return createToWriteTransactedImpl(transaction, path, desiredAccess, createIfNotExist); }
 
-		bool openFileToDelete(DosPathView path) noexcept { return openFileToDeleteEx(path); }
-		bool openFileToDelete(NtPathView path) noexcept { return openFileToDeleteEx(path); }
+		bool openFileToDelete(DosPathView path) noexcept { return openFileToDeleteImpl(path); }
+		bool openFileToDelete(NtPathView path) noexcept { return openFileToDeleteImpl(path); }
 
-		bool openDirToDelete(NtPathView path)noexcept { return openDirEx(path, false, DELETE | FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE); }
-		bool openDirToDelete(DosPathView path)noexcept { return openDirEx(path, false, DELETE | FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE); }
+		bool openDirToDelete(NtPathView path)noexcept { return openDirImpl(path, false, DELETE | FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE); }
+		bool openDirToDelete(DosPathView path)noexcept { return openDirImpl(path, false, DELETE | FILE_LIST_DIRECTORY | FILE_TRAVERSE | SYNCHRONIZE); }
 
-		bool openSymlinkFileToDelete(DosPathView path) noexcept { return openSymlinkFileToDeleteEx(path); }
-		bool openSymlinkFileToDelete(NtPathView path) noexcept { return openSymlinkFileToDeleteEx(path); }
+		bool openSymlinkFileToDelete(DosPathView path) noexcept { return openSymlinkFileToDeleteImpl(path); }
+		bool openSymlinkFileToDelete(NtPathView path) noexcept { return openSymlinkFileToDeleteImpl(path); }
 
-		bool openSymlinkDirectoryToDelete(DosPathView path) noexcept { return openSymlinkDirectoryToDeleteEx(path); }
-		bool openSymlinkDirectoryToDelete(NtPathView path) noexcept { return openSymlinkDirectoryToDeleteEx(path); }
+		bool openSymlinkDirectoryToDelete(DosPathView path) noexcept { return openSymlinkDirectoryToDeleteImpl(path); }
+		bool openSymlinkDirectoryToDelete(NtPathView path) noexcept { return openSymlinkDirectoryToDeleteImpl(path); }
 		
 		bool createDevice(NtPathView path, ACCESS_MASK desiredAccess = FILE_READ_DATA | FILE_WRITE_DATA, u32 fileAttributes = 0, u32 shareAccess = FILE_SHARE_READ | FILE_SHARE_WRITE, u32 createDisposition = FILE_OPEN | FILE_CREATE, u32 createOptions = 0)noexcept
 		{
@@ -23289,11 +23831,11 @@ namespace Windows
 			return createDevice(NtPathView{path}, desiredAccess, fileAttributes, shareAccess, createDisposition, createOptions);
 		}
 
-		bool openDir(DosPathView path)noexcept { return openDirEx(path, false); }
-		bool openDir(NtPathView path)noexcept { return openDirEx(path, false); }
+		bool openDir(DosPathView path)noexcept { return openDirImpl(path, false); }
+		bool openDir(NtPathView path)noexcept { return openDirImpl(path, false); }
 
-		bool createDir(DosPathView path)noexcept { return openDirEx(path, true); }
-		bool createDir(NtPathView path)noexcept { return openDirEx(path, true); }
+		bool createDir(DosPathView path)noexcept { return openDirImpl(path, true); }
+		bool createDir(NtPathView path)noexcept { return openDirImpl(path, true); }
 
 		template<u32 BufferSize = 0x4000, $SigAnyOf<void(const FileDirInfo), IterationControl(const FileDirInfo)> Action>
 		bool enumContainedFiles(Action&& action) const noexcept
@@ -23310,11 +23852,8 @@ namespace Windows
 					{
 						if constexpr($Sig<Action, void(const FileDirInfo)>)
 							action(*pFileInfo);
-						else if constexpr($Sig<Action, IterationControl(const FileDirInfo)>)
-						{
-							if (action(*pFileInfo) == IterationControl::stop)
-								return true;
-						}
+						else if (action(*pFileInfo) == IterationControl::stop)
+							return true;
 					}
 					pFileInfo = pFileInfo->pNext();
 				}
@@ -28360,11 +28899,11 @@ namespace Math
 		constexpr Tensor normalized_safe()const noexcept requires(sizeof...(Ns) == 0) { if (const T lenSqr{ lengthSqr() }; lenSqr != T{}) [[likely]] return (*this) / sqrt(lenSqr); return {}; }
 		constexpr void   normalize      ()      noexcept requires(sizeof...(Ns) == 0) { (*this) /= length(); }
 		constexpr void   normalize_safe ()      noexcept requires(sizeof...(Ns) == 0) { if (const T lenSqr{ lengthSqr() }; lenSqr != T{}) [[likely]] (*this) /= sqrt(lenSqr); }
-		friend constexpr T      distanceSqr    (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0) { return (l - r).lengthSqr(); }
-		friend constexpr T      distance       (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0) { return (l - r).length(); }
-		friend constexpr Tensor cross          (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0 && N == 3) { return { l[1] * r[2] - l[2] * r[1],l[2] * r[0] - l[0] * r[2],l[0] * r[1] - l[1] * r[0] }; }
-		friend constexpr T      cross          (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0 && N == 2) { return l[0] * r[1] - r[0] * l[1]; }
-		friend constexpr T      dot            (const Tensor& l, const Tensor& r) noexcept 
+		friend constexpr T      distanceSqr(const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0) { return (l - r).lengthSqr(); }
+		friend constexpr T      distance   (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0) { return (l - r).length(); }
+		friend constexpr Tensor cross      (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0 && N == 3) { return { l[1] * r[2] - l[2] * r[1],l[2] * r[0] - l[0] * r[2],l[0] * r[1] - l[1] * r[0] }; }
+		friend constexpr T      cross      (const Tensor& l, const Tensor& r) noexcept requires(sizeof...(Ns) == 0 && N == 2) { return l[0] * r[1] - r[0] * l[1]; }
+		friend constexpr T      dot        (const Tensor& l, const Tensor& r) noexcept 
 		{
 			static constexpr auto [...I] { iota<N> };
 			if constexpr (sizeof...(Ns) == 0)return (... + (l[compact<I>] * r[compact<I>]));
@@ -28501,7 +29040,7 @@ namespace Math
 			{
 				static constexpr auto impl{ [] (Tensor<T, N, N>&& m)STATIC_LAMBDA_INLINE
 				{
-					Tensor result{ [] static CONSTEVAL
+					Tensor result{ []static CONSTEVAL
 					{
 						Tensor eye;
 						for (const auto i : iota<N>)
@@ -28734,7 +29273,7 @@ namespace Math
 		requires(sizeof...(Ms) == sizeof...(Ns))
 		friend constexpr Tensor<T, M, Ms...> reshape(const TensorImpl& tensor)noexcept
 		{
-			static constexpr auto impl{ [] <auto...J>(std::index_sequence<J...>)static
+			static constexpr auto impl{ [] <usize...J>(std::index_sequence<J...>)static
 			{
 				return[](const TensorImpl& tensor)STATIC_LAMBDA_INLINE->Tensor<T, M, Ms...>
 				{
@@ -28761,7 +29300,7 @@ namespace Math
 		{
 			if consteval
 			{
-				return[&]<auto...J>(std::index_sequence<J...>) -> Like<Self, T>
+				return[&]<usize...J>(std::index_sequence<J...>) -> Like<Self, T>
 				{
 					return (FWD(self) | ... | TensorIndex{ compact<indexes[J]> });
 				}(std::make_index_sequence<rank>{});
@@ -28794,7 +29333,7 @@ namespace Math
 		constexpr Tensor<T, element_at<P>(N, Ns...)...> transpose()const noexcept
 		{
 			static constexpr auto rank_{ compact<1 + sizeof...(Ns)> };//msvc bug: rank is undefined
-			static constexpr auto impl{ [] <auto...J>(std::index_sequence<J...>)static
+			static constexpr auto impl{ [] <usize...J>(std::index_sequence<J...>)static
 			{
 				return[](const TensorImpl& tensor)STATIC_LAMBDA_INLINE
 				{
@@ -28861,7 +29400,7 @@ namespace Math
 			{
 				static constexpr auto impl{ [] (TensorImpl&& m)STATIC_LAMBDA_INLINE
 				{
-					TensorImpl result{ [] static CONSTEVAL
+					TensorImpl result{ []static CONSTEVAL
 					{
 						TensorImpl eye;
 						for (const auto i : iota<N>)
@@ -29306,6 +29845,9 @@ struct SinCos
 #define L2Lf 1.428606765330187045e-06f
 
 #define R_LN2f 1.442695040888963407359924681001892137426645954152985934135449406931f
+#if defined(M_PIf)
+	#undef M_PIf
+#endif
 #define M_PIf ((f32)Math::pi<f64>)
 
 #if (defined (__GNUC__) || defined (__clang__) || defined(__INTEL_COMPILER)) && !defined(_MSC_VER)
@@ -35622,7 +36164,7 @@ namespace Math
 			if constexpr ($Same<c16, typename Stream::char_type>)
 				os << static_cast<T>(rad) * (T{ 180 } / pi<T>) << L'°';
 			else
-				STATIC_ERROR(not implemented); //os << static_cast<T>(rad) * (T{ 180 } / pi<T>) << TS8("°");
+				STATIC_ERROR(not implemented); //os << static_cast<T>(rad) * (T{ 180 } / pi<T>) << TS("°");
 			return os;
 		}
 	};
@@ -35678,7 +36220,7 @@ namespace Math
 			if constexpr ($Same<c16, typename Stream::char_type>)
 				os << deg.m_data << L'°';
 			else
-				STATIC_ERROR(not implemented);//os << deg.m_data << TS8("°");
+				STATIC_ERROR(not implemented);//os << deg.m_data << TS("°");
 			return os;
 		}
 	};
@@ -36090,72 +36632,12 @@ namespace Math
 		return sqrt(((args * args) + ...));
 	}
 }
-template<$Floating T>
-struct IEEE754
-{
-	using U = UnsignedBytes<sizeof(T)>;
-	static constexpr u8 mantissa_bits{ std::numeric_limits<T>::digits - 1 };
-	static constexpr u8 exp_bits{ sizeof(T) * 8 - mantissa_bits - 1 };
-	static constexpr U mantissa_mask{ (U{ 1 } << mantissa_bits) - 1 };
-	static constexpr U exp_mask{ (U{ 1 } << exp_bits) - 1 };
-	U mantissa : mantissa_bits;
-	U exp : exp_bits;
-	U sign : 1;
-#if CLANG//clang bug: constexpr bit_cast involving bit-field is not yet supported
-	INLINE constexpr IEEE754(U u) noexcept
-	{
-		if consteval
-		{
-			mantissa = u & mantissa_mask;
-			exp = (u >> mantissa_bits) & exp_mask;
-			sign = (u >> (sizeof(T) * 8 - 1)) & 1;
-		}
-		else { reinterpret_cast<U&>(*this) = u; }
-	}
-	INLINE constexpr IEEE754(T f) noexcept : IEEE754{ __builtin_bit_cast(U, f) } {}
-	INLINE constexpr explicit operator T() const noexcept
-	{
-		if consteval { return __builtin_bit_cast(T, U{ mantissa } | (U{ exp } << mantissa_bits) | (U{ sign } << (mantissa_bits + exp_bits))); }
-		else { return reinterpret_cast<const T&>(*this); }
-	}
-	INLINE friend constexpr bool operator==(IEEE754, IEEE754) noexcept = default;
-	INLINE friend constexpr bool operator!=(IEEE754, IEEE754) noexcept = default;
-#else
-	INLINE constexpr IEEE754(U u) noexcept : IEEE754{ std::bit_cast<IEEE754>(u) } {}//msvc bug: error C2760: syntax error: '__builtin_bit_cast' was unexpected here; expected '}'
-	INLINE constexpr IEEE754(T f) noexcept : IEEE754{ std::bit_cast<IEEE754>(f) } {}//msvc bug: error C2760: syntax error: '__builtin_bit_cast' was unexpected here; expected '}'
-	INLINE constexpr explicit operator T() const noexcept { return __builtin_bit_cast(T, *this); }
-	INLINE friend constexpr bool operator==(IEEE754 l, IEEE754 r) noexcept { return __builtin_bit_cast(U, l) == __builtin_bit_cast(U, r); }
-	INLINE friend constexpr bool operator!=(IEEE754 l, IEEE754 r) noexcept { return __builtin_bit_cast(U, l) != __builtin_bit_cast(U, r); }
-#endif
-
-	INLINE constexpr bool is_negative() const noexcept { return sign == 1; }
-	INLINE constexpr bool is_finite() const noexcept { return exp != exp_mask; }
-	INLINE constexpr bool is_nan() const noexcept { return (exp == exp_mask) && (mantissa != 0); }
-	INLINE constexpr bool is_inf() const noexcept { return (exp == exp_mask) && (mantissa == 0); }
-	INLINE constexpr bool is_zero() const noexcept { return (exp == 0) && (mantissa == 0); }
-
-	static constexpr T infinity{ std::numeric_limits<T>::infinity() };
-	static constexpr T nan{ std::numeric_limits<T>::quiet_NaN() };
-	static constexpr T most_positive{ std::numeric_limits<T>::max() };
-	static constexpr T most_negative{ std::numeric_limits<T>::lowest() };
-};
-template<$Floating T>
-IEEE754(T) -> IEEE754<T>;
-
-STATIC_ASSERT(sizeof(IEEE754<f32>) == sizeof(f32));
-STATIC_ASSERT(sizeof(IEEE754<f64>) == sizeof(f64));
-STATIC_ASSERT(IEEE754{ IEEE754<f32>::infinity } != IEEE754{ -IEEE754<f32>::infinity });
-STATIC_ASSERT(IEEE754{ IEEE754<f32>::nan } == IEEE754{ IEEE754<f32>::nan });
-STATIC_ASSERT(f64{ IEEE754{ 123.456 } } == 123.456);
-STATIC_ASSERT(f64{ IEEE754{ -123.456 } } == -123.456);
-STATIC_ASSERT(f32{ IEEE754{ 123.456f } } == 123.456f);
-STATIC_ASSERT(f32{ IEEE754{ -123.456f } } == -123.456f);
 namespace Math
 {
 	template<$Floating T, T beta = T(8.6), usize maximumBesselTerm = sizeof(T) * 8>
 	NO_SIDE_EFFECTS INLINE constexpr T kaiser(T fraction)noexcept
 	{
-		static constexpr auto modifiedBesselI0{ [] <auto...I>(std::index_sequence<I...>) static
+		static constexpr auto modifiedBesselI0{ [] <usize...I>(std::index_sequence<I...>) static
 		{
 			return[](T x) STATIC_LAMBDA_INLINE
 			{
@@ -36756,7 +37238,7 @@ private:
 	INLINE constexpr void updateKey()noexcept
 	{
 		if constexpr($StaticKeyBind<TYPE_AT<I, binds...>>)
-			[&] <auto...J>(std::index_sequence<J...>)
+			[&] <usize...J>(std::index_sequence<J...>)
 			{
 				static constexpr auto keys{ TYPE_AT<I, binds...>::keys };
 				const bool pressed{ (...&&is_pressed(constant<keys[J]>)) };
@@ -36805,7 +37287,7 @@ public:
 	static constexpr void print(auto& os)noexcept
 	{
 		static constexpr auto maxNameLen{ compact<Algorithm::max(binds::name.size()...)> };
-		[&] <auto...I>(std::index_sequence<I...>) 
+		[&] <usize...I>(std::index_sequence<I...>) 
 		{
 			(..., [&] 
 			{
@@ -36881,27 +37363,35 @@ namespace Math
 	{
 		/* */if (ratio <= 0)return start;
 		else if (ratio >= 1)return end;
-		else return start + (end - start) * ratio;
+		else return bezier(ratio, start, end);
 	}
 
-	[[nodiscard]] INLINE constexpr auto bezier($Floating auto ratio, auto const&...points)noexcept
-	requires(sizeof...(points) > 2 && all_same<decltype(points)...>)
+	template<class...T>
+	requires(sizeof...(T) > 2 && all_same<T...>)
+	[[nodiscard]] INLINE constexpr TYPE_AT<0, T...> bezier($Floating auto ratio, const T&...points)noexcept
 	{
-		return[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
+#if VARIADIC_STRUCTURED_BINDING
+		static constexpr auto [...I] {iota<sizeof...(points) - 1>};
+	#if __cpp_pack_indexing >= 202311L
+		return bezier(ratio, (points...[I] + (points...[I + 1] - points...[I]) * ratio)...);
+	#else
+		return bezier(ratio, (element_at<I>(points...) + (element_at<I + 1>(points...) - element_at<I>(points...)) * ratio)...);
+	#endif
+#else
+		return[&]<usize...I>(std::index_sequence<I...>)LAMBDA_INLINE
 		{
 			return bezier(ratio, (element_at<I>(points...) + (element_at<I + 1>(points...) - element_at<I>(points...)) * ratio)...);
 		}(std::make_index_sequence<sizeof...(points) - 1>{});
+#endif
 	}
 
-	[[nodiscard]] INLINE constexpr auto bezierClamped($Floating auto ratio, auto const&...points)noexcept
-	requires(sizeof...(points) > 2 && all_same<decltype(points)...>)
+	template<class...T>
+	requires(sizeof...(T) > 2 && all_same<T...>)
+	[[nodiscard]] INLINE constexpr TYPE_AT<0, T...> bezierClamped($Floating auto ratio, const T&...points)noexcept
 	{
 		/* */if (ratio <= 0)return element_at<0>(points...);
 		else if (ratio >= 1)return element_at<sizeof...(points) - 1>(points...);
-		else return[&]<auto...I>(std::index_sequence<I...>)LAMBDA_INLINE
-		{
-			return bezier(ratio, (element_at<I>(points...) + (element_at<I + 1>(points...) - element_at<I>(points...)) * ratio)...);
-		}(std::make_index_sequence<sizeof...(points) - 1>{});
+		else return bezier(ratio, points...);
 	}
 
 	template<class T>
@@ -36915,7 +37405,7 @@ namespace Math
 	{
 		/* */if (ratio <= 0)return start;
 		else if (ratio >= 1)return start + diff;
-		else return start + diff * ratio; 
+		else return lerpDiff(ratio, start, diff);
 	}
 
 	template<$Floating T>
@@ -37032,18 +37522,18 @@ struct LinearRingImpl
 	{
 		ASSERT(index < self.size());
 		ASSERT(self.size() != 0);
-		return FWD(self).m_pBuffer[self.capacity() + self.m_iBack + 1 - self.size() + index];
+		return FWD_LIKE(self, self.m_pBuffer[self.capacity() + self.m_iBack + 1 - self.size() + index]);
 	}
 
 	template<class Self>INLINE Like<Self, T> front(this Self&& self)noexcept
 	{
 		ASSERT(self.size() != 0);
-		return FWD(self).m_pBuffer[self.capacity() + self.m_iBack + 1 - self.size()];
+		return FWD_LIKE(self, self.m_pBuffer[self.capacity() + self.m_iBack + 1 - self.size()]);
 	}
-	template<class Self>INLINE Like<Self, T> back(this Self&& self)noexcept 
+	template<class Self>INLINE Like<Self, T> back(this Self && self)noexcept
 	{
 		ASSERT(self.size() != 0);
-		return FWD(self).m_pBuffer[self.capacity() + self.m_iBack]; 
+		return FWD_LIKE(self, self.m_pBuffer[self.capacity() + self.m_iBack]);
 	}
 
 	INLINE void reset(this auto&& self, auto&&...args) noexcept
@@ -37148,8 +37638,8 @@ private:
 	T* m_pBuffer;
 	Index m_iBack;//in number of T
 
-	static CONSTEVAL auto singleBufferSize()noexcept { return compact<next_aligned_greater_equal<0x1000>(N * sizeof(T))>; }
-	static CONSTEVAL auto capacity()noexcept { return compact<singleBufferSize() / sizeof(T)>; }
+	static consteval auto singleBufferSize()noexcept { return compact<next_aligned_greater_equal<0x1000>(N * sizeof(T))>; }
+	static consteval auto capacity()noexcept { return compact<singleBufferSize() / sizeof(T)>; }
 public:
 	INLINE LinearRing(auto&&...args)noexcept requires(requires{T{ FWD(args)... }; }) : m_section{}, m_pBuffer{}, m_iBack{}
 	{
@@ -37592,7 +38082,7 @@ namespace Math
 			else if constexpr(sizeof...(Ts) == 1)return get<0>(self) op get<0>(r);\
 			else\
 			{\
-				static constexpr auto impl{[]<auto...J>(std::index_sequence<J...>)static\
+				static constexpr auto impl{[]<usize...J>(std::index_sequence<J...>)static\
 				{\
 					return[](auto&& l, auto&& r)STATIC_LAMBDA_INLINE\
 					{\
@@ -37649,7 +38139,7 @@ namespace Math
 			else if constexpr(sizeof...(Ts) == 1)return get<0>(self) op_eq get<0>(r);\
 			else\
 			{\
-				static constexpr auto impl{[]<auto...J>(std::index_sequence<J...>)static\
+				static constexpr auto impl{[]<usize...J>(std::index_sequence<J...>)static\
 				{\
 					return[](auto&& l, auto&& r)STATIC_LAMBDA_INLINE\
 					{\
@@ -37917,32 +38407,227 @@ STATIC_ASSERT([]static
 	MdArray<int, usize, usize> arr{ 2 ,0 };
 	return arr.ptr(1, 0) == arr.ptr(1, 0);
 }());
-template<$UInt T>
-constexpr T next_pow2_greater_equal(T x) noexcept
+namespace Math
 {
-	if (x <= T{ 1 }) return T{ 1 };
-	static constexpr u8 digits{ static_cast<u8>(sizeof(T) * 8u) };
-	T y = x - T{ 1 };
-	for (u8 shift{ 1 }; shift < digits; shift <<= 1)
-		y |= (y >> shift);
-	const T r{ static_cast<T>(y + T{ 1 }) };// ceil power of two
-	return r == T{ 0 } ? T{ 0 } : r;		// overflow -> 0
-}
+	//base^exp
+	template<$Floating T>
+	NO_SIDE_EFFECTS INLINE constexpr T pow(T base, T exp)noexcept
+	{
+		if constexpr($Same<f32, T>)
+			return musl::powf(base, exp);
+		else
+			return musl::pow(base, exp);
+	}
 
-template<$UInt T>
-constexpr T next_pow2_greater(T x) noexcept
+	//e^exp
+	template<$Floating T>
+	NO_SIDE_EFFECTS INLINE constexpr T exp(T exp)noexcept
+	{
+#if 1
+		if constexpr ($Same<f32, T>)
+			return musl::expf(exp);
+		else
+			return musl::exp(exp);
+#else
+		if constexpr($Same<f32, T>)
+			return musl::powf(euler_number<T>, exp);
+		else
+			return musl::pow(euler_number<T>, exp);
+#endif
+	}
+
+	//2^exp
+	template<$Floating T>
+	NO_SIDE_EFFECTS INLINE constexpr T exp2(T exp)noexcept
+	{
+		if constexpr ($Same<f32, T>)
+			return musl::exp2f(exp);
+		else
+			return musl::exp2(exp);
+	}
+}
+namespace Math
 {
-	static constexpr u8 digits{ static_cast<u8>(sizeof(T) * 8u) };
-	static constexpr T max_pow{ T{ 1 } << (digits - 1) };
-
-	// if already at or above the maximum power of two, there is no greater power
-	if (x >= max_pow) return {};
-
-	const T ge{ next_pow2_greater_equal(x) };
-	if (ge == T{ 0 }) return {};      // propagated overflow case
-	if (ge == x) return ge << 1;      // x was power of two
-	return ge;                        // next power of two above x
+	template<$Floating T>
+	NO_SIDE_EFFECTS INLINE constexpr T round(T x)noexcept
+	{
+		if !consteval
+		{
+#if CLANG || GCC
+			MATH_BUILTIN(round, T, x);
+#else
+			if constexpr ($Same<f32, T>)
+				return __roundf(x);
+			else
+				return __round(x);
+#endif
+		}
+		else
+		{
+			if constexpr ($Same<f32, T>)
+				return xroundf(x);
+			else
+				return xround(x);
+		}
+	}
 }
+template<$Floating T>
+INLINE constexpr T f2midi(T f)noexcept
+{
+	ASSERT(f > 0);
+	return T{ 69 } + T{ 12 } * Math::log2(f / T{ 440 });//MIDI:69 = 440Hz = A4
+}
+template<$Char T>
+INLINE constexpr StaticString<T, sdec2chars_required_buffer_size<i64> +2> midi2note($SInt auto midi)noexcept
+{
+	StaticString<T, sdec2chars_required_buffer_size<i64> +2> result;
+	T* p{ result.data() };
+	const i64 octave{ (midi - (midi % 12 + 12) % 12) / 12 - 1 };//floor(midi / 12) - 1
+	const u8 k{ (u8)((midi % 12 + 12) % 12) };
+	switch (k)
+	{
+		case 0:  *p++ = 'C';				break;
+		case 1:  *p++ = 'C'; *p++ = '#';	break;
+		case 2:  *p++ = 'D';				break;
+		case 3:  *p++ = 'D'; *p++ = '#';	break;
+		case 4:  *p++ = 'E';				break;
+		case 5:  *p++ = 'F';				break;
+		case 6:  *p++ = 'F'; *p++ = '#';	break;
+		case 7:  *p++ = 'G';				break;
+		case 8:  *p++ = 'G'; *p++ = '#';	break;
+		case 9:  *p++ = 'A';				break;
+		case 10: *p++ = 'A'; *p++ = '#';	break;
+		case 11: *p++ = 'B';				break;
+		default:UNREACHABLE;
+	}
+	p = sdec2chars(octave, p);
+	result.modify_size(result.index_of(p));
+	return result;
+}
+template<$Char T>
+INLINE constexpr StaticString<T, sdec2chars_required_buffer_size<i64> +2> f2closestNote($Floating auto f)noexcept
+{
+	const i64 midi{ static_cast<i64>(Math::round(f2midi(f))) };
+	return midi2note<T>(midi);
+}
+template<$Floating T>
+constexpr bool note2f_impl($String auto&& note, T& result)noexcept
+{
+	auto p{ note.begin() };
+	const auto pEnd{ note.end() };
+	if (p == pEnd) [[unlikely]] return false;
+	i8 k;
+	switch (*p)
+	{
+		case 'C':case 'c': k = 0;  break;
+		case 'D':case 'd': k = 2;  break;
+		case 'E':case 'e': k = 4;  break;
+		case 'F':case 'f': k = 5;  break;
+		case 'G':case 'g': k = 7;  break;
+		case 'A':case 'a': k = 9;  break;
+		case 'B':case 'b': k = 11; break;
+		default: [[unlikely]] return false;
+	}
+	++p;
+	if (p == pEnd) [[unlikely]] return false;
+	switch (*p)
+	{
+		case '#':case 's':	++k; ++p; break;
+		case 'b':			--k; ++p; break;
+	}
+	i64 octave;
+	const std::from_chars_result status{ std::from_chars(p, pEnd, octave) };
+	if (status.ec != std::errc{} || status.ptr != pEnd) [[unlikely]] return false;
+	const i64 midi{ (octave + 1) * 12 + k };
+	result = T{ 440 } * Math::exp2(static_cast<T>(midi - 69) / T{ 12 });
+	return true;
+}
+template<FixedString note, $Floating T = f32>
+constexpr auto note2f{ [] static->T//msvc bug: do not replace auto with T
+{
+	T result;
+	if (!note2f_impl(note, result)) UNREACHABLE;
+	return result;
+}() };
+//https://en.wikipedia.org/wiki/Piano_key_frequencies
+STATIC_ASSERT([]static
+{
+	static constexpr auto almost_equal{ [] ($Floating auto l, $Floating auto r)static
+	{
+		using T = std::remove_cvref_t<decltype(l)>;
+		static constexpr T error{ T(0.0001) };
+		const auto diff{ l - r };
+		return diff > -error && diff < error;
+	} };
+	return almost_equal(note2f<"A-1"> , 13.75000f)
+		&& almost_equal(note2f<"A#-1">, 14.56762f)
+		&& almost_equal(note2f<"Bb-1">, 14.56762f)
+		&& almost_equal(note2f<"B-1"> , 15.43385f)
+		&& almost_equal(note2f<"C-0"> , 16.35160f)
+		&& almost_equal(note2f<"C0">  , 16.35160f)
+		&& almost_equal(note2f<"C#0"> , 17.32391f)
+		&& almost_equal(note2f<"D0">  , 18.35405f)
+		&& almost_equal(note2f<"D#0"> , 19.44544f)
+		&& almost_equal(note2f<"Eb0"> , 19.44544f)
+		&& almost_equal(note2f<"E0">  , 20.60172f)
+		&& almost_equal(note2f<"F0">  , 21.82676f)
+		&& almost_equal(note2f<"F#0"> , 23.12465f)
+		&& almost_equal(note2f<"Gb0"> , 23.12465f)
+		&& almost_equal(note2f<"G0">  , 24.49971f)
+		&& almost_equal(note2f<"G#0"> , 25.95654f)
+		&& almost_equal(note2f<"Ab0"> , 25.95654f)
+		&& almost_equal(note2f<"A0">  , 27.50000f)
+		&& almost_equal(note2f<"C8">  , 4186.009f)
+		&& almost_equal(note2f<"C9">  , 8372.018f);
+}());
+STATIC_ASSERT([] <FixedString...note>static{return (...&&equal<note>(f2closestNote<c8>(note2f<note>)));}.template operator()
+<
+	"C2",
+	"D2",
+	"D#2",
+	"E2",
+	"F2",
+	"F#2",
+	"G2",
+	"G#2",
+	"A2",
+	"C1",
+	"D1",
+	"D#1",
+	"E1",
+	"F1",
+	"F#1",
+	"G1",
+	"G#1",
+	"A1",
+	"C0",
+	"D0",
+	"D#0",
+	"E0",
+	"F0",
+	"F#0",
+	"G0",
+	"G#0",
+	"A0",
+	"C-1",
+	"D-1",
+	"D#-1",
+	"E-1",
+	"F-1",
+	"F#-1",
+	"G-1",
+	"G#-1",
+	"A-1",
+	"C-2",
+	"D-2",
+	"D#-2",
+	"E-2",
+	"F-2",
+	"F#-2",
+	"G-2",
+	"G#-2",
+	"A-2"
+>());
 // Copyright 2020-2025 Junekey Jeon
 //
 // The contents of this file may be used under the terms of
@@ -42435,6 +43120,66 @@ else {
 // KIND, either express or implied.
 
 #define JKJ_DRAGONBOX_TO_CHARS_LEAK_MACROS
+template<$Floating T>
+struct IEEE754
+{
+	using U = UnsignedBytes<sizeof(T)>;
+	static constexpr u8 mantissa_bits{ std::numeric_limits<T>::digits - 1 };
+	static constexpr u8 exp_bits{ sizeof(T) * 8 - mantissa_bits - 1 };
+	static constexpr U mantissa_mask{ (U{ 1 } << mantissa_bits) - 1 };
+	static constexpr U exp_mask{ (U{ 1 } << exp_bits) - 1 };
+	U mantissa : mantissa_bits;
+	U exp : exp_bits;
+	U sign : 1;
+#if CLANG//clang bug: constexpr bit_cast involving bit-field is not yet supported
+	INLINE constexpr IEEE754(U u) noexcept
+	{
+		if consteval
+		{
+			mantissa = u & mantissa_mask;
+			exp = (u >> mantissa_bits) & exp_mask;
+			sign = (u >> (sizeof(T) * 8 - 1)) & 1;
+		}
+		else { reinterpret_cast<U&>(*this) = u; }
+	}
+	INLINE constexpr IEEE754(T f) noexcept : IEEE754{ __builtin_bit_cast(U, f) } {}
+	INLINE constexpr explicit operator T() const noexcept
+	{
+		if consteval { return __builtin_bit_cast(T, U{ mantissa } | (U{ exp } << mantissa_bits) | (U{ sign } << (mantissa_bits + exp_bits))); }
+		else { return reinterpret_cast<const T&>(*this); }
+	}
+	INLINE friend constexpr bool operator==(IEEE754, IEEE754) noexcept = default;
+	INLINE friend constexpr bool operator!=(IEEE754, IEEE754) noexcept = default;
+#else
+	INLINE constexpr IEEE754(U u) noexcept : IEEE754{ std::bit_cast<IEEE754>(u) } {}//msvc bug: error C2760: syntax error: '__builtin_bit_cast' was unexpected here; expected '}'
+	INLINE constexpr IEEE754(T f) noexcept : IEEE754{ std::bit_cast<IEEE754>(f) } {}//msvc bug: error C2760: syntax error: '__builtin_bit_cast' was unexpected here; expected '}'
+	INLINE constexpr explicit operator T() const noexcept { return __builtin_bit_cast(T, *this); }
+	INLINE friend constexpr bool operator==(IEEE754 l, IEEE754 r) noexcept { return __builtin_bit_cast(U, l) == __builtin_bit_cast(U, r); }
+	INLINE friend constexpr bool operator!=(IEEE754 l, IEEE754 r) noexcept { return __builtin_bit_cast(U, l) != __builtin_bit_cast(U, r); }
+#endif
+
+	INLINE constexpr bool is_negative() const noexcept { return sign == 1; }
+	INLINE constexpr bool is_finite() const noexcept { return exp != exp_mask; }
+	INLINE constexpr bool is_nan() const noexcept { return (exp == exp_mask) && (mantissa != 0); }
+	INLINE constexpr bool is_inf() const noexcept { return (exp == exp_mask) && (mantissa == 0); }
+	INLINE constexpr bool is_zero() const noexcept { return (exp == 0) && (mantissa == 0); }
+
+	static constexpr T infinity{ std::numeric_limits<T>::infinity() };
+	static constexpr T nan{ std::numeric_limits<T>::quiet_NaN() };
+	static constexpr T most_positive{ std::numeric_limits<T>::max() };
+	static constexpr T most_negative{ std::numeric_limits<T>::lowest() };
+};
+template<$Floating T>
+IEEE754(T) -> IEEE754<T>;
+
+STATIC_ASSERT(sizeof(IEEE754<f32>) == sizeof(f32));
+STATIC_ASSERT(sizeof(IEEE754<f64>) == sizeof(f64));
+STATIC_ASSERT(IEEE754{ IEEE754<f32>::infinity } != IEEE754{ -IEEE754<f32>::infinity });
+STATIC_ASSERT(IEEE754{ IEEE754<f32>::nan } == IEEE754{ IEEE754<f32>::nan });
+STATIC_ASSERT(f64{ IEEE754{ 123.456 } } == 123.456);
+STATIC_ASSERT(f64{ IEEE754{ -123.456 } } == -123.456);
+STATIC_ASSERT(f32{ IEEE754{ 123.456f } } == 123.456f);
+STATIC_ASSERT(f32{ IEEE754{ -123.456f } } == -123.456f);
 template<$Floating F>
 constexpr auto f2chars_required_buffer_size{compact<[]static
 {
@@ -42735,7 +43480,7 @@ public:
 
 	//constexpr Rgba(const Rgba<u8>& rhs) :r{ rhs.r / static_cast<T>(0xff) }, g{ rhs.g / static_cast<T>(0xff) }, b{ rhs.b / static_cast<T>(0xff) }, a{ rhs.a / static_cast<T>(0xff) } {}
 
-	IF(MSVC, constexpr, CONSTEVAL) Rgba()noexcept: r{}, g{}, b{}, a{} {}
+	constexpr Rgba()noexcept: r{}, g{}, b{}, a{} {}
 
 	constexpr Rgba(T red, T green, T blue, T alpha)noexcept : r{red}, g{green}, b{blue}, a{alpha} {}
 
@@ -42800,7 +43545,7 @@ public:
 
 	static constexpr u8 size()noexcept{ return 4; };
 
-	constexpr Rgba premulted()const noexcept { return { r * a,g * a,b * a,a }; }
+	constexpr Rgba premuled()const noexcept { return { r * a,g * a,b * a,a }; }
 
 	template<class Stream>
 	constexpr friend Stream& operator<<(Stream& os, const Rgba& value)noexcept
@@ -42830,7 +43575,7 @@ template<>
 struct Bgra<u8>
 {
 	u8 b,g,r,a;
-	IF(MSVC, constexpr, CONSTEVAL) Bgra()noexcept :b{}, g{}, r{}, a{} {};
+	constexpr Bgra()noexcept :b{}, g{}, r{}, a{} {};
 
 	constexpr Bgra(u8 blue, u8 green, u8 red, u8 alpha)noexcept : b{blue}, g{ green }, r{ red }, a{ alpha } {};
 
@@ -42872,7 +43617,7 @@ struct Hsla
 {
 	T h, s, l, a;
 
-	IF(MSVC, constexpr, CONSTEVAL) Hsla()noexcept:h{}, s{1}, l{T(0.5)}, a{1} {}
+	constexpr Hsla()noexcept:h{}, s{1}, l{T(0.5)}, a{1} {}
 	//constexpr Hsla(T hue = 0)noexcept:h{hue}, s{1}, l{T(0.5)}, a{1} {}
 
 	constexpr Hsla(T hue, T saturation, T lightness, T alpha)noexcept : h{hue}, s{saturation}, l{lightness}, a{alpha} {}
@@ -42930,7 +43675,6 @@ struct Hsla
 		return os;
 	}
 };
-
 #include <d2d1.h>
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dxguid")
@@ -44475,7 +45219,6 @@ namespace Math
 			return isInRect(proj) ? proj : ((p0.distanceSqr(target) < p1.distanceSqr(target)) ? p0 : p1);
 		}
 	};
-
 	template<$Floating T, $AnyOf<Vector2<T>, T>...Result>
 	constexpr bool intersect(const Segment2<T>& l, const Segment2<T>& r, Result&...result)noexcept
 	{
@@ -44497,7 +45240,6 @@ namespace Math
 		}(), ...);
 		return true;
 	}
-
 	template<$Floating T>
 	constexpr bool intersect(const Ray2<T>& l, const Segment2<T>& r, $Same<Vector2<T>> auto&...result)noexcept
 	requires(sizeof...(result) <= 1)
@@ -44619,12 +45361,13 @@ namespace Dwrite
 	const Run pe{ []STATIC_LAMBDA_INLINE{Windows::loadLibrary<L"Dwrite.dll">(); } };
 
 	DLLCALL_CALLER(DWriteCreateFactory, __stdcall, HRESULT, (DWRITE_FACTORY_TYPE, factoryType), (REFIID, iid),(IUnknown**,pFactory));
-	//constexpr DllCaller DWriteCreateFactory{dllCaller<Stateless, HRESULT(__stdcall*)(DWRITE_FACTORY_TYPE,REFIID,IUnknown**)>(TS8("DWriteCreateFactory"))};
+	//constexpr DllCaller DWriteCreateFactory{dllCaller<Stateless, HRESULT(__stdcall*)(DWRITE_FACTORY_TYPE,REFIID,IUnknown**)>(TS("DWriteCreateFactory"))};
 };
 template<$Sig<void()> Action>
-struct [[nodiscard]] ScopeGuard :NoCopyMove
+requires(!std::is_reference_v<Action>)
+struct [[nodiscard]] ScopeGuard
 {
-	STATIC_ASSERT(!std::is_reference_v<Action>);
+	NO_COPY_MOVE(ScopeGuard)
 private:
 	NO_UNIQUE_ADDRESS Action m_action;
 public:
@@ -44951,14 +45694,6 @@ namespace User32
 {
 	const Run pe{ []STATIC_LAMBDA_INLINE{Windows::loadLibrary<L"User32.dll">(); } };
 
-	//DllCaller SetWindowsHookExW{ dllCaller<Stateful, HHOOK(__stdcall*)(int idHook,HOOKPROC lpfn,HINSTANCE hmod,DWORD dwThreadId)>(TS8("SetWindowsHookExW")) };
-	//DllCaller UnhookWindowsHookEx{ dllCaller<Stateful, BOOL(__stdcall*)(HHOOK hhk)>(TS8("UnhookWindowsHookEx")) };
-	//DllCaller CallNextHookEx{ dllCaller<Stateful, LRESULT(__stdcall*)(HHOOK hhk,int nCode,WPARAM wParam,LPARAM lParam)>(TS8("CallNextHookEx")) };
-
-	//DllCaller SendMessageW{ dllCaller<Stateful, LRESULT(__stdcall*)(HWND hWnd,u32 Msg,WPARAM wParam,LPARAM lParam)>(TS8("SendMessageW")) };
-	//DllCaller AdjustWindowRectEx{ dllCaller<Stateful, BOOL(__stdcall*)(RECT* lpRect,u32 dwStyle,BOOL bMenu,u32 dwExStyle)>(TS8("AdjustWindowRectEx")) };
-	//DllCaller CreateWindowExW{ dllCaller<Stateful, HWND(__stdcall*)(u32 dwExStyle,const c16* lpClassName,const c16* lpWindowName,u32 dwStyle,int X,int Y,int nWidth,int nHeight,HWND hWndParent,HMENU hMenu,HINSTANCE hInstance,void* lpParam)>(TS8("CreateWindowExW")) };
-	
 	DLLCALL_CALLER_CACHED(ClientToScreen		,__stdcall, HWND,(HWND,hWnd),(POINT*,pPoint));
 	DLLCALL_CALLER_CACHED(GetWindow				,__stdcall, HWND,(HWND,hWnd),(u32,uCmd));
 	DLLCALL_CALLER_CACHED(GetSystemMetrics		,__stdcall, int,(int,nIndex));
@@ -44982,7 +45717,6 @@ namespace User32
 #if !defined(DISABLE_SYSCALL)
 	#define DISABLE_SYSCALL 0
 #endif
-
 #if BITNESS==64
 	#define DEF_WIN32U_SYSCALL(name,ret,...) SYSCALL_CALLER_CACHED(name,win32u,ret __VA_OPT__(,__VA_ARGS__))
 #else
@@ -45007,7 +45741,6 @@ namespace Win32u
 	DEF_WIN32U_SYSCALL(NtUserGetKeyState,SHORT,(INT,VirtKey));
 	DEF_WIN32U_SYSCALL(NtUserBuildHwndList,NtStatus,(HDESK,hDesk),(HWND,hWndNext),(BOOL,bEnumChildren),(BOOL,bRemoveImmersive),(DWORD,threadID),(u32,max),(HWND*,pList),(u32*,pCnt));
 	DEF_WIN32U_SYSCALL(NtUserPeekMessage,BOOL,(PMSG,pMsg),(HWND,hWnd),(u32,MsgFilterMin),(u32,MsgFilterMax),(u32,RemoveMsg),(u32,Unknown));
-	DEF_WIN32U_SYSCALL(NtUserDispatchMessage,LRESULT,(PMSG,UnsafeMsgInfo));
 	DEF_WIN32U_SYSCALL(NtUserGetWindowBand,u32,(HWND,hwnd),(Windows::Band*,pBand));
 	DEF_WIN32U_SYSCALL(NtUserSetWindowBand,NtStatus,(HWND,hwnd),(HWND,hwndInsertAfter),(Windows::Band,band));
 	DEF_WIN32U_SYSCALL(NtUserSetWindowDisplayAffinity,BOOL,(HWND,hwnd),(Windows::WindowDisplayAffinity,flag));
@@ -45278,26 +46011,22 @@ namespace Direct2D
 		//		pos[0] += text.metrics()[0];
 		//	}
 		//}
-		void resize(const Math::Vector2<u32>& size)const noexcept
-		{
-			m_hwndRenderTarget->Resize(D2D1::SizeU(size[0], size[1]));
-		}
+		void resize(const Math::Vector2<u32>& size)const noexcept { m_hwndRenderTarget->Resize(D2D1::SizeU(size[0], size[1])); }
 		void clear(const Rgba<f32>& color)const noexcept { m_hwndRenderTarget->Clear(reinterpret_cast<const D3DCOLORVALUE&>(color)); }
 		void beginFrame()const noexcept { m_hwndRenderTarget->BeginDraw(); clear(m_backGroundColor); }
 		void endFrame()const noexcept { m_hwndRenderTarget->EndDraw(); }
-		template<class Self>constexpr Like<Self, Rgba<f32>> backgroundColor(this Self&& self)noexcept { return self.m_backGroundColor; }
+		template<class Self>constexpr Like<Self, Rgba<f32>> backgroundColor(this Self&& self)noexcept { return FWD_LIKE(self, self.m_backGroundColor); }
 		void setTransform(const D2D_MATRIX_3X2_F& matrix)noexcept
 		{
 			m_hwndRenderTarget->SetTransform(matrix);
 		}
 		template<u32 msg>
-		static LRESULT processMsg(HWND hwnd, WPARAM /*wParam*/, LPARAM /*lParam*/)noexcept
+		requires(msg == WM_PAINT)
+		static void processMsg(HWND hwnd)noexcept
 		{
-			STATIC_ASSERT(msg == WM_PAINT);
 			PAINTSTRUCT ps;
 			Win32u::NtUserBeginPaint(hwnd, &ps);
 			Win32u::NtUserEndPaint(hwnd, &ps);
-			return 0;
 		}
 	};
 }
@@ -45310,7 +46039,7 @@ namespace Dwmapi
 	const Run pe{ []STATIC_LAMBDA_INLINE{Windows::loadLibrary<L"dwmapi.dll">(); } };
 
 	DLLCALL_CALLER(DwmExtendFrameIntoClientArea, __stdcall, HRESULT, (HWND, hWnd), (const MARGINS*, pMarInset));
-	//constexpr DllCaller DwmExtendFrameIntoClientArea{ dllCaller<Stateless, HRESULT(__stdcall*)(HWND,const MARGINS *)>(TS8("DwmExtendFrameIntoClientArea")) };
+	//constexpr DllCaller DwmExtendFrameIntoClientArea{ dllCaller<Stateless, HRESULT(__stdcall*)(HWND,const MARGINS *)>(TS("DwmExtendFrameIntoClientArea")) };
 };
 //https://web.archive.org/web/20100123173405/http://blogs.msdn.com/oldnewthing/archive/2004/10/25/247180.aspx
 extern "C" Windows::ImageDosHeader __ImageBase;
@@ -45515,60 +46244,13 @@ namespace Windows
 }
 namespace Windows
 {
-	INLINE void peekMessage(MSG& msg, HWND hwnd)noexcept
+	//return false means no msg yet
+	INLINE bool peekMessage(MSG& msg, HWND hwnd)noexcept
 	{
-		for (;;)
-		{
-			if (Win32u::NtUserPeekMessage(&msg, hwnd, 0, 0, PM_REMOVE, 0) == 0)
-				break;
-			Win32u::NtUserDispatchMessage(&msg);
-		}
+		return Win32u::NtUserPeekMessage(&msg, hwnd, 0, 0, PM_REMOVE, 0) != 0;
 	}
 }
-namespace Windows
-{
-	struct WindowClassEx
-	{
-		NO_COPY_MOVE(WindowClassEx)
-	private:
-		String16 m_name;
-		WNDCLASSEXW m_data;
-	public:
-		WindowClassEx(
-			StringView16 className,
-			WNDPROC msgProc,
-			HINSTANCE hInstance = exeBase(),
-			u32 style = CS_OWNDC /*| CS_HREDRAW | CS_VREDRAW*/,
-			HICON hIcon = nullptr,// User32::LoadIconW(NULL, IDI_APPLICATION),
-			HCURSOR hCursor = nullptr,// User32::LoadCursorW(NULL, IDC_ARROW),
-			HBRUSH hBrush = nullptr,// GDI32::CreateSolidBrush(RGB(0, 0, 0)),
-			HICON hIconSm = nullptr//User32::LoadIconW(NULL, IDI_WINLOGO)
-		)noexcept :
-			m_name{ nullTerminated(className) },
-			m_data{
-				sizeof(WNDCLASSEXW),	// u32        cbSize;
-				style,					// u32        style;
-				msgProc,				// WNDPROC     lpfnWndProc;
-				0,						// int         cbClsExtra;
-				0,						// int         cbWndExtra;
-				hInstance,				// HINSTANCE   hInstance;
-				hIcon,					// HICON       hIcon;
-				hCursor,				// HCURSOR     hCursor;
-				hBrush,					// HBRUSH      hbrBackground;
-				nullptr,				// LPCWSTR     lpszMenuName;
-				m_name.data(),			// LPCWSTR     lpszClassName;
-				hIconSm					// HICON       hIconSm;
-			} 
-		{}
-
-		const WNDCLASSEXW& native()const noexcept { return m_data; }
-		WNDCLASSEXW& native() noexcept { return m_data; }
-		const String16& name()const noexcept { return m_name; }
-
-		bool reg()const noexcept { return User32::RegisterClassExW(&m_data); }
-		bool unreg()const noexcept { return User32::UnregisterClassW(m_name.data(), exeBase()); }
-	};
-}
+#define FLIP_BOOL(...) do{static_assert($Same<bool, std::remove_cvref_t<decltype(__VA_ARGS__)>>);__VA_ARGS__=!__VA_ARGS__;}while(0)
 namespace details
 {
 	template<auto...>struct make_array_sequence;
@@ -45831,17 +46513,6 @@ enum class XoshiroType :u8
 	star_star
 };
 
-namespace details::xoshiro
-{
-	constexpr u64 splitmix64(u64& x)noexcept
-	{
-		u64 z{ x += 0x9e3779b97f4a7c15uLL };
-		z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9uLL;
-		z = (z ^ (z >> 27)) * 0x94d049bb133111ebuLL;
-		return z ^ (z >> 31);
-	}
-}
-
 template<XoshiroType, u64>struct BasicXoshiro;
 
 template<XoshiroType Type>
@@ -45856,10 +46527,10 @@ public:
 
 	constexpr void seed(u64 v)noexcept
 	{
-		s[0] = details::xoshiro::splitmix64(v);
-		s[1] = details::xoshiro::splitmix64(v);
-		s[2] = details::xoshiro::splitmix64(v);
-		s[3] = details::xoshiro::splitmix64(v);
+		s[0] = splitmix(v);
+		s[1] = splitmix(v);
+		s[2] = splitmix(v);
+		s[3] = splitmix(v);
 	}
 
 	static CONSTEVAL u64 min()noexcept { return 0; }
@@ -45888,7 +46559,7 @@ using Xoshiro256p = BasicXoshiro<XoshiroType::plus, 256>;
 using Xoshiro256pp = BasicXoshiro<XoshiroType::plus_plus, 256>;
 using Xoshiro256ss = BasicXoshiro<XoshiroType::star_star, 256>;
 
-Xoshiro256ss g_rng{ RandomDevice<u64>{}() };
+GLOBAL Xoshiro256ss g_rng{ RandomDevice<u64>{}() };
 
 //inclusive inclusive
 //template<class T>
@@ -45942,30 +46613,35 @@ template<$AnyOf<c8,c16> T, T min, T max>
 	return static_cast<T>(randInt<type, static_cast<type>(min), static_cast<type>(max)>());
 }
 
-template<class Char, Char...Cs>
-[[nodiscard]] INLINE Char randChar(TString<Char, Cs...>) noexcept
+template<FixedString alphabet>
+[[nodiscard]] INLINE ElementOf<decltype(alphabet)> randChar() noexcept
 {
-	using index_t = Compact<sizeof...(Cs) - 1>;
-	constexpr index_t size{sizeof...(Cs)};
-	return Switch<array_sequence<size>>(randInt<index_t, index_t{}, size - 1> (), [&](auto I)LAMBDA_INLINE
+	return Switch<array_sequence<alphabet.size()>>(randInt<Compact<alphabet.size() - 1>, 0, alphabet.size() - 1> (), [&](auto I)LAMBDA_INLINE
 	{
-		return constant<std::array{Cs...}[I]>;
+		return constant<alphabet[I]>;
 	});
 }
 
-template<usize Size, $TString CtStr>
-[[nodiscard]] INLINE std::array<typename CtStr::char_type, Size> randCharArray(CtStr)noexcept { return Fold::construct<std::array<typename CtStr::char_type, Size>, Size>([](auto)static{return randChar<CtStr>(); }); }
-
-template<$TString CtStr>
-[[nodiscard]] INLINE BasicString<typename CtStr::char_type> randString(CtStr, usize size)noexcept
+template<u8 minSize, u8 maxSize, FixedString alphabet>
+[[nodiscard]] INLINE auto randString()noexcept
 {
-	using char_t = typename CtStr::char_type;
-	const ObfuString chars{ CtStr{} };
-	BasicString<char_t> result{uninitialized, size };
-	for (char_t& c : result)
-		c = chars[randInt<Compact<CtStr::size - 1>, 0, CtStr::size - 1>()];
-	return result;
+	using T = ElementOf<decltype(alphabet)>;
+	if constexpr (minSize != maxSize)
+	{
+		StaticString<T, maxSize> result{ uninitialized, randInt<Compact<minSize, maxSize>, minSize, maxSize>() };
+		for (T& c : result)c = randChar<alphabet>();
+		return result;
+	}
+	else
+	{
+		FixedString<T, maxSize> result;
+		for (T& c : result)c = randChar<alphabet>();
+		return result;
+	}
 }
+
+template<u8 minSize, u8 maxSize, FixedString alphabet = FixedString{ "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_ "}>[[nodiscard]] INLINE auto randString8 ()noexcept{return randString<minSize, maxSize, alphabet>(); }
+template<u8 minSize, u8 maxSize, FixedString alphabet = FixedString{L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_ "}>[[nodiscard]] INLINE auto randString16()noexcept{return randString<minSize, maxSize, alphabet>(); }
 template<class T, class U>
 constexpr const T& truncate(const U& value)
 {
@@ -46027,7 +46703,7 @@ public:
 template<auto...args>
 constexpr auto toTString8{ [] static
 {
-	static constexpr auto result{StringBuilderImpl<c8, StaticString<c8, StringBuilderImpl<c8, GrowableArray<c8>>{args...}.str().size()>>{ args... }.str()};
+	static constexpr auto result{StringBuilderImpl<c8, StaticString<c8, StringBuilderImpl<c8, GrowableArray<c8>>{ args... }.str().size()>>{ args... }.str()};
 	return[]<usize...I>(std::index_sequence<I...>)static
 	{
 		return TString<c8, result[I]...>{};
@@ -46062,18 +46738,18 @@ INLINE constexpr Stream& operator<<(Stream& os, T e)noexcept
 					os << enum_name<flag>;
 				}
 				else
-					os << TS8("|") + enum_name<flag>;
+					os << TS("|") + enum_name<flag>;
 			}
 			else
 			{
-				static constexpr auto str{ toTString8<TS8("0x"),Hex{ flagValue }> };
+				static constexpr auto str{ toTString8<TS("0x"),Hex{ flagValue }> };
 				if (isFirst)
 				{
 					isFirst = false;
 					os << str;
 				}
 				else
-					os << TS8("|") + str;
+					os << TS("|") + str;
 			}
 		}
 	});
@@ -46082,7 +46758,7 @@ INLINE constexpr Stream& operator<<(Stream& os, T e)noexcept
 		if constexpr(is_valid_enum<T{}>)
 			os << enum_name<T{}>;
 		else
-			os << TS8("0");
+			os << TS("0");
 	}
 	return os;
 }
@@ -46157,6 +46833,9 @@ namespace Windows
 
 	struct Window
 	{
+	private:
+		HWND m_handle;
+	public:
 		constexpr Window(HWND hwnd = nullptr) noexcept :m_handle{ hwnd } {}
 
 		bool isValid()const noexcept { return User32::IsWindow(m_handle); }
@@ -46372,27 +47051,25 @@ namespace Windows
 		template<class Stream>
 		friend Stream& operator<<(Stream& os, const Window& window)noexcept
 		{
-			os << TS8("Handle = ") << hex(reinterpret_cast<usize>(window.handle()));
-			os << TS8(", PID = ") << hex(window.processID());
-			os << TS8(", Title = ") << window.title();
-			os << TS8(", Class = ") << window.className();
-			os << TS8(", ClientMetrics = ") << window.client2ScreenMetrics();
+			os << TS("Handle = ") << hex(reinterpret_cast<usize>(window.handle()));
+			os << TS(", PID = ") << hex(window.processID());
+			os << TS(", Title = ") << window.title();
+			os << TS(", Class = ") << window.className();
+			os << TS(", ClientMetrics = ") << window.client2ScreenMetrics();
 			//os << window.windowMetrics();
 			const auto style{ window.style() };
 			const auto styleEx{ window.styleEx() };
 			const auto band{ window.band() };
 			const auto affinity{ window.displayAffinity() };
-			os << TS8(", Style = ") << style << TS8(" (") << Hex{UNDERLYING(style)};
-			os << TS8("), StyleEx = ") << styleEx << TS8(" (") << Hex{UNDERLYING(styleEx)};
+			os << TS(", Style = ") << style << TS(" (") << Hex{UNDERLYING(style)};
+			os << TS("), StyleEx = ") << styleEx << TS(" (") << Hex{UNDERLYING(styleEx)};
 			if(band)
-				os << TS8("), Band = ")    << *band << TS8(" (") << Hex{UNDERLYING(*band)};
+				os << TS("), Band = ")    << *band << TS(" (") << Hex{UNDERLYING(*band)};
 			if(affinity)
-				os << TS8("), Affinity = ")<< *affinity << TS8(" (") << Hex{UNDERLYING(*affinity)};
+				os << TS("), Affinity = ")<< *affinity << TS(" (") << Hex{UNDERLYING(*affinity)};
 			os << ')';
 			return os;
 		}
-	protected:
-		HWND m_handle;
 	};
 
 	//Window getWindowAtPos(const POINT& point)
@@ -46445,63 +47122,49 @@ namespace Windows
 	//	return result;
 	//}
 }
-namespace Pattern
+namespace Windows
 {
-	struct Ignored
+	struct WindowClassEx
 	{
-		static constexpr u8 size{ 1 };
-		INLINE static constexpr bool match(auto const*) noexcept { return true; }
-	};
-	template<FixedString s, Strcmp::Encoding encoding = Strcmp::Encoding::ascii, bool case_sensitive = true>
-	struct Exact
-	{
-		static constexpr auto size{ s.size() };
-		INLINE static constexpr bool match(auto const* p)noexcept { return Strcmp::Equal<s, encoding, case_sensitive>::match(p); }
-	};
-	template<class...Ts>
-	requires(0 != sizeof...(Ts))
-	struct Any
-	{
-		static constexpr auto size{ (u8{},...,Ts::size) }; STATIC_ASSERT(((size == Ts::size)&&...));
-		INLINE static constexpr bool match(auto const* p) noexcept { return (Ts::match(p) || ...); }
-	};
-	template<class...>struct ConcatImpl;
-	template<usize...I, class...P>
-	struct ConcatImpl<std::index_sequence<I...>, P...>
-	{
-		using Index = Compact<(0 + ... + P::size)>;
-		static constexpr Index size{ (0 + ... + P::size) };
-		template<usize J>
-		static constexpr Index offset_at{ [] static
-		{
-			if constexpr (J == 0)return 0;
-			else return offset_at<J - 1> +TYPE_AT<J - 1, P...>::size;
-		}() };
-		INLINE static constexpr bool match($Char auto const* p)noexcept
-		{
-			return (... && TYPE_AT<I, P...>::match(p + offset_at<I>));
-		}
-		INLINE static constexpr bool match($String auto const& v)noexcept
-		{
-			return size == v.size() && match(v.data());
-		}
-	};
-	template<class...P>
-	using Concat = ConcatImpl<std::make_index_sequence<sizeof...(P)>, P...>;
+		NO_COPY_MOVE(WindowClassEx)
+	private:
+		String16 m_name;
+		WNDCLASSEXW m_data;
+	public:
+		WindowClassEx(
+			StringView16 className,
+			WNDPROC msgProc,
+			HINSTANCE hInstance = exeBase(),
+			u32 style = CS_OWNDC /*| CS_HREDRAW | CS_VREDRAW*/,
+			HICON hIcon = nullptr,// User32::LoadIconW(NULL, IDI_APPLICATION),
+			HCURSOR hCursor = nullptr,// User32::LoadCursorW(NULL, IDC_ARROW),
+			HBRUSH hBrush = nullptr,// GDI32::CreateSolidBrush(RGB(0, 0, 0)),
+			HICON hIconSm = nullptr//User32::LoadIconW(NULL, IDI_WINLOGO)
+		)noexcept :
+			m_name{ nullTerminated(className) },
+			m_data{
+				.cbSize{sizeof(WNDCLASSEXW)},
+				.style{style},
+				.lpfnWndProc{msgProc},
+				.cbClsExtra{0},
+				.cbWndExtra{0},
+				.hInstance{hInstance},
+				.hIcon{hIcon},
+				.hCursor{hCursor},
+				.hbrBackground{hBrush},
+				.lpszMenuName{nullptr},
+				.lpszClassName{m_name.data()},
+				.hIconSm{hIconSm}
+			} 
+		{}
 
-	template<auto InclusiveMin, auto InclusiveMax>
-	requires($Same<decltype(InclusiveMin), decltype(InclusiveMax)>)
-	struct Range
-	{
-		static constexpr u8 size{ 1 };
-		INLINE static constexpr bool match(auto const* p) noexcept { return p[0] >= InclusiveMin && p[0] <= InclusiveMax; }
-	};
+		//template<class Self>INLINE Like<Self, WNDCLASSEXW> native(this Self&& self)noexcept { return self.m_data; }
+		const String16& name()const noexcept { return m_name; }
 
-	using Number = Range<'0', '9'>;
-	using Lowercase = Range<'a', 'z'>;
-	using Uppercase = Range<'A', 'Z'>;
-};
-#define FLIP_BOOL(...) do{static_assert($Same<bool, std::remove_cvref_t<decltype(__VA_ARGS__)>>);__VA_ARGS__=!__VA_ARGS__;}while(0)
+		bool reg()const noexcept { return User32::RegisterClassExW(&m_data); }
+		bool unreg()const noexcept { return User32::UnregisterClassW(m_name.data(), exeBase()); }
+	};
+}
 struct LockStates
 {
 	bool capLock;
@@ -46577,11 +47240,14 @@ template<>struct RawInputLockStateImpl<1>
 	inline static LockStates s_lockStates{};
 };
 
-template<bool> struct RawInputMouseImpl;
-template<>struct RawInputMouseImpl<0> {};
-template<>struct RawInputMouseImpl<1>
+template<bool> struct RawInputMouseMoveImpl;
+template<>struct RawInputMouseMoveImpl<0> {};
+template<>struct RawInputMouseMoveImpl<1>
 {
+protected:
 	inline static Math::Vector2<i32> s_mouseMove{};
+public:
+	static const Math::Vector2<i32>& mouseMove() noexcept { return s_mouseMove; }
 };
 
 template<bool> struct RawInputKeyboardImpl;
@@ -46602,15 +47268,21 @@ struct RawInputConfig
 {
 	bool keyboard = true;
 	bool mouse = true;
+	bool mouseMove = true;
 	bool lockState = false;
 	bool allowFakeInput = false;
+	consteval bool valid()const noexcept { return (keyboard || mouse) && (!lockState || keyboard) && (!mouseMove || mouse); }
 };
 
-template<RawInputConfig cfg = { .keyboard = 1, .mouse = 1, .lockState = 0, .allowFakeInput=0 }>
-requires((cfg.keyboard || cfg.mouse) && (!cfg.lockState || cfg.keyboard))
-struct RawInput: RawInputFakeInputImpl<cfg.allowFakeInput>, RawInputLockStateImpl<cfg.lockState>, RawInputMouseImpl<cfg.mouse>, RawInputKeyboardImpl<cfg.keyboard>
+template<RawInputConfig cfg = RawInputConfig{}>
+requires(cfg.valid())
+struct RawInput: RawInputFakeInputImpl<cfg.allowFakeInput>, RawInputLockStateImpl<cfg.lockState>, RawInputMouseMoveImpl<cfg.mouseMove>, RawInputKeyboardImpl<cfg.keyboard || cfg.mouse>
 {
 private:
+	using RawInputFakeInput = RawInputFakeInputImpl<cfg.allowFakeInput>;
+	using RawInputLockState = RawInputLockStateImpl<cfg.lockState>;
+	using RawInputMouseMove = RawInputMouseMoveImpl<cfg.mouseMove>;
+	using RawInputKeyboard  = RawInputKeyboardImpl <cfg.keyboard || cfg.mouse>;
 	static constexpr usize deviceCount{ cfg.mouse + cfg.keyboard }; STATIC_ASSERT(deviceCount > 0);
 	static constexpr RAWINPUTDEVICE makeDevice(Windows::Window window, HidUsageID use, u32 flags)noexcept
 	{
@@ -46645,18 +47317,20 @@ public:
 		return registerDevices(devices);
 	}
 
-	static KeyInput& key(KeyId keyId) noexcept { return RawInputKeyboardImpl<cfg.keyboard>::s_keys[UNDERLYING(keyId)]; }
+	static KeyInput& key(KeyId keyId) noexcept { return RawInputKeyboard::s_keys[UNDERLYING(keyId)]; }
 
-	static const Math::Vector2<i32>& mouseMove() noexcept { return RawInputMouseImpl<cfg.mouse>::s_mouseMove; }
 	static void beginFrame() noexcept {}
 	static void endFrame() noexcept 
 	{
+		if constexpr (cfg.mouseMove)
+			RawInputMouseMove::s_mouseMove = {};
 		if constexpr (cfg.mouse)
-			RawInputMouseImpl<cfg.mouse>::s_mouseMove = {};
-		if (key(KeyId::wheel_up).isPressed())
-			key(KeyId::wheel_up).updateUp();
-		if (key(KeyId::wheel_down).isPressed())
-			key(KeyId::wheel_down).updateUp();
+		{
+			if (key(KeyId::wheel_up).isPressed())
+				key(KeyId::wheel_up).updateUp();
+			if (key(KeyId::wheel_down).isPressed())
+				key(KeyId::wheel_down).updateUp();
+		}
 	}
 
 	RawInput(HWND hwnd)noexcept { if (!attach(hwnd))CRASH(); }
@@ -46679,28 +47353,24 @@ public:
 					return {makeDevice(window, HidUsageID::keyboard, FlagsInit)};
 			}()
 		};
-
 		if constexpr (cfg.lockState)
-			RawInputLockStateImpl<cfg.lockState>::s_lockStates.init();
-
-		return registerDevices(devices);;
+			RawInputLockState::s_lockStates.init();
+		return registerDevices(devices);
 	}
-	static bool detach(HWND) noexcept { return dispose(); }
+	static bool detach() noexcept { return dispose(); }
 
-	static bool capsLock() noexcept requires(cfg.lockState) { return RawInputLockStateImpl<cfg.lockState>::s_lockStates.capLock; }
-	static bool numLock() noexcept requires(cfg.lockState) { return RawInputLockStateImpl<cfg.lockState>::s_lockStates.numLock; }
-	static bool scrollLock() noexcept requires(cfg.lockState) { return RawInputLockStateImpl<cfg.lockState>::s_lockStates.scrollLock; }
+	static bool capsLock() noexcept requires(cfg.lockState) { return RawInputLockState::s_lockStates.capLock; }
+	static bool numLock() noexcept requires(cfg.lockState) { return RawInputLockState::s_lockStates.numLock; }
+	static bool scrollLock() noexcept requires(cfg.lockState) { return RawInputLockState::s_lockStates.scrollLock; }
 
 	template<u32 msg>
 	requires(msg == WM_INPUT)
-	static LRESULT processMsg(HWND /*hwnd*/, WPARAM /*wParam*/, LPARAM lParam)noexcept
+	static void processMsg(LPARAM lParam)noexcept
 	{
 		RAWINPUT rawInput;
-
 		u32 sizeInBytes{ sizeof(RAWINPUT) };
-		if (0 == Win32u::NtUserGetRawInputData(std::bit_cast<HRAWINPUT>(lParam), RID_INPUT, &rawInput, &sizeInBytes, sizeof(RAWINPUTHEADER)))
-			return 0;
-
+		if (const u32 result{ Win32u::NtUserGetRawInputData(std::bit_cast<HRAWINPUT>(lParam), RID_INPUT, &rawInput, &sizeInBytes, sizeof(RAWINPUTHEADER)) }; result == 0 || result == (u32)-1)
+			return;
 		const tagRAWINPUTHEADER& header{ rawInput.header };
 		switch (header.dwType)
 		{
@@ -46723,9 +47393,9 @@ public:
 								if (!key(*vk).isPressed())
 									switch (*vk)
 									{
-										break; case KeyId::scroll_lock:	FLIP_BOOL(RawInputLockStateImpl<cfg.lockState>::s_lockStates.scrollLock);
-										break; case KeyId::numlock:		FLIP_BOOL(RawInputLockStateImpl<cfg.lockState>::s_lockStates.numLock);
-										break; case KeyId::cap:			FLIP_BOOL(RawInputLockStateImpl<cfg.lockState>::s_lockStates.capLock);
+										break; case KeyId::scroll_lock:	FLIP_BOOL(RawInputLockState::s_lockStates.scrollLock);
+										break; case KeyId::numlock:		FLIP_BOOL(RawInputLockState::s_lockStates.numLock);
+										break; case KeyId::cap:			FLIP_BOOL(RawInputLockState::s_lockStates.capLock);
 										break; default: {}
 									}
 							}
@@ -46740,7 +47410,7 @@ public:
 					const RAWMOUSE& rawMouse{ rawInput.data.mouse };
 					if (rawMouse.usFlags == MOUSE_MOVE_RELATIVE)
 					{
-						if constexpr (cfg.mouse)RawInputMouseImpl<cfg.mouse>::s_mouseMove += Math::Vector2<i32>{ rawMouse.lLastX, rawMouse.lLastY };
+						if constexpr (cfg.mouseMove)RawInputMouseMove::s_mouseMove += Math::Vector2<i32>{ rawMouse.lLastX, rawMouse.lLastY };
 						if (rawMouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)		key(KeyId::mouse_left).updateDown();
 						if (rawMouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)		key(KeyId::mouse_left).updateUp();
 						if (rawMouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)	key(KeyId::mouse_right).updateDown();
@@ -46761,22 +47431,19 @@ public:
 				}
 				break;
 		}
-		return 0;
 	}
-
 	template<class Stream>
 	static Stream& toStream(Stream& os)noexcept
 	{
-		if constexpr (cfg.mouse)
-			os << TS8("Mouse  Move = ") << mouseMove() << TS8("       \n");
-
+		if constexpr (cfg.mouseMove)
+			os << TS("Mouse  Move = ") << RawInputMouseMove::mouseMove() << TS("       \n");
 		if constexpr (cfg.keyboard)
 		{
 			if constexpr (cfg.lockState)
 			{
-				os << TS8("Caps   Lock = ") << capsLock() << '\n';
-				os << TS8("Num    Lock = ") << numLock() << '\n';
-				os << TS8("Scroll Lock = ") << scrollLock() << '\n';
+				os << TS("Caps   Lock = ") << capsLock() << '\n';
+				os << TS("Num    Lock = ") << numLock() << '\n';
+				os << TS("Scroll Lock = ") << scrollLock() << '\n';
 			}
 			Fold::for_each<Enum<KeyId>::entries>([&](auto I)LAMBDA_INLINE
 			{
@@ -46784,17 +47451,8 @@ public:
 					os << enum_name<I()> << '\n';
 			});
 		}
-
 		return os;
 	}
-
-	//static String8 toString8()noexcept
-	//{
-	//	StringBuilder8 ss;
-	//	toStream(ss);
-	//	return ss.str();
-	//}
-
 	template<class Stream>
 	friend Stream& operator<<(Stream& os, const RawInput&)noexcept { return toStream(os); }
 };
@@ -47692,50 +48350,30 @@ public:
 };
 
 template<class Input = RawInput<>, class Graphics = Direct2D::Graphics>
-struct Overlay :NoCopyMove
+struct Overlay
 {
+	NO_COPY_MOVE(Overlay)
 private:
-	using color_t = Rgba<f32>;
-	using seg2_t = Math::Segment2<f32>;
-	using point2_t = Math::float2;
-
-	MSG m_msg;
-	Windows::Window m_window;
+	MSG m_msg{};
 	Math::Vector2<i32> m_pos;
 	Math::Vector2<u32> m_size;
+	Windows::Window m_window;
 	Windows::WindowStyle m_windowStyle;
 	Windows::WindowStyleEx m_windowStyleEx;
 	String16 m_windowTitle;
 	Windows::WindowClassEx m_class;
-	Input m_input;
-	Graphics m_graphics;
+	NO_UNIQUE_ADDRESS Input m_input;
+	NO_UNIQUE_ADDRESS Graphics m_graphics;
 
 	//Windows::Window m_targetWindow{};
 
 	bool m_resize{};
 	bool m_show{ true };
 
-	static LRESULT __stdcall MsgProc(HWND hwnd, u32 msg, WPARAM wParam, LPARAM lParam)
-	{
-		switch (msg)
-		{
-			case WM_INPUT:
-				return Input::template processMsg<WM_INPUT>(hwnd, wParam, lParam);
-			case WM_PAINT:
-				return Graphics::template processMsg<WM_PAINT>(hwnd, wParam, lParam);
-			default:
-			{
-				//return User32::DefWindowProcW(hwnd, msg, wParam, lParam);
-				return 1;
-			}
-		}
-	}
-
 	INLINE bool initWindow()noexcept
 	{
 		if (!m_class.reg())
 			return false;
-
 #if 1
 		m_window = Windows::Window::create(m_windowStyleEx, m_windowStyle, m_class.name(), m_windowTitle, m_pos, m_size);
 #else
@@ -47743,52 +48381,59 @@ private:
 		User32::AdjustWindowRectEx(&rect, UNDERLYING(m_windowStyle), false, UNDERLYING(m_windowStyleEx));
 		m_window = Windows::Window::create(m_windowStyleEx, m_windowStyle, m_class.name(), m_windowTitle, m_pos, { rect.right - rect.left,rect.bottom - rect.top });
 #endif
-
 		if (!m_window)
 			return false;
-
 		Win32u::NtUserSetLayeredWindowAttributes(m_window.handle(), RGB(0, 0, 0), 255, LWA_ALPHA);
-		constexpr MARGINS margin{ -1,0,0,0 };
+		static constexpr MARGINS margin{ -1,0,0,0 };
 		Dwmapi::DwmExtendFrameIntoClientArea(m_window.handle(), &margin);
-
 		//show();
 		return true;
 	}
-
 public:
 
 	INLINE Overlay(
 		const Math::Vector2<i32>& size,
-		String16 windowTitle,
+		$StringOf<c16> auto&& windowTitle,
 		Windows::WindowStyle windowStyle,
 		Windows::WindowStyleEx windowStyleEx,
-		String16 className = randString(ts16_all_chars, randInt<u8, 10, 30>())) :
-		m_window{},
+		$StringOf<c16> auto&& className)noexcept :
 		m_pos{ (Windows::getFirstScreenSize() - size) / 2 },
-		m_size{cast<u32>(size) },
+		m_size{ cast<u32>(size) },
+		m_window{},
 		m_windowStyle{ windowStyle },
 		m_windowStyleEx{ windowStyleEx },
 		m_windowTitle{ MOV(windowTitle) },
-		m_class{ MOV(className),MsgProc },
-		m_input{ [&] {if (!initWindow()) CRASH(); return m_window.handle(); }() },//TODO
+		m_class{ MOV(className), NTDLL::NtdllDefWindowProc_W.address() },//[](HWND, u32, WPARAM, LPARAM)->LRESULT {return 1; }
+		m_input{ [this] LAMBDA_INLINE {if (!initWindow()) CRASH(); return m_window.handle(); }() },//TODO
 		m_graphics{ m_window.handle(),m_size }
 	{}
 
-	INLINE Overlay(const Math::Vector2<i32>& size = Windows::getFirstScreenSize(),Windows::WindowStyleEx initStyleEx = Windows::WindowStyleEx::layered | Windows::WindowStyleEx::transparent | Windows::WindowStyleEx::noactivate | Windows::WindowStyleEx::topmost, String16 windowTitle = {}) :
-		Overlay{ size, MOV(windowTitle),Windows::WindowStyle::popup, initStyleEx}
+	INLINE Overlay(
+		const Math::Vector2<i32>& size = Windows::getFirstScreenSize(),
+		Windows::WindowStyleEx initStyleEx = Windows::WindowStyleEx::layered | Windows::WindowStyleEx::transparent | Windows::WindowStyleEx::noactivate | Windows::WindowStyleEx::topmost)noexcept :
+		Overlay{ size, FixedString{L""},Windows::WindowStyle::popup, initStyleEx, randString16<8, 16>() }
 	{}
 
-	INLINE ~Overlay()noexcept { Input::detach(m_window.handle()); m_window.destroy(); m_class.unreg(); }
+	INLINE ~Overlay()noexcept { Input::detach(); m_window.destroy(); m_class.unreg(); }
 
-	INLINE void peek()noexcept{Windows::peekMessage(m_msg, m_window.handle());}
-
-	template<$SigAnyOf<void(), IterationControl()> Step>
-	INLINE void loop(Step&& step)noexcept
+	INLINE void peek()noexcept 
 	{
-		while (peek()) [[likely]]
+		while (Windows::peekMessage(m_msg, m_window.handle()))
+			switch (m_msg.message)
+			{
+				case WM_INPUT: Input   ::template processMsg<WM_INPUT>(m_msg.lParam); NTDLL::NtdllDefWindowProc_W(m_msg.hwnd, WM_INPUT, m_msg.wParam, m_msg.lParam); break;
+				case WM_PAINT: Graphics::template processMsg<WM_PAINT>(m_msg.hwnd); break;
+				default:break;
+			}
+	}
+
+	INLINE void loop($SigAnyOf<void(), IterationControl()> auto&& step)noexcept
+	{
+		for(;;) [[likely]]
 		{
+			peek();
 			beginFrame();
-			if constexpr ($Sig<Step, void()>)
+			if constexpr ($Sig<decltype(step), void()>)
 				step();
 			else
 			{
@@ -47806,12 +48451,11 @@ public:
 		m_pos = position;
 	}
 	INLINE const Math::Vector2<u32>& size()const noexcept { return m_size; }
-	INLINE void clear(const color_t& color = { 0,0,0,0 }) noexcept { m_graphics.clear(color); }
 	INLINE void prepareFrame()noexcept 
 	{
-		//performStyleCheck();
-		performShowCheck();
-		performResize();
+		//maintainStyle();
+		maintainShow();
+		resizeImpl();
 		//placeAtTop();
 	}
 	INLINE void beginFrame()noexcept
@@ -47825,11 +48469,9 @@ public:
 		m_graphics.endFrame();
 		m_input.endFrame();
 	}
-	INLINE const Input& input()const noexcept { return m_input; }INLINE Input& input() { return m_input; }
 	INLINE const Math::Vector2<i32>& cursorPosition()const noexcept { return reinterpret_cast<const Math::Vector2<i32>&>(m_msg.pt); }
-	INLINE const Graphics& graphics()const noexcept { return m_graphics; }INLINE Graphics& graphics() { return m_graphics; }
-
-	INLINE void setVisible(bool v)noexcept { m_show = v; }
+	
+	INLINE void setVisible(bool visible)noexcept { m_show = visible; }
 
 	//void setTargetWindow(const Windows::Window& targetWindow) noexcept { m_targetWindow = targetWindow; }
 	//void removeTargetWindow() noexcept { setTargetWindow({}); }
@@ -47851,37 +48493,25 @@ public:
 	//{
 	//	return 0!=Win32u::NtUserSetWindowPos(m_window.handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	//}
-	INLINE Windows::WindowStyle targetStyle()const noexcept { return m_windowStyle; }
-	INLINE Windows::WindowStyleEx targetStyleEx()const noexcept { return m_windowStyleEx; }
-	INLINE bool setStyle(Windows::WindowStyle style) noexcept 
-	{
-		const bool requireReset{ style != m_windowStyle };
-		m_windowStyle = style; 
-		return requireReset? resetStyle():true; 
-	}
-	INLINE bool setStyleEx(Windows::WindowStyleEx styleEx) noexcept
-	{
-		const bool requireReset{ styleEx != m_windowStyleEx };
-		m_windowStyleEx = styleEx; 
-		return requireReset? resetStyleEx():true; 
-	}
+	INLINE bool setStyle(Windows::WindowStyle style) noexcept { return style == m_windowStyle || ((m_windowStyle = style), resetStyle()); }
+	INLINE bool setStyleEx(Windows::WindowStyleEx styleEx) noexcept { return styleEx == m_windowStyleEx || ((m_windowStyleEx = styleEx), resetStyleEx()); }
 	INLINE bool resetStyle()const noexcept { return m_window.setStyle(m_windowStyle); }
 	INLINE bool resetStyleEx()const noexcept { return m_window.setStyleEx(m_windowStyleEx); }
-	INLINE const Math::Vector2<i32> position()const noexcept { return m_pos; }
+	INLINE const Math::Vector2<i32>& position()const noexcept { return m_pos; }
 
-	INLINE const Windows::Window& window()const noexcept { return m_window; }
+	INLINE Windows::Window window()const noexcept { return m_window; }
 
 	template<class Self>INLINE Like<Self, MSG> msg(this Self&& self)noexcept { return self.m_msg; }
+	template<class Self>INLINE Like<Self, Input> input(this Self&& self)noexcept { return self.m_input; }
+	template<class Self>INLINE Like<Self, Graphics> graphics(this Self&& self)noexcept { return self.m_graphics; }
 private:
 
-	INLINE void performStyleCheck()const noexcept
+	INLINE void maintainStyle()const noexcept
 	{
 		const Windows::WindowStyle prevStyle{ m_window.style() };
 		const Windows::WindowStyleEx prevStyleEx{ m_window.styleEx() };
-
 		const bool styleMatch{ (prevStyle & ~(Windows::WindowStyle::clipsiblings | Windows::WindowStyle::visible)) == ((m_windowStyle & ~(Windows::WindowStyle::clipsiblings | Windows::WindowStyle::visible))) };
 		const bool styleExMatch{ prevStyleEx == m_windowStyleEx };
-
 		if (!styleExMatch || !styleMatch)
 		{
 			m_window.show();
@@ -47892,7 +48522,7 @@ private:
 		}
 	}
 
-	INLINE void performShowCheck()const noexcept
+	INLINE void maintainShow()const noexcept
 	{
 		if (m_show)[[likely]]
 		{
@@ -47904,7 +48534,7 @@ private:
 				m_window.hide();
 	}
 
-	INLINE void performResize()noexcept
+	INLINE void resizeImpl()noexcept
 	{
 		if (m_resize)
 		{
@@ -47914,45 +48544,6 @@ private:
 		}
 	}
 };
-namespace Math
-{
-	//base^exp
-	template<$Floating T>
-	NO_SIDE_EFFECTS INLINE constexpr T pow(T base, T exp)noexcept
-	{
-		if constexpr($Same<f32, T>)
-			return musl::powf(base, exp);
-		else
-			return musl::pow(base, exp);
-	}
-
-	//e^exp
-	template<$Floating T>
-	NO_SIDE_EFFECTS INLINE constexpr T exp(T exp)noexcept
-	{
-#if 1
-		if constexpr ($Same<f32, T>)
-			return musl::expf(exp);
-		else
-			return musl::exp(exp);
-#else
-		if constexpr($Same<f32, T>)
-			return musl::powf(euler_number<T>, exp);
-		else
-			return musl::pow(euler_number<T>, exp);
-#endif
-	}
-
-	//2^exp
-	template<$Floating T>
-	NO_SIDE_EFFECTS INLINE constexpr T exp2(T exp)noexcept
-	{
-		if constexpr ($Same<f32, T>)
-			return musl::exp2f(exp);
-		else
-			return musl::exp2(exp);
-	}
-}
 template<auto V, $UInt Index>
 struct RepeatingImpl
 {
@@ -48007,31 +48598,6 @@ STATIC_ASSERT([]static
 	if (!test.template operator()<123.456>(u16{ 0x100 }))return false;
 	return true;
 }());
-namespace Math
-{
-	template<$Floating T>
-	NO_SIDE_EFFECTS INLINE constexpr T round(T x)noexcept
-	{
-		if !consteval
-		{
-#if CLANG || GCC
-			MATH_BUILTIN(round, T, x);
-#else
-			if constexpr ($Same<f32, T>)
-				return __roundf(x);
-			else
-				return __round(x);
-#endif
-		}
-		else
-		{
-			if constexpr ($Same<f32, T>)
-				return xroundf(x);
-			else
-				return xround(x);
-		}
-	}
-}
 //https://github.com/Tencent/ncnn/blob/master/src/layer/x86/sse_mathfun.h
 //https://github.com/Tencent/ncnn/blob/master/src/layer/x86/avx_mathfun.h
 //https://github.com/Tencent/ncnn/blob/master/src/layer/x86/avx512_mathfun.h
@@ -51819,11 +52385,11 @@ namespace Aggregate
 template<class T, usize N>concept $AggregateOfSize = __is_aggregate(std::remove_cvref_t<T>) && Aggregate::size<std::remove_cvref_t<T>> == N;
 #define REFLECTION_MEMBER(type,name,...) DEPAREN(type) name __VA_ARGS__;
 #define REFLECTION_TYPE(type,name,...) ,DEPAREN(type)
-#define REFLECTION_NAME(type,name,...) ,decltype(TS8(#name))
-#define REFLECTION_ACCESSOR(type,name,...) template<class Self> constexpr Like<Self, DEPAREN(type)> get(this Self&& self, decltype(TS8(#name)))noexcept{return FWD(self).name;}
+#define REFLECTION_NAME(type,name,...) ,decltype(TS(#name))
+#define REFLECTION_ACCESSOR(type,name,...) template<class Self> constexpr Like<Self, DEPAREN(type)> get(this Self&& self, decltype(TS(#name)))noexcept{return FWD(self).name;}
 #define REFLECTION_ACTION(type,name,...) FWD(action)(FWD(self).name);
 #define REFLECTION_ACTION_INDEXED(type,name,...) FWD(action)(FWD(self).name,IV<member_index_of<#name>>);
-#define REFLECTION_ACTION_NAMED(type,name,...) FWD(action)(FWD(self).name,TS8(#name));
+#define REFLECTION_ACTION_NAMED(type,name,...) FWD(action)(FWD(self).name,TS(#name));
 
 #define REFLECTION_MEMBERS(...)																																				\
 FOR_EACH_TUPLE(REFLECTION_MEMBER,__VA_ARGS__)																																\
@@ -51839,8 +52405,8 @@ template<class Self>INLINE constexpr void for_each_member_named(this Self&& self
 
 #define BITFIELD_MEMBER(type,name,size) DEPAREN(type) name:size;
 #define BITFIELD_TYPE(type,name,size) ,DEPAREN(type)
-#define BITFIELD_NAME(type,name,size) ,decltype(TS8(#name))
-#define BITFIELD_ACCESSOR(type,name,size) constexpr DEPAREN(type) get(decltype(TS8(#name)))const noexcept{return name;}
+#define BITFIELD_NAME(type,name,size) ,decltype(TS(#name))
+#define BITFIELD_ACCESSOR(type,name,size) constexpr DEPAREN(type) get(decltype(TS(#name)))const noexcept{return name;}
 
 #define REFLECTION_BITFIELDS_IMPL(struct_start,struct_end,...)																												\
 struct_start FOR_EACH_TUPLE(BITFIELD_MEMBER,__VA_ARGS__) struct_end																											\
@@ -52246,6 +52812,7 @@ namespace Wtf16
 	}
 }
 #undef WTF_IN_RANGE
+//do not replace std::conditional_t with tstring_if, gcc will 4x compile time
 namespace Sjn//(S)uperior (J)son (N)otation
 {
 	struct PrintingOptions
@@ -52262,8 +52829,8 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	template<class>
 	constexpr bool must_pack{ false };
 
-	template<class T>//use print_must_pack to declare custom struct should be packed
-	requires requires{print_must_pack(std::declval<T>()); }
+	template<class T>//use sjn_print_pack to declare custom struct should be packed
+	requires requires{sjn_print_pack(std::declval<T>()); }
 	constexpr bool must_pack<T> { true };
 
 	template<$Reflection T>//empty struct should be packed
@@ -52298,12 +52865,12 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	template<class>
 	constexpr bool need_colon{ true };
 
-	template<class T>//use print_no_colon to declare custom struct requires no colon before it
-	requires requires{print_no_colon(std::declval<T>()); }
-	constexpr bool need_colon<T> { false };
+	template<class T>//use sjn_print_colon to declare custom struct requires colon before it
+	requires requires{sjn_print_colon(std::declval<T>()); }
+	constexpr bool need_colon<T> { true };
 
 	template<$Reflection T>//struct need no colon before it
-	requires(!$ForEach<T> && !$String<T>)
+	requires(!$ForEach<T> && !$String<T> && !requires{sjn_print_colon(std::declval<T>()); })
 	constexpr bool need_colon<T> { false };
 
 	template<$String T>//string need no colon before it
@@ -52324,17 +52891,14 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	requires(!$LinearContainer<T> && !$Reflection<T>)
 	constexpr bool need_colon<T> { false };
 
-	template<class T>
-	constexpr std::conditional_t<need_colon<T>, TString<c8, ':'>, TString<c8>> ConditionalColon{};
-
 	template<PrintingOptions, class>
-	constexpr auto trailing_comment{ TString<c8>{} };
+	constexpr auto comment_of_impl{ TString<c8>{} };
 
 	template<PrintingOptions opts, $Enum T>
 	requires((opts.EnumFlagName || opts.EnumFlagFields) && Enum<T>::count != 0)
-	constexpr auto trailing_comment<opts, T>
+	constexpr auto comment_of_impl<opts, T>
 	{
-		[] <auto...I>(std::index_sequence<I...>)static CONSTEVAL
+		[] <usize...I>(std::index_sequence<I...>)static CONSTEVAL
 		{
 			return std::conditional_t<opts.EnumFlagName, decltype(tstring<nameof<T>>), TString<c8>>{} 
 				 + std::conditional_t<opts.EnumFlagFields && opts.EnumFlagName, TString<c8, ':'>, TString<c8>>{}
@@ -52344,7 +52908,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 
 	template<PrintingOptions opts, $Flag T>
 	requires((opts.EnumFlagName || opts.EnumFlagFields) && Flag<T>::named_entries.size() != 0)
-	constexpr auto trailing_comment<opts, T>
+	constexpr auto comment_of_impl<opts, T>
 	{
 		[] <usize...I, T...flag>(std::index_sequence<I...>, ValueList<flag...>)static CONSTEVAL
 		{
@@ -52355,39 +52919,37 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	};
 
 	template<PrintingOptions opts, $Optional T>
-	constexpr auto trailing_comment<opts, T>{ trailing_comment<opts, std::remove_cvref_t<decltype(*std::declval<T>())>> };
+	constexpr auto comment_of_impl<opts, T>{ comment_of_impl<opts, std::remove_cvref_t<decltype(*std::declval<T>())>> };
 
 	template<PrintingOptions opts, $ForEach T>
 	requires(!$String<T>)
-	constexpr auto trailing_comment<opts, T>{ trailing_comment<opts, ElementOf<T>> };
+	constexpr auto comment_of_impl<opts, T>{ comment_of_impl<opts, ElementOf<T>> };
 
 	template<PrintingOptions opts, class T>
-	constexpr bool has_trailing_comment{ !$Same<std::remove_cvref_t<decltype(trailing_comment<opts, T>)>, TString<c8>> };
+	constexpr bool has_trailing_comment{ !$Same<std::remove_cvref_t<decltype(comment_of_impl<opts, T>)>, TString<c8>> };
 
 	template<PrintingOptions opts, bool pack, class T>
 	constexpr auto comment_of
 	{
-		[] static CONSTEVAL
-		{
-			if constexpr (!has_trailing_comment<opts, std::remove_cvref_t<T>>) return TString<c8>{};
-			else if constexpr (pack) return TString<c8, '/', '*'>{} + trailing_comment<opts, std::remove_cvref_t<T>> + TString<c8, '*', '/'>{};
-			else return TString<c8, '/', '/'>{} + trailing_comment<opts, std::remove_cvref_t<T>>;
-		}()
+		std::conditional_t
+		<
+			!has_trailing_comment<opts, std::remove_cvref_t<T>>, 
+			TString<c8>,
+			std::conditional_t
+			<
+				pack,
+				decltype(TString<c8, '/', '*'>{} + comment_of_impl<opts, std::remove_cvref_t<T>> + TString<c8, '*', '/'>{}),
+				decltype(TString<c8, '/', '/'>{} + comment_of_impl<opts, std::remove_cvref_t<T>>)
+			>
+		>{}
 	};
 
 	template<PrintingOptions opts, bool pack, FixedString totalIndent, PrintMode mode>
 	constexpr void print_impl(auto& os, $Same<bool> auto x)noexcept
 	{
-		if constexpr (!pack && mode == PrintMode::array_element)
-		{
-			if (x)os << tstring<'\n' + totalIndent + "true">;
-			else os << tstring<'\n' + totalIndent + "false">;
-		}
-		else
-		{
-			if (x)os << TS8("true");
-			else os << TS8("false");
-		}
+		using Prefix = std::conditional_t<!pack && mode == PrintMode::array_element, decltype(tstring<'\n' + totalIndent>), TString<c8>>;
+		if (x)os << (Prefix{} + TString<c8, 't', 'r', 'u', 'e'>{});
+		else os << (Prefix{} + TString<c8, 'f', 'a', 'l', 's', 'e'>{});
 	}
 
 	template<PrintingOptions opts, bool pack, FixedString totalIndent, PrintMode mode>
@@ -52424,28 +52986,28 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	{
 		using T = std::remove_cvref_t<decltype(x)>;
 		using StreamChar = typename std::remove_cvref_t<decltype(os)>::char_type;
-		if constexpr (!packParent && mode == PrintMode::array_element)
-			os << tstring<'\n' + totalIndent>;
-		const c8 quote{ x == '"' ? '\'' : '"' };
-		os.put(quote);
+		using Prefix = std::conditional_t<!packParent && mode == PrintMode::array_element, decltype(tstring<'\n' + totalIndent>), TString<c8>>;
+		c8 quote;
+		if (x == '"') [[unlikely]] { quote = '\''; os << (Prefix{} + TString<c8, '\''>{}); }
+		else/*       */ [[likely]] { quote = '"';  os << (Prefix{} + TString<c8, '"' >{}); }
 		switch (x)
 		{
-		case '\\': os << TS8("\\\\"); break;
-		case '\b': os << TS8("\\b"); break;
-		case '\f': os << TS8("\\f"); break;
-		case '\n': os << TS8("\\n"); break;
-		case '\r': os << TS8("\\r"); break;
-		case '\t': os << TS8("\\t"); break;
-		default:
-			if (UNSIGNED(x) < 0x20) [[unlikely]]
-				os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(UNSIGNED(x)));
-			else [[likely]]
-			{
-				/* */if constexpr (sizeof(StreamChar) >= sizeof(T))os.put(static_cast<StreamChar>(UNSIGNED(x)));
-				else if constexpr (sizeof(StreamChar) == 1){if (!Wtf8 ::encode(x, [&](c8  unit) { os.put(std::bit_cast<StreamChar>(unit)); }))os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit8 ));}
-				else if constexpr (sizeof(StreamChar) == 2){if (!Wtf16::encode(x, [&](c16 unit) { os.put(std::bit_cast<StreamChar>(unit)); }))os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit16));}
-				else STATIC_ERROR(unsupported stream type);
-			}
+			case '\\': os << TString<c8, '\\', '\\'>{}; break;
+			case '\b': os << TString<c8, '\\', 'b' >{}; break;
+			case '\f': os << TString<c8, '\\', 'f' >{}; break;
+			case '\n': os << TString<c8, '\\', 'n' >{}; break;
+			case '\r': os << TString<c8, '\\', 'r' >{}; break;
+			case '\t': os << TString<c8, '\\', 't' >{}; break;
+			default:
+				if (UNSIGNED(x) < 0x20) [[unlikely]]
+					os << TString<c8, '\\', 'x'>{} << hex<1, '0'>(static_cast<u8>(UNSIGNED(x)));
+				else [[likely]]
+				{
+					/* */if constexpr (sizeof(StreamChar) >= sizeof(T))os.put(static_cast<StreamChar>(UNSIGNED(x)));
+					else if constexpr (sizeof(StreamChar) == 1){if (!Wtf8 ::encode(x, [&](c8  unit) { os.put(std::bit_cast<StreamChar>(unit)); }))os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit8 ));}
+					else if constexpr (sizeof(StreamChar) == 2){if (!Wtf16::encode(x, [&](c16 unit) { os.put(std::bit_cast<StreamChar>(unit)); }))os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit16));}
+					else STATIC_ERROR(unsupported stream type);
+				}
 		}
 		os.put(quote);
 	}
@@ -52453,180 +53015,65 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	constexpr void print_impl(auto& os, $StringOfCharSizeAny<1, 2, 4> auto&& x)noexcept
 	{
 		using StreamChar = typename std::remove_cvref_t<decltype(os)>::char_type;
-		if constexpr (!packParent && mode == PrintMode::array_element)//todo: prefix
-			os << tstring<'\n' + totalIndent>;
+		using Prefix = std::conditional_t<!packParent && mode == PrintMode::array_element, decltype(tstring<'\n' + totalIndent>), TString<c8>>;
 		c8 quote;
-		/* */if (!Algorithm::find(x, '"' ))[[likely]] quote = '"';
-		else if (!Algorithm::find(x, '\''))[[likely]] quote = '\'';
-		else if (!Algorithm::find(x, '`' ))[[likely]] quote = '`';
-		else/*                        */ [[unlikely]] quote = '"';
-		os.put(quote);
-		if constexpr (sizeof(StreamChar) == 1)
+		/* */if (!Algorithm::find(x, '"'))  [[likely]] { quote = '"';  os << (Prefix{} + TString<c8, '"'>{}); }
+		else if (!Algorithm::find(x, '\'')) [[likely]] { quote = '\''; os << (Prefix{} + TString<c8, '\''>{}); }
+		else if (!Algorithm::find(x, '`'))  [[likely]] { quote = '`';  os << (Prefix{} + TString<c8, '`'>{}); }
+		else/*                         */ [[unlikely]] { quote = '"';  os << (Prefix{} + TString<c8, '"'>{}); }
+#define SJN_PRINT_ENCODE(bits, c) CAT(SJN_PRINT_ENCODE,bits)(c)
+#define SJN_PRINT_ENCODE8(c) if (!Wtf8::encode(c, [&](auto unit) { os << unit; })) [[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit8))
+#define SJN_PRINT_ENCODE16(c) if (!Wtf16::encode(c, [&](auto unit) { os << unit; })) [[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit16))
+#define SJN_PRINT_ENCODE32(c) os.put(static_cast<StreamChar>(c))
+#define SJN_PRINT_ENCODESAME(c) os.put(static_cast<StreamChar>(c))
+#define SJN_PRINT_PUSH_CODEPOINT(bits, c)																													\
+		switch (c)																																			\
+		{																																					\
+			case '"': { if (quote == '"') [[unlikely]] os << TString<c8, '\\', '"'>{}; else [[likely]] os << '"'; } break;									\
+			case '\\': os << TString<c8, '\\', '\\'>{}; break;																								\
+			case '\b': os << TString<c8, '\\', 'b' >{}; break;																								\
+			case '\f': os << TString<c8, '\\', 'f' >{}; break;																								\
+			case '\n': os << TString<c8, '\\', 'n' >{}; break;																								\
+			case '\r': os << TString<c8, '\\', 'r' >{}; break;																								\
+			case '\t': os << TString<c8, '\\', 't' >{}; break;																								\
+			default:																																		\
+				if (UNSIGNED(c) < 0x20) [[unlikely]] os << TString<c8, '\\', 'x'>{} << hex<1, '0'>(static_cast<u8>(c));										\
+				else [[likely]] SJN_PRINT_ENCODE(bits, c);																									\
+		}
+		if constexpr (sizeof(StreamChar) == sizeof(ElementOf<decltype(x)>))
+			for (const auto c : x)
+				SJN_PRINT_PUSH_CODEPOINT(SAME, c)
+		else if constexpr (sizeof(StreamChar) == 1)
 		{
-			if constexpr ($StringOfCharSize<decltype(x), 1>)
-			{
-				for (const c8 c : x)
-					switch (c)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (UNSIGNED(c) < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(c));
-							else [[likely]] os << c;
-					}
-			}
-			else if constexpr ($StringOfCharSize<decltype(x), 2>)
-			{
-				Wtf16::decode(x, [&](const u32 codePoint)LAMBDA_INLINE
-				{
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (codePoint < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] if(!Wtf8::encode(codePoint, [&](c8 unit) { os << unit; }))[[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit8));
-					}
-				});
-			}
+			if constexpr ($StringOfCharSize<decltype(x), 2>)
+				Wtf16::decode(x, [&](const u32 codePoint)LAMBDA_INLINE{SJN_PRINT_PUSH_CODEPOINT(8, codePoint)});
 			else if constexpr ($StringOfCharSize<decltype(x), 4>)
 				for (const c32 codePoint : x)
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (UNSIGNED(codePoint) < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] if (!Wtf8::encode(codePoint, [&](c8 unit) { os << unit; })) [[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit8));
-					}
+					SJN_PRINT_PUSH_CODEPOINT(8, codePoint)
 		}
 		else if constexpr (sizeof(StreamChar) == 2)
 		{
 			if constexpr ($StringOfCharSize<decltype(x), 1>)
-			{
-				Wtf8::decode(x, [&](const u32 codePoint)LAMBDA_INLINE
-				{
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (codePoint < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] if (!Wtf16::encode(codePoint, [&](c16 unit) { os << unit; })) [[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit16));
-					}
-				});
-			}
-			else if constexpr ($StringOfCharSize<decltype(x), 2>)
-			{
-				for (const auto c : x)
-					switch (c)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (UNSIGNED(c) < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(c));
-							else [[likely]] os << c;
-					}
-			}
+				Wtf8::decode(x, [&](const u32 codePoint)LAMBDA_INLINE{ SJN_PRINT_PUSH_CODEPOINT(16, codePoint) });
 			else if constexpr ($StringOfCharSize<decltype(x), 4>)
 				for (const c32 codePoint : x)
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (UNSIGNED(codePoint) < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] if(!Wtf16::encode(codePoint, [&](c16 unit) { os << unit; })) [[unlikely]] os.put(std::bit_cast<StreamChar>(opts.ErrorCodeUnit16));
-					}
+					SJN_PRINT_PUSH_CODEPOINT(16, codePoint)
 		}
 		else if constexpr (sizeof(StreamChar) == 4)
 		{
 			if constexpr ($StringOfCharSize<decltype(x), 1>)
-			{
-				Wtf8::decode(x, [&](const u32 codePoint)LAMBDA_INLINE
-				{
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (codePoint < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] os.put(static_cast<StreamChar>(codePoint));
-					}
-				});
-			}
+				Wtf8::decode(x, [&](const u32 codePoint)LAMBDA_INLINE{ SJN_PRINT_PUSH_CODEPOINT(32, codePoint) });
 			else if constexpr ($StringOfCharSize<decltype(x), 2>)
-			{
-				Wtf16::decode(x, [&](const u32 codePoint)LAMBDA_INLINE
-				{
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (codePoint < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] os.put(static_cast<StreamChar>(codePoint));
-					}
-				});
-			}
-			else if constexpr ($StringOfCharSize<decltype(x), 4>)
-				for (const c32 codePoint : x)
-					switch (codePoint)
-					{
-						case '"': { if (quote == '"') [[unlikely]] os << TS8("\\\""); else [[likely]] os << '"'; } break;
-						case '\\': os << TS8("\\\\"); break;
-						case '\b': os << TS8("\\b"); break;
-						case '\f': os << TS8("\\f"); break;
-						case '\n': os << TS8("\\n"); break;
-						case '\r': os << TS8("\\r"); break;
-						case '\t': os << TS8("\\t"); break;
-						default:
-							if (UNSIGNED(codePoint) < 0x20) [[unlikely]] os << TS8("\\x") << hex<1, '0'>(static_cast<u8>(codePoint));
-							else [[likely]] os.put(codePoint);
-					}
+				Wtf16::decode(x, [&](const u32 codePoint)LAMBDA_INLINE{ SJN_PRINT_PUSH_CODEPOINT(32, codePoint) });
 		}
 		else STATIC_ERROR(unsupported stream type);
 		os << quote;
+#undef SJN_PRINT_ENCODE
+#undef SJN_PRINT_ENCODE8
+#undef SJN_PRINT_ENCODE16
+#undef SJN_PRINT_ENCODE32
+#undef SJN_PRINT_ENCODESAME
+#undef SJN_PRINT_PUSH_CODEPOINT
 	}
 
 	template<PrintingOptions opts, bool packParent, FixedString totalIndent, PrintMode mode>
@@ -52637,7 +53084,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		Switch<Enum<T>::entries>
 		(
 			x,
-			[&](auto e)LAMBDA_INLINE{ os << (Prefix{} + TS8("\"") + enum_name<e()> + TS8("\"")); },
+			[&](auto e)LAMBDA_INLINE{ os << (Prefix{} + TString<c8, '"'>{} + enum_name<e()> + TString<c8, '"'>{}); },
 			[&]LAMBDA_INLINE{ os << Prefix{} << Dec{UNDERLYING(x)}; }
 		);
 	}
@@ -52645,13 +53092,12 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	template<PrintingOptions opts, bool packParent, FixedString totalIndent, PrintMode mode, $Flag T, usize...I, T...flag>
 	INLINE constexpr void print_flag(auto& os, T x, std::index_sequence<I...>, ValueList<flag...>)noexcept
 	{
-		if constexpr (!packParent && mode == PrintMode::array_element)//todo: prefix
-			os << tstring<'\n' + totalIndent>;
+		using Prefix = std::conditional_t<!packParent && mode == PrintMode::array_element, decltype(tstring<'\n' + totalIndent>), TString<c8>>;
 		if (has_unnamed_fields(x))[[unlikely]]
-			os << TS8("0b") << bin<0, '0'>(UNDERLYING(x));
+			os << (Prefix{} + TString<c8, '0', 'b'>{}) << bin<0, '0'>(UNDERLYING(x));
 		else
 		{
-			os << '"';
+			os << (Prefix{} + TString<c8, '"'>{});
 			bool isFirst{ true };
 			(..., [&]LAMBDA_INLINE
 			{
@@ -52663,7 +53109,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 						os << enum_name<flag>;
 					}
 					else
-						os << (TS8("|") + enum_name<flag>);
+						os << (TString<c8, '|'>{} + enum_name<flag>);
 				}
 			}());
 			if (isFirst)
@@ -52687,24 +53133,23 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	SJN_PRINT_TUPLE;		//forward decl
 	SJN_PRINT_ARRAY;		//forward decl
 	SJN_PRINT_REFLECTION;	//forward decl
-
+	
 	template<PrintingOptions opts, bool packParent, FixedString totalIndent, PrintMode mode, usize...I>
 	constexpr void print_reflection(auto& os, $Reflection auto&& reflect, std::index_sequence<I...>)noexcept
 	{
 		static constexpr bool pack{ packParent || must_pack<decltype(reflect)> };
 		using T = std::remove_cvref_t<decltype(reflect)>;
-		if constexpr ((!pack || (!packParent && mode == PrintMode::array_element)) && mode != PrintMode::start)
-			os << tstring<'\n' + totalIndent + '{'>;
-		else
-			os << '{';
+		using Prefix = std::conditional_t<mode != PrintMode::start && !packParent && (!pack || mode == PrintMode::array_element), decltype(tstring<'\n' + totalIndent + '{'>), TString<c8, '{'>>;
+		if constexpr (!sizeof...(I))
+			os << Prefix{};
 		(...,(
 			(
 				os <<
 				(
-					std::conditional_t<I == 0, TString<c8>, decltype(comment_of<opts, pack, typename Reflection::type_at<T, I ? I - 1 : 0>>)>{} +
+					std::conditional_t<I == 0, Prefix, decltype(comment_of<opts, pack, typename Reflection::type_at<T, I ? I - 1 : 0>>)>{} +
 					std::conditional_t<pack,std::conditional_t<I != 0, TString<c8, ','>, TString<c8>>,decltype(tstring<'\n' + totalIndent + opts.Indent>)>{} +
 					Reflection::name<T, I> +
-					ConditionalColon<typename Reflection::type_at<T, I>>
+					std::conditional_t<need_colon<typename Reflection::type_at<T, I>>, TString<c8, ':'>, TString<c8>>{}
 				)
 			),
 			print_impl<opts, pack, totalIndent + opts.Indent, PrintMode::object_value>(os, Reflection::at<I>(reflect))
@@ -52722,15 +53167,14 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	constexpr void print_tuple(auto& os, $TupleLike auto&& tuple, std::index_sequence<I...>)noexcept
 	{
 		static constexpr bool pack{ packParent || must_pack<decltype(tuple)> };
-		if constexpr ((!pack || (!packParent && mode == PrintMode::array_element)) && mode != PrintMode::start)
-			os << tstring<'\n' + totalIndent + '['>;
-		else
-			os << '[';
+		using Prefix = std::conditional_t<mode != PrintMode::start && !packParent && (!pack || mode == PrintMode::array_element), decltype(tstring<'\n' + totalIndent + '['>), TString<c8, '['>>;
+		if constexpr (!sizeof...(I))
+			os << Prefix{};
 		(...,(
 			(
 				os << 
 				(
-					std::conditional_t<I == 0, TString<c8>, decltype(comment_of<opts, pack, std::tuple_element_t<I ? I - 1 : 0, std::remove_cvref_t<decltype(tuple)>>>)>{} +
+					std::conditional_t<I == 0, Prefix, decltype(comment_of<opts, pack, std::tuple_element_t<I ? I - 1 : 0, std::remove_cvref_t<decltype(tuple)>>>)>{} +
 					std::conditional_t<pack && I, TString<c8, ','>, TString<c8>>{}
 				)
 			),
@@ -52748,10 +53192,8 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	SJN_PRINT_ARRAY
 	{
 		static constexpr bool pack{ packParent || must_pack<decltype(x)> };
-		if constexpr ((!pack || (!packParent && mode == PrintMode::array_element)) && mode != PrintMode::start)
-			os << tstring<'\n' + totalIndent + '['>;
-		else
-			os << '[';
+		using Prefix = std::conditional_t<mode != PrintMode::start && !packParent && (!pack || mode == PrintMode::array_element), decltype(tstring<'\n' + totalIndent + '['>), TString<c8, '['>>;
+		os << Prefix{};
 		if constexpr (pack)
 		{
 			bool first{ true };
@@ -52788,12 +53230,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		if (x)
 			print_impl<opts,packParent,totalIndent,mode>(os, *x);
 		else
-		{
-			if constexpr (!packParent && mode == PrintMode::array_element)
-				os << tstring<'\n' + totalIndent + "null">;
-			else
-				os << TS8("null");
-		}
+			os << std::conditional_t<!packParent && mode == PrintMode::array_element, decltype(tstring<'\n' + totalIndent + "null">), TString<c8, 'n', 'u', 'l', 'l'>>{};
 	}
 #undef SJN_PRINT_OPTIONAL
 #undef SJN_PRINT_TUPLE
@@ -52806,6 +53243,236 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		print_reflection<opts, opts.Pack, "", PrintMode::start>(os, reflect, std::make_index_sequence<Reflection::size<std::remove_cvref_t<decltype(reflect)>>>{});
 	}
 }
+template<$UInt T>NO_SIDE_EFFECTS INLINE constexpr T unsigned_div_floor(T a, T b)noexcept{return a / b;}
+template<$UInt T>NO_SIDE_EFFECTS INLINE constexpr T unsigned_div_ceil (T a, T b)noexcept{return a / b + (a % b != 0);}
+#pragma pack(push, 1)
+template<usize, class>struct BitsetImpl;
+template<usize N>using Bitset = BitsetImpl<N, std::make_index_sequence<N / 64>>;
+
+template<>
+struct BitsetImpl<0, std::index_sequence<>>
+{
+	static consteval u8 count()noexcept { return {}; }
+	static consteval bool none()noexcept { return true; }
+	static consteval bool any()noexcept { return false; }
+};
+
+template<>
+struct BitsetImpl<1, std::index_sequence<>>
+{
+	NO_UNIQUE_ADDRESS bool bits;
+	constexpr u8 count()const noexcept { return bits; }
+	constexpr bool none()const noexcept { return !bits; }
+	constexpr bool any()const noexcept { return bits; }
+	template<usize Index>requires(Index == 0)constexpr bool at()const noexcept { return bits; }
+	template<usize Index, bool value>requires(Index == 0)constexpr void set() noexcept { bits = value; }
+};
+
+template<usize N, usize...I>
+requires(N >= 2 && N <= 64)
+struct BitsetImpl<N, std::index_sequence<I...>>
+{
+private:
+	using T = std::remove_pointer_t<decltype([]static
+	{
+		/* */if constexpr (N <= 8 )return static_cast<u8 *>(nullptr);
+		else if constexpr (N <= 16)return static_cast<u16*>(nullptr);
+		else if constexpr (N <= 32)return static_cast<u32*>(nullptr);
+		else if constexpr (N <= 64)return static_cast<u64*>(nullptr);
+	}())>;
+public:
+	NO_UNIQUE_ADDRESS T bits;
+	constexpr Compact<N> count()const noexcept { return Bits::count(bits); }
+	constexpr bool none()const noexcept { return bits == T{}; }
+	constexpr bool any()const noexcept { return bits != T{}; }
+	template<usize Index>
+	requires(Index < N)
+	constexpr bool at()const noexcept 
+	{
+		return static_cast<bool>(bits & constant<T(T{ 1 } << Index)>);
+	}
+	template<usize Index, bool value>
+	requires(Index < N)
+	constexpr void set() noexcept 
+	{
+		if constexpr (value)
+			bits |= constant<T(T{ 1 } << Index)>;
+		else
+			bits &= constant<T(~T((T{ 1 } << Index)))>;
+	}
+};
+
+template<usize N, usize...I>
+requires(N > 64 && N % 64 == 0)
+struct BitsetImpl<N, std::index_sequence<I...>>
+{
+	NO_UNIQUE_ADDRESS Bitset<64> bits[N / 64];
+	constexpr Compact<N> count()const noexcept { return (Compact<N>{bits[I].count()} + ...); }
+	constexpr bool none()const noexcept { return !(bits[I].bits | ...); }
+	constexpr bool any()const noexcept { return (bits[I].bits | ...); }
+	template<usize Index>
+	requires(Index < N)
+	constexpr bool at()const noexcept 
+	{
+		return bits[Index / 64].template at<Index % 64>();
+	}
+	template<usize Index, bool value>
+	requires(Index < N)
+	constexpr void set() noexcept 
+	{
+		bits[Index / 64].template set<Index % 64, value>();
+	}
+};
+
+template<usize N, usize...I>
+requires(N > 64 && N % 64 != 0)
+struct BitsetImpl<N, std::index_sequence<I...>>
+{
+	NO_UNIQUE_ADDRESS Bitset<64> bits[N / 64];
+	NO_UNIQUE_ADDRESS Bitset<N % 64> tail;
+	constexpr Compact<N> count()const noexcept { return (Compact<N>{bits[I].count()} + ... + tail.count()); }
+	constexpr bool none()const noexcept { return !(bits[I].bits | ... | u64{ tail.bits }); }
+	constexpr bool any()const noexcept { return (bits[I].bits | ... | u64{ tail.bits }); }
+	template<usize Index>
+	requires(Index < N)
+	constexpr bool at()const noexcept 
+	{
+		if constexpr (Index >= sizeof...(I) * 64)return tail.template at<Index % 64>();
+		else return bits[Index / 64].template at<Index % 64>();
+	}
+	template<usize Index, bool value>
+	requires(Index < N)
+	constexpr void set() noexcept 
+	{
+		if constexpr (Index >= sizeof...(I) * 64)tail.template set<Index % 64, value>();
+		else bits[Index / 64].template set<Index % 64, value>();
+	}
+};
+#pragma pack(pop)
+
+#if 0
+#if defined(__AVX512VPOPCNTDQ__)
+	static constexpr u8 packed_bitset_simd_width{ 64 };
+#elif defined(__AVX2__)
+	static constexpr u8 packed_bitset_simd_width{ 32 };
+#else
+	static constexpr u8 packed_bitset_simd_width{ 16 };
+#endif
+
+template<usize, class>struct PackedBitsetImpl;
+
+template<usize N>
+using PackedBitset = PackedBitsetImpl<N, std::make_index_sequence<[]static -> usize
+{
+	if constexpr (N == 0)return {};
+	else
+	{
+		static constexpr usize byte_count    { unsigned_div_ceil<usize>(N, 8) };
+		static constexpr usize max_block_size{ [] static -> usize
+		{
+			for (usize size{ packed_bitset_simd_width }; size; size /= 2)
+				if (size <= byte_count)
+					return size;
+		}()};
+		static constexpr usize tail_byte_count{ byte_count % max_block_size };
+		return byte_count / max_block_size + (tail_byte_count != 0);
+	}
+}()>>;
+
+
+template<>
+struct PackedBitsetImpl<0, std::index_sequence<>>
+{
+	static consteval u8 count()noexcept { return {}; }
+	static consteval bool none()noexcept { return true; }
+	static consteval bool any()noexcept { return false; }
+};
+
+template<>
+struct PackedBitsetImpl<1, std::index_sequence<0>>
+{
+	NO_UNIQUE_ADDRESS bool bits;
+	constexpr u8 count()const noexcept { return bits; }
+	constexpr bool none()const noexcept { return !bits; }
+	constexpr bool any()const noexcept { return bits; }
+	template<usize Index>requires(Index == 0)constexpr bool at()const noexcept { return bits; }
+	template<usize Index, bool value>requires(Index == 0)constexpr void set() noexcept { bits = value; }
+};
+
+
+template<usize N, usize...I>
+requires(N > 1)
+struct PackedBitsetImpl<N, std::index_sequence<I...>>
+{
+	NO_UNIQUE_ADDRESS u8 bytes[unsigned_div_ceil<usize>(N, 8)];
+
+	struct Block
+	{
+		usize index;//in bytes
+		u8 size;	//in bytes
+		u8 offset;	//in bytes
+		//index = 8, size = 4, offset = 0: *(const u32*)(bytes+8)
+		//index = 7, size = 4, offset = 1: *(const u32*)(bytes+7) & 0xffffff00
+	};
+	static constexpr std::array<Block, sizeof...(I)> blocks{[] static
+	{
+		static constexpr usize byte_count     { unsigned_div_ceil<usize>(N, 8) };
+		static constexpr usize max_block_size { [] static->usize{for (usize size{ packed_bitset_simd_width }; size; size /= 2)if (size <= byte_count)return size; }() };
+		static constexpr usize tail_byte_count{ byte_count % max_block_size };
+		static constexpr usize tail_size      { !tail_byte_count ? max_block_size : [] static->usize{for (usize size{ packed_bitset_simd_width / 2 }; size; size /= 2) if (tail_byte_count > size) return size * 2; return usize{ 1 }; }() };
+		return std::array<Block, sizeof...(I)>{
+		{ 
+			.index{ (I == sizeof...(I) - 1) ? byte_count - tail_size :I * max_block_size },
+			.size{ (I == sizeof...(I) - 1) ? tail_size : max_block_size },
+			.offset{ (I == sizeof...(I) - 1 && tail_byte_count) ? tail_size - tail_byte_count : 0 }
+		}... };
+	}() };
+
+	constexpr Compact<N> count()const noexcept 
+	{
+		
+	}
+	constexpr bool none()const noexcept 
+	{
+		if consteval
+		{
+			for (const u8 byte : bytes)
+				if (byte)
+					return false;
+			return true;
+		}
+		else { return (...&&!*(const NBytes<blocks[I].size>*)(bytes + blocks[I].index)); }
+	}
+	constexpr bool any()const noexcept 
+	{
+		if consteval
+		{
+			for (const u8 byte : bytes)
+				if (byte)
+					return true;
+			return false;
+		}
+		else { return (...||*(const NBytes<blocks[I].size>*)(bytes + blocks[I].index)); }
+	}
+
+	template<usize Index>
+	requires(Index < N)
+	constexpr bool at()const noexcept 
+	{
+		return static_cast<bool>(bytes[Index / 8] & constant<u8(u8{ 1 } << (Index % 8))>);
+	}
+
+	template<usize Index, bool value>
+	requires(Index < N)
+	constexpr void set() noexcept 
+	{
+		if constexpr (value)
+			bytes[Index / 8] |= constant<u8(u8{ 1 } << (Index % 8))>;
+		else
+			bytes[Index / 8] &= constant<u8(~u8(u8{ 1 } << (Index % 8)))>;
+	}
+};
+#endif
 // fast_float by Daniel Lemire
 // fast_float by João Paulo Magalhaes
 //
@@ -57347,7 +58014,7 @@ namespace fast_float {
 #endif
 namespace Sjn//(S)uperior (J)son (N)otation
 {
-	struct ParsingOptions//set everything to false for max speed
+	struct ParsingOptions//default value = max speed
 	{
 		bool RollBackOnFail{};
 		bool NumberEnums{};
@@ -57355,7 +58022,8 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		bool KeyVerify{};
 		bool SlashU{};
 		bool AllowUnknowns{};
-		bool WtfVerify{};
+		bool AllowMissing{true};
+		bool WtfVerify{};//might crash if (!WtfVerify && !Wtf8::valid(input))
 		CONSTEVAL bool valid()const noexcept { return !AllowUnknowns || KeyVerify; }
 	};
 	template<FixedString string, bool advance = true>
@@ -57574,8 +58242,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 					for (;;)//skip key
 					{
 						if (input.empty()) [[unlikely]] return false;
-						const c8 c{ input[0] };
-						if (is_end_of_key<opts>(c))break;
+						if (is_end_of_key<opts>(input[0]))break;
 						input += 1;
 					}
 					if (!skip_garbage<opts, LogError...>(input)) [[unlikely]] return false;
@@ -57599,8 +58266,8 @@ namespace Sjn//(S)uperior (J)son (N)otation
 				{
 					if (input.empty()) [[unlikely]] return false;
 					const c8 c{ input[0] };
-					if constexpr (opts.Comment) { if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',' || c == '}' || c == ']' || c == '/')return true; }//'[' and '{' cant appear after a primitive
-					else/*                   */ { if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',' || c == '}' || c == ']')return true; }//"[123[]]" is not possible, because whole array must be of same type
+					if constexpr (opts.Comment) { if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',' || c == '\'' || c == '"' || c == '`' || c == '{' || c == '}' || c == '[' || c == ']' || c == '/')return true; }
+					else/*                   */ { if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',' || c == '\'' || c == '"' || c == '`' || c == '{' || c == '}' || c == '[' || c == ']')return true; }
 					input += 1;
 				}
 			}
@@ -57684,7 +58351,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		using E = Enum<T>;
 		if (input[0] == '"') [[likely]]
 		{
-			static constexpr auto minEnumLen{ [] <auto...I>(std::index_sequence<I...>)static{ return compact<Algorithm::min(enum_name<E::entries[I]>.size...)>; }(std::make_index_sequence<E::count>{}) };
+			static constexpr auto minEnumLen{ [] <usize...I>(std::index_sequence<I...>)static{ return compact<Algorithm::min(enum_name<E::entries[I]>.size...)>; }(std::make_index_sequence<E::count>{}) };
 			if (input.size() < compact<minEnumLen + 3>) [[unlikely]] SJN_PARSE_RETURN_FAIL();
 			const c8* const pBegin{ input.begin() + 1 };
 			input += compact<minEnumLen + 1>;
@@ -57730,7 +58397,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 				{
 					const StringView8 name{ pBegin, input.begin() };
 					pBegin = input.begin() + 1;
-					if (!parse_flag_step(name, temp)) [[unlikely]] SJN_PARSE_RETURN_FAIL(+TS8(", Invalid flag entry: "), name);
+					if (!parse_flag_step(name, temp)) [[unlikely]] SJN_PARSE_RETURN_FAIL(+TS(", Invalid flag entry: "), name);
 					if (input[0] == '"')
 					{
 						result = temp;
@@ -57830,6 +58497,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		}
 		else
 		{
+			if (input[0] == quote) [[unlikely]] SJN_PARSE_RETURN_FAIL();//use '"' or "\"", not """,''',```
 			if constexpr (sizeof(T) == 1)
 			{
 				result = input[0];
@@ -57845,6 +58513,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 					case 2:codePoint = Wtf8::decode<2>(input.data()); break;
 					case 3:codePoint = Wtf8::decode<3>(input.data()); break;
 					case 4:codePoint = Wtf8::decode<4>(input.data()); break;
+					default:UNREACHABLE;
 				}
 				if constexpr (sizeof(T) == 2) { if (codePoint >= 0x10000) [[unlikely]] SJN_PARSE_RETURN_FAIL();  }
 				result = static_cast<T>(codePoint);
@@ -58082,122 +58751,128 @@ namespace Sjn//(S)uperior (J)son (N)otation
 				return true;
 			}
 		}
-		else for (;;)
+		else 
 		{
-			if (!skip_garbage_comma<opts, LogError...>(input)) [[unlikely]]
-				SJN_PARSE_RETURN_FAIL();
-			if (input[0] == '}')
+			Bitset<N> not_seen{ [] static consteval
 			{
-				input += 1;
-				return true;
-			}
-			if constexpr (N == 1 && !opts.AllowUnknowns)
+				Bitset<N> result{};
+				(..., result.template set<I, true>());
+				return result;
+			}() };
+			for (;;)
 			{
-				if (input.size() < Reflection::name<T, 0>.size) [[unlikely]]
+				if (!skip_garbage_comma<opts, LogError...>(input)) [[unlikely]]
 					SJN_PARSE_RETURN_FAIL();
-				if constexpr (opts.KeyVerify)
-					if (Reflection::name<T, 0> != input.subSpanFront(Reflection::name<T, 0>.size)) [[unlikely]]
-						SJN_PARSE_RETURN_FAIL();
-				input += Reflection::name<T, 0>.size;
-				if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]
-					SJN_PARSE_RETURN_FAIL();
-				if (input[0] == ':')//':' is sometimes optional
+				if (input[0] == '}')
 				{
+					if constexpr (!opts.AllowMissing)
+						if (not_seen.any()) [[unlikely]]
+							SJN_PARSE_RETURN_FAIL(+TS(", Some keys missing"));
 					input += 1;
+					return true;
+				}
+				if constexpr (N == 1 && !opts.AllowUnknowns)
+				{
+					if (input.size() < Reflection::name<T, 0>.size) [[unlikely]]
+						SJN_PARSE_RETURN_FAIL();
+					if constexpr (opts.KeyVerify)
+						if (Reflection::name<T, 0> != input.subSpanFront(Reflection::name<T, 0>.size)) [[unlikely]]
+							SJN_PARSE_RETURN_FAIL();
+					if (!not_seen.template at<0>()) [[unlikely]]
+						SJN_PARSE_RETURN_FAIL(+(TS(", Duplicate key: ") + Reflection::name<T, 0>));
+					input += Reflection::name<T, 0>.size;
 					if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]
 						SJN_PARSE_RETURN_FAIL();
-				}
-				if(!parse_impl<opts, LogError...>(Reflection::at<0>(result), input)) [[unlikely]]
-					SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse ") + Reflection::name<T, 0>);
-			}
-			else
-			{
-				static constexpr auto minKeyLen{ compact<Algorithm::min(usize{Reflection::name<T, I>.size}..., usize(-1))> };
-				static constexpr auto maxKeyLen{ compact<Algorithm::max(usize{Reflection::name<T, I>.size}..., usize{})> };
-				const c8* const pKeyBegin{ input.begin() };
-				if constexpr (!opts.AllowUnknowns)//skip minKeyLen of known keys
-				{
-					if (input.size() < compact<minKeyLen + 2>) [[unlikely]]//key takes minKeyLen, value takes at least 1 char, last '}' takes 1 char
-						SJN_PARSE_RETURN_FAIL();
-					input += minKeyLen;
-				}
-				if constexpr (opts.AllowUnknowns || minKeyLen != maxKeyLen)
-					for (;;)
+					if (input[0] == ':')//':' is sometimes optional
 					{
-						if (input.empty()) [[unlikely]] SJN_PARSE_RETURN_FAIL();
-						const c8 c{ input[0] };
-						if (is_end_of_key<opts>(c))break;
 						input += 1;
+						if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]
+							SJN_PARSE_RETURN_FAIL();
 					}
-				const Span<const c8> key{ pKeyBegin, input.begin() };
-				if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]SJN_PARSE_RETURN_FAIL();
-				if (input[0] == ':')
-				{
-					input += 1;
-					if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]SJN_PARSE_RETURN_FAIL();
-				}
-	#if !MSVC
-				if constexpr (N >= 2 && !opts.AllowUnknowns)//todo
-				{
-					using Hasher = PerfectHash<true, fstring<Reflection::name<T, I>>...>;//assume key.size() >= minKeyLen
-					using Hash = Hasher::Result;
-					static constexpr std::array<Hash, N> hashes{ Hasher::operator()(Reflection::name<T, I>.chars)... };
-					if (!Switch<hashes>(
-						Hasher::operator()(key),
-						[&]<Hash H>(ImmediateValue<H>)LAMBDA_INLINE
-						{
-							static constexpr auto index{ Algorithm::find_index_unsafe(hashes, H) };
-							if constexpr (opts.KeyVerify || opts.AllowUnknowns)//AllowUnknowns requires KeyVerify
-							{
-								if (Reflection::name<T, index> != key) [[unlikely]]
-								{
-									if (skip_unknowns<opts, LogError...>(input)) [[likely]]
-										return true;
-									else [[unlikely]]
-										SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse unknown key "), key);
-								}
-							}
-							if (parse_impl<opts, LogError...>(Reflection::at<index>(result), input)) [[likely]]
-								return true;
-							else [[unlikely]]
-								SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse "), key);
-						},
-						[&]LAMBDA_INLINE //name not found, not even hash match
-						{
-							[[unlikely]];
-							if constexpr (opts.AllowUnknowns) 
-							{
-								if (skip_unknowns<opts, LogError...>(input))[[likely]]
-									return true; 
-								else [[unlikely]]
-									SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse unknown key "), key); 
-							}
-							else SJN_PARSE_RETURN_FAIL(+TS8(", Unknown key "), key);
-						}
-						)) [[unlikely]]
-							return false;
+					if(!parse_impl<opts, LogError...>(Reflection::at<0>(result), input)) [[unlikely]]
+						SJN_PARSE_RETURN_FAIL(+TS(", Failed to parse ") + Reflection::name<T, 0>);
+					not_seen.template set<0, false>();
 				}
 				else
-	#endif
 				{
-					bool error{};
-					const bool key_not_found
-					{ ((
-						(Reflection::name<T, I> == key) ?
-						(
-							(!parse_impl<opts, LogError...>(Reflection::at<I>(result), input)) ?
-							((error = true),false) :
-							false
-						) :
-						true
-					)&&...) };
-					if (key_not_found) [[unlikely]]
+					static constexpr auto minKeyLen{ compact<Algorithm::min(usize{Reflection::name<T, I>.size}..., usize(-1))> };
+					static constexpr auto maxKeyLen{ compact<Algorithm::max(usize{Reflection::name<T, I>.size}..., usize{})> };
+					const c8* const pKeyBegin{ input.begin() };
+					if constexpr (!opts.AllowUnknowns)//skip minKeyLen of known keys
 					{
-						if constexpr (opts.AllowUnknowns) { if (!skip_unknowns<opts, LogError...>(input))SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse unknown key "), key); }
-						else SJN_PARSE_RETURN_FAIL(+TS8(", Unknown key "), key);
+						if (input.size() < compact<minKeyLen + 2>) [[unlikely]]//key takes minKeyLen, value takes at least 1 char, last '}' takes 1 char
+							SJN_PARSE_RETURN_FAIL();
+						input += minKeyLen;
 					}
-					if (error) [[unlikely]]
-						SJN_PARSE_RETURN_FAIL(+TS8(", Failed to parse "), key);
+					if constexpr (opts.AllowUnknowns || minKeyLen != maxKeyLen)
+						for (;;)
+						{
+							if (input.empty()) [[unlikely]] SJN_PARSE_RETURN_FAIL();
+							const c8 c{ input[0] };
+							if (is_end_of_key<opts>(c))break;
+							input += 1;
+						}
+					const Span<const c8> key{ pKeyBegin, input.begin() };
+					if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]SJN_PARSE_RETURN_FAIL();
+					if (input[0] == ':')
+					{
+						input += 1;
+						if (!skip_garbage<opts, LogError...>(input)) [[unlikely]]SJN_PARSE_RETURN_FAIL();
+					}
+		#if !MSVC
+					if constexpr (N >= 2 && !opts.AllowUnknowns)//todo
+					{
+						using Hasher = MinHash<true, Reflection::name<T, I>.chars...>;//assume key.size() >= minKeyLen
+						using Hash = Hasher::Result;
+						static constexpr std::array<Hash, N> hashes{ Hasher::operator()(Reflection::name<T, I>.chars)... };
+						if (!Switch<hashes>(
+							Hasher::operator()(key),
+							[&]<Hash H>(ImmediateValue<H>)LAMBDA_INLINE
+							{
+								static constexpr auto index{ Algorithm::find_index_unsafe(hashes, H) };//for MinHash, index == H
+								if constexpr (opts.KeyVerify)
+									if (Reflection::name<T, index> != key) [[unlikely]]
+										SJN_PARSE_RETURN_FAIL(+TS(", Failed to parse unknown key "), key);
+								if (!not_seen.template at<index>()) [[unlikely]]
+									SJN_PARSE_RETURN_FAIL(+(TS(", Duplicate key: ") + Reflection::name<T, index>));
+								if (parse_impl<opts, LogError...>(Reflection::at<index>(result), input)) [[likely]]
+								{
+									not_seen.template set<index, false>();
+									return true;
+								}
+								else [[unlikely]]
+									SJN_PARSE_RETURN_FAIL(+TS(", Failed to parse "), key);
+							},
+							[&]LAMBDA_INLINE //name not found, not even hash match
+							{
+								[[unlikely]];
+								SJN_PARSE_RETURN_FAIL(+TS(", Unknown key "), key);
+							}
+							)) [[unlikely]]
+								return false;
+					}
+					else
+		#endif
+					{
+						bool error{};
+						const bool key_not_found
+						{ ((
+							(Reflection::name<T, I> == key) ?
+							(
+								(!not_seen.template at<I>() || !parse_impl<opts, LogError...>(Reflection::at<I>(result), input)) ?
+								((error = true),false) :
+								(not_seen.template set<I, false>(),false)
+							) :
+							true
+						)&&...) };
+						if (key_not_found) [[unlikely]]
+						{
+							if constexpr (opts.AllowUnknowns) { if (!skip_unknowns<opts, LogError...>(input))SJN_PARSE_RETURN_FAIL(+TS(", Failed to parse unknown key "), key); }
+							else SJN_PARSE_RETURN_FAIL(+TS(", Unknown key "), key);
+						}
+						if (error) [[unlikely]]
+							SJN_PARSE_RETURN_FAIL(+TS(", Failed to parse "), key);
+					}
 				}
 			}
 		}
@@ -58229,8 +58904,8 @@ namespace Sjn//(S)uperior (J)son (N)otation
 		return true;
 	}
 	template<ParsingOptions opts, auto...LogError>
-	INLINE bool parse(auto& result, $LinearContainer auto&& input)noexcept
-	requires(opts.valid() && sizeof(ElementOf<decltype(input)>) == 1 && !requires{Span<const c8>{input}; })
+	INLINE bool parse(auto& result, Span<const u8> input)noexcept
+	requires(opts.valid())
 	{
 		return parse<opts, LogError...>(result, { reinterpret_cast<const c8*>(input.begin()), reinterpret_cast<const c8*>(input.end()) });
 	}
@@ -58246,6 +58921,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 	#undef SJN_PARSE_TUPLE
 }
 #include <string>
+#include <optional>
 namespace details
 {
 	DEFINE_ENUM(SjnTestEnum, u16, (あ, 123), (bb, 444));
@@ -58307,7 +58983,7 @@ namespace details
 		std::basic_string<char16_t> あ;						//cjks are valid c++ identifiers
 		std::basic_string<char32_t> 啊;						//😀 is not
 		std::basic_string<wchar_t> ㅏ;						//its not parser limitation, blame P1949R7
-		A vec_fix[3];
+		std::optional<A> vec_fix[4];
 		std::vector<A> vec;									//works with custom types as well, see $LinearContainer for detail
 		char8_t c8;
 		char16_t c16;
@@ -58344,6 +59020,7 @@ namespace details
 			vec_fix/*':' is not needed here*/[
 				{e"あ", f"あ|啊|ㅏ" def[1,2,3]}//':' is optional here
 				{e"bb", f"啊"def: [-1,-2,-3]}{e: 123, f: 5 def: [-.1,-.2,-.3]}
+				nUlL//null is case insensitive
 			]
 			vec//':' is not needed here
 			[
@@ -58351,7 +59028,7 @@ namespace details
 				{e"bb", f"啊" def: [-1,-2,-3]}
 				{e: 123, f:5 def: [-.1,-.2,-.3]}
 			]
-			c8"""//parser knows its a single char, so (``` == '`') and (''' == '\'') and (""" == '"')
+			c8"\""
 			c16"\uffff"//garbage in, garbage out
 			c32"😀"
 			wc"あ"
@@ -58383,6 +59060,7 @@ namespace details
 				{e"あ", f"あ|啊|ㅏ" def[1,2,3]}
 				{e"bb", f"啊" def: [-1,-2,-3]}
 				{e: 123, f: 5 def: [-.1,-.2,-.3]}
+				nUlL
 			]
 			vec
 			[
@@ -58390,7 +59068,7 @@ namespace details
 				{e"bb", f"啊" def: [-1,-2,-3]}
 				{e: 123, f: 5 def: [-.1,-.2,-.3]}
 			]
-			c8"""
+			c8"\""
 			c16"\uffff"
 			c32"😀"
 			wc"あ"
@@ -58422,6 +59100,7 @@ namespace details
 				{e"あ", f"あ|啊|ㅏ" def[1,2,3]}
 				{e"bb", f"啊" def: [-1,-2,-3]}
 				{e: 123, f: 5 def: [-.1,-.2,-.3]}
+				nUlL
 			]
 			vec
 			[
@@ -58429,7 +59108,7 @@ namespace details
 				{e"bb", f"啊" def: [-1,-2,-3]}
 				{e: 123, f: 5 def: [-.1,-.2,-.3]}
 			]
-			c8"""
+			c8"\""
 			c16"\uffff"
 			c32"😀"
 			wc"あ"
@@ -58437,9 +59116,9 @@ namespace details
 		SjnTestStruct s0{};
 		SjnTestStruct s1{};
 		SjnTestStruct s2{};
-		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{0},.KeyVerify{0},.SlashU{1},.AllowUnknowns{0}}>(s0,inputNoComment))return false;
-		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{1},.KeyVerify{0},.SlashU{1},.AllowUnknowns{0}}>(s1,inputComment))return false;
-		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{1},.KeyVerify{1},.SlashU{1},.AllowUnknowns{1}}>(s2,inputUnknownKeys))return false;
+		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{0},.KeyVerify{0},.SlashU{1},.AllowUnknowns{0},.AllowMissing{0}}>(s0,inputNoComment))return false;
+		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{1},.KeyVerify{0},.SlashU{1},.AllowUnknowns{0},.AllowMissing{0}}>(s1,inputComment))return false;
+		if(!Sjn::parse<{.RollBackOnFail{0},.NumberEnums{1},.Comment{1},.KeyVerify{1},.SlashU{1},.AllowUnknowns{1},.AllowMissing{0}}>(s2,inputUnknownKeys))return false;
 		const auto verify{ [] (const SjnTestStruct& s)static
 		{
 			if (s.single_member.x != true)return false;
@@ -58458,15 +59137,16 @@ namespace details
 			if (s.time.minutes() != 754)return false;
 			if (get<0>(get<1>(s._t)) != true)return false;
 			if (get<1>(get<1>(s._t)) != 123)return false;
-			if (s.vec_fix[0].e != SjnTestEnum::あ)return false;
-			if (s.vec_fix[0].f != (SjnTestFlag::あ | SjnTestFlag::啊 | SjnTestFlag::ㅏ))return false;
-			if (s.vec_fix[0].def != std::array<f64, 3>{1, 2, 3})return false;
-			if (s.vec_fix[1].e != SjnTestEnum::bb)return false;
-			if (s.vec_fix[1].f != SjnTestFlag::啊)return false;
-			if (s.vec_fix[1].def != std::array<f64, 3>{-1, -2, -3})return false;
-			if (s.vec_fix[2].e != SjnTestEnum::あ)return false;
-			if (s.vec_fix[2].f != SjnTestFlag(5))return false;
-			if (s.vec_fix[2].def != std::array<f64, 3>{-.1, -.2, -.3})return false;
+			if (s.vec_fix[0]->e != SjnTestEnum::あ)return false;
+			if (s.vec_fix[0]->f != (SjnTestFlag::あ | SjnTestFlag::啊 | SjnTestFlag::ㅏ))return false;
+			if (s.vec_fix[0]->def != std::array<f64, 3>{1, 2, 3})return false;
+			if (s.vec_fix[1]->e != SjnTestEnum::bb)return false;
+			if (s.vec_fix[1]->f != SjnTestFlag::啊)return false;
+			if (s.vec_fix[1]->def != std::array<f64, 3>{-1, -2, -3})return false;
+			if (s.vec_fix[2]->e != SjnTestEnum::あ)return false;
+			if (s.vec_fix[2]->f != SjnTestFlag(5))return false;
+			if (s.vec_fix[2]->def != std::array<f64, 3>{-.1, -.2, -.3})return false;
+			if (s.vec_fix[3].has_value())return false;
 			if (s.vec.size() != 3)return false;
 			if (s.vec[0].e != SjnTestEnum::あ)return false;
 			if (s.vec[0].f != (SjnTestFlag::あ | SjnTestFlag::啊 | SjnTestFlag::ㅏ))return false;
@@ -59134,146 +59814,6 @@ constexpr StringBuilderImpl<Char, Buffer>& operator<<(StringBuilderImpl<Char, Bu
 
 //template<$Printable<StringBuilder8>  T>requires($LinearContainerOf<T, c8 >)constexpr decltype(auto) toString8 (T&& arg)noexcept{STATIC_ERROR();return FWD(arg);}
 //template<$Printable<StringBuilder16> T>requires($LinearContainerOf<T, c16>)constexpr decltype(auto) toString16(T&& arg)noexcept{STATIC_ERROR();return FWD(arg);}
-template<$Floating T>
-INLINE constexpr T f2midi(T f)noexcept
-{
-	ASSERT(f > 0);
-	return T{ 69 } + T{ 12 } * Math::log2(f / T{ 440 });//MIDI:69 = 440Hz = A4
-}
-template<$Char T>
-INLINE constexpr StaticString<T, sdec2chars_required_buffer_size<i64> +2> f2closestNote($Floating auto f)noexcept
-{
-	StaticString<T, sdec2chars_required_buffer_size<i64> +2> result;
-	T* p{ result.data() };
-	const i64 midi{ static_cast<i64>(Math::round(f2midi(f))) };
-	const i64 octave{ (midi - (midi % 12 + 12) % 12) / 12 - 1 };//floor(midi / 12) - 1
-	const u8 k{ (u8)((midi % 12 + 12) % 12) };
-	switch (k)
-	{
-		case 0:  *p++ = 'C';				break;
-		case 1:  *p++ = 'C'; *p++ = '#';	break;
-		case 2:  *p++ = 'D';				break;
-		case 3:  *p++ = 'D'; *p++ = '#';	break;
-		case 4:  *p++ = 'E';				break;
-		case 5:  *p++ = 'F';				break;
-		case 6:  *p++ = 'F'; *p++ = '#';	break;
-		case 7:  *p++ = 'G';				break;
-		case 8:  *p++ = 'G'; *p++ = '#';	break;
-		case 9:  *p++ = 'A';				break;
-		case 10: *p++ = 'A'; *p++ = '#';	break;
-		case 11: *p++ = 'B';				break;
-		default:UNREACHABLE;
-	}
-	p = sdec2chars(octave, p);
-	result.modify_size(result.index_of(p));
-	return result;
-}
-template<FixedString note, $Floating T = f32>
-constexpr auto note2f{[]static -> T//msvc bug: do not replace auto with T
-{
-	auto p{ note.begin() };
-	i8 k;
-	switch (*p)
-	{
-		case 'C': k = 0; break;
-		case 'D': k = 2; break;
-		case 'E': k = 4; break;
-		case 'F': k = 5; break;
-		case 'G': k = 7; break;
-		case 'A': k = 9; break;
-		case 'B': k = 11; break;
-		default:UNREACHABLE;
-	}
-	++p;
-	switch (*p)
-	{
-		case '#':++k; ++p; break;
-		case 'b':--k; ++p; break;
-	}
-	i64 octave;
-	const std::from_chars_result result{ std::from_chars(p, note.end(), octave) };
-	if (result.ec != std::errc{} || result.ptr != note.end()) UNREACHABLE;
-	const i64 midi{ (octave + 1) * 12 + k };
-	return T{ 440 } * Math::exp2(static_cast<T>(midi - 69) / T{ 12 });
-}()};
-//https://en.wikipedia.org/wiki/Piano_key_frequencies
-STATIC_ASSERT([]static
-{
-	static constexpr auto almost_equal{ [] ($Floating auto l, $Floating auto r)static
-	{
-		using T = std::remove_cvref_t<decltype(l)>;
-		static constexpr T error{ T(0.0001) };
-		const auto diff{ l - r };
-		return diff > -error && diff < error;
-	} };
-	return almost_equal(note2f<"A-1"> , 13.75000f)
-		&& almost_equal(note2f<"A#-1">, 14.56762f)
-		&& almost_equal(note2f<"Bb-1">, 14.56762f)
-		&& almost_equal(note2f<"B-1"> , 15.43385f)
-		&& almost_equal(note2f<"C-0"> , 16.35160f)
-		&& almost_equal(note2f<"C0">  , 16.35160f)
-		&& almost_equal(note2f<"C#0"> , 17.32391f)
-		&& almost_equal(note2f<"D0">  , 18.35405f)
-		&& almost_equal(note2f<"D#0"> , 19.44544f)
-		&& almost_equal(note2f<"Eb0"> , 19.44544f)
-		&& almost_equal(note2f<"E0">  , 20.60172f)
-		&& almost_equal(note2f<"F0">  , 21.82676f)
-		&& almost_equal(note2f<"F#0"> , 23.12465f)
-		&& almost_equal(note2f<"Gb0"> , 23.12465f)
-		&& almost_equal(note2f<"G0">  , 24.49971f)
-		&& almost_equal(note2f<"G#0"> , 25.95654f)
-		&& almost_equal(note2f<"Ab0"> , 25.95654f)
-		&& almost_equal(note2f<"A0">  , 27.50000f)
-		&& almost_equal(note2f<"C9">  , 8372.018f);
-}());
-STATIC_ASSERT([] <FixedString...note>static{return (...&&equal<note>(f2closestNote<c8>(note2f<note>)));}.template operator()
-<
-	"C2",
-	"D2",
-	"D#2",
-	"E2",
-	"F2",
-	"F#2",
-	"G2",
-	"G#2",
-	"A2",
-	"C1",
-	"D1",
-	"D#1",
-	"E1",
-	"F1",
-	"F#1",
-	"G1",
-	"G#1",
-	"A1",
-	"C0",
-	"D0",
-	"D#0",
-	"E0",
-	"F0",
-	"F#0",
-	"G0",
-	"G#0",
-	"A0",
-	"C-1",
-	"D-1",
-	"D#-1",
-	"E-1",
-	"F-1",
-	"F#-1",
-	"G-1",
-	"G#-1",
-	"A-1",
-	"C-2",
-	"D-2",
-	"D#-2",
-	"E-2",
-	"F-2",
-	"F#-2",
-	"G-2",
-	"G#-2",
-	"A-2"
->());
 namespace AudioSpectrum
 {
 #if defined(__AVX512F__)
@@ -59283,28 +59823,38 @@ namespace AudioSpectrum
 #else
 	constexpr auto simd_width32{ compact<sizeof(__m128) / sizeof(f32)> };
 #endif
-	constexpr Sjn::ParsingOptions parseOpts{ .RollBackOnFail = 0, .Comment = 1, .KeyVerify = 1, .SlashU = 0, .AllowUnknowns = 0, .WtfVerify = 1 };
+	constexpr Sjn::ParsingOptions parseOpts{ .RollBackOnFail = 0, .Comment = 1, .KeyVerify = 1, .SlashU = 0, .AllowUnknowns = 0, .AllowMissing = 0, .WtfVerify = 1 };
 	constexpr Sjn::PrintingOptions printOpts{ .Pack = 0,.EnumFlagName = 0,.EnumFlagFields = 1 };
 	static_assert(is_compatible<parseOpts, printOpts>);
 
 	DEFINE_ENUM(WindowFunction, u8, rect, triangle, hann, kaiser, blackman_harris);
 	DEFINE_ENUM(DisplayMode, u8, 
-		complex,								//pretty
-		abs,									//piano high notes have no harmonics, useless for others
-		harmonic_sum,							//totally useless
-		harmonic_product,						//good for violin, guitar, normal singing, classical synth. bad for wispering singing, certain synth
-		harmonic_product_normalized,
-		harmonic_product_squared,				//same as harmonic_product
-		harmonic_product_squared_normalized,
-		harmonic_product_skip_f0				//some human singing skips f0
+		complex,								//{real,imag}
+		abs,									//hypot(complex)
+		harmonic_product,						//f1 * f2 * f3 ... fn
+		harmonic_product_normalized,			//harmonic_product^(1 / n)
+		harmonic_product_skip_f0,				//f2 * f3 * ... f(n + 1)
+		harmonic_product_skip_f0_normalized,	//harmonic_product_skip_f0^(1 / n)
+		harmonic_product_odd,					//f1 * f3 * ... f(2n - 1)
+		harmonic_product_odd_normalized			//harmonic_product_odd^(1 / n)
 	);
-	constexpr bool is_harmonic(DisplayMode mode)noexcept
+	constexpr bool is_harmonic  (DisplayMode mode)noexcept { return Switch<Enum<DisplayMode>::entries>(mode, [](auto E)static consteval{return enum_name_fixed_string<E()>.template starts_with<"harmonic">(); }); }
+	constexpr bool is_normalized(DisplayMode mode)noexcept { return Switch<Enum<DisplayMode>::entries>(mode, [](auto E)static consteval{return enum_name_fixed_string<E()>.template ends_with<"normalized">(); }); }
+	constexpr bool is_odd       (DisplayMode mode)noexcept { return Switch<Enum<DisplayMode>::entries>(mode, [](auto E)static consteval{return enum_name_fixed_string<E()>.template starts_with<"harmonic_product_odd">(); }); }
+	constexpr bool is_skip_f0   (DisplayMode mode)noexcept { return Switch<Enum<DisplayMode>::entries>(mode, [](auto E)static consteval{return enum_name_fixed_string<E()>.template starts_with<"harmonic_product_skip_f0">(); }); }
+	constexpr u16 max_harmonic_multiple(DisplayMode mode, u8 nHarmonic)noexcept
 	{
-		return Switch<Enum<DisplayMode>::entries>
-		(
-			mode,
-			[](auto E)static consteval{return enum_name_fixed_string<E()>.template starts_with<"harmonic">(); }
-		);
+		ASSERT(is_harmonic(mode));
+		switch (mode)
+		{
+			case DisplayMode::harmonic_product:						[[fallthrough]];
+			case DisplayMode::harmonic_product_normalized:			return nHarmonic;
+			case DisplayMode::harmonic_product_skip_f0:				[[fallthrough]];
+			case DisplayMode::harmonic_product_skip_f0_normalized:	return static_cast<u16>(nHarmonic + 1);
+			case DisplayMode::harmonic_product_odd:					[[fallthrough]];
+			case DisplayMode::harmonic_product_odd_normalized:		return static_cast<u16>(nHarmonic * 2 - 1);
+			default: UNREACHABLE;
+		}
 	}
 	struct ConfigState
 	{
@@ -59338,23 +59888,57 @@ namespace AudioSpectrum
 			DynamicArray<KeyId> boostDbDec{ KeyId::cap, KeyId::wheel_down };
 			DynamicArray<KeyId> showCursorNote{ KeyId::cap };
 		};
+		template<$Floating T>
+		struct Pitch
+		{
+			T hz;
+			DEFINE_LEXI(hz)
+			template<auto...args>
+			friend constexpr bool parse_impl(Pitch& result, Span<const c8>& input)noexcept
+			{
+				const c8 quote{ input[0] };
+				if (quote != '"' && quote != '\'' && quote != '`')
+					return Sjn::parse_impl<args...>(result.hz, input);
+				const c8* const pBegin{ input.begin() + 1 };
+				const c8* p{ pBegin };
+				for (;; ++p)
+				{
+					if (p == input.end()) [[unlikely]] return false;
+					if (*p == quote)break;
+				}
+				if (!note2f_impl(StringView8{ pBegin, p }, result.hz)) [[unlikely]] return false;
+				input.m_pBegin = p + 1;
+				return true;
+			}
+			friend consteval void sjn_print_colon(Pitch)noexcept;
+			template<auto...args>
+			friend constexpr void print_impl(auto& os, Pitch x)noexcept
+			{
+				const T midi{ f2midi(x.hz) };
+				const T midi_rounded{ Math::round(midi) };
+				if (midi == midi_rounded) [[likely]]
+					Sjn::print_impl<args...>(os, midi2note<typename std::remove_cvref_t<decltype(os)>::char_type>(static_cast<i64>(midi_rounded)));
+				else[[unlikely]]
+					Sjn::print_impl<args...>(os, x.hz);
+			}
+		};
 		struct Source
 		{
-			struct Frequency { f32 min, max; };
+			struct Frequency { Pitch<f32> min, max; };
 			AudioCaptureType type{ AudioCaptureType::output };
 			WindowFunction windowFunction{ WindowFunction::triangle };
 			Frequency frequency
 			{
-				.min{ note2f<"A0"> },
-				.max{ note2f<"C9"> }
+				.min{ note2f<"C1"> },
+				.max{ note2f<"C8"> }
 			};
-			u8 nBinsPerOctave{ 120 };
+			u8 nBinsPerOctave{ 128 };
 			u8 nCyclePerWindow{ 16 };
 			f32 boostDb{ 0 };
 			bool valid()const noexcept
 			{
 				return nBinsPerOctave != 0
-					&& 1 <= frequency.min && frequency.min < frequency.max && Math::isFinite(frequency.max)
+					&& Pitch<f32>{ 1 } <= frequency.min && frequency.min < frequency.max && Math::isFinite(frequency.max.hz)
 					&& nCyclePerWindow != 0
 					&& Math::isFinite(boostDb);
 			}
@@ -59385,7 +59969,7 @@ namespace AudioSpectrum
 					&& right > left && right <= 1
 					&& base >= 0 && base <= 1
 					&& Math::isFinite(scale)
-					&& (!is_harmonic(displayMode) || nHarmonic != 0)
+					&& (!is_harmonic(displayMode) || (nHarmonic != 0 && max_harmonic_multiple(displayMode, nHarmonic) <= u8(-1)))
 					&& maximum.font.valid();
 			}
 		};
@@ -59399,7 +59983,7 @@ namespace AudioSpectrum
 			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.color{0.00f, 1.f,0.85f,.4f}},
 			Window{.base = 0.05f,.displayMode = DisplayMode::abs						,.nHarmonic=0,.scale =-10000		,.color{0.35f, 1.f,0.85f,.4f}},
 			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=4,.scale = 16000000000	,.color{0.47f, 1.f,0.85f,.4f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=4,.scale = 160000000	,.color{0.85f, 1.f,0.85f,.4f}}
+			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=3,.scale = 160000000	,.color{0.85f, 1.f,0.85f,.4f}}
 		};
 		Fps fps{};
 		bool valid()const noexcept
@@ -59414,11 +59998,8 @@ namespace AudioSpectrum
 				if (!window.valid() || window.sourceId >= sources.size()) [[unlikely]]
 					return false;
 				if (window.autoScaleWindowId)
-				{
-					const auto id{ *window.autoScaleWindowId };
-					if (id == windows.index_of(window) || id >= windows.size() || !windows[id].enable || windows[id].autoScaleWindowId) [[unlikely]]
+					if (const auto id{ *window.autoScaleWindowId }; id == windows.index_of(window) || id >= windows.size() || !windows[id].enable || windows[id].autoScaleWindowId) [[unlikely]]
 						return false;
-				}	
 			}
 			if (!fps.valid()) [[unlikely]]
 				return false;
@@ -59427,7 +60008,7 @@ namespace AudioSpectrum
 		static constexpr FixedString path{ LR"(\??\c:\audio spectrum cfg.txt)" };
 	};
 
-	using Input = RawInput<{.keyboard = 1, .mouse = 1, .lockState = 0, .allowFakeInput = 1 }>;
+	using Input = RawInput<{.keyboard = 1, .mouse = 1, .mouseMove = 0, .lockState = 0, .allowFakeInput = 1 }>;
 	using CfgMonitor = Windows::StaticFileMonitor<Config::path>;
 	GLOBAL CfgMonitor cfgMonitor{};
 	GLOBAL Overlay<Input, Direct2D::Graphics> overlay;
@@ -59447,9 +60028,7 @@ namespace AudioSpectrum
 		};
 		DynamicArray<f32, Index> storage;//storage.data() is aligned to 64/32/16 on avx512/avx256/default, guaranteed by allocator
 		DynamicArray<Bin, Index> factors;
-
-		template<class Self>
-		constexpr Like<Self, Bin> operator[](this Self&& self, Index index) noexcept { return self.factors[index]; }
+		template<class Self>constexpr Like<Self, Bin> operator[](this Self&& self, Index index) noexcept { return FWD_LIKE(self, self.factors[index]); }
 	};
 	struct HarmonicIndex
 	{
@@ -59598,7 +60177,6 @@ namespace AudioSpectrum
 			DEFINE_LEXI(h, iBin)
 		};
 		Heap<StaticVector<LocalMaximum, 0x100>, Less> maximums;
-
 		void render_maximums()noexcept
 		{
 			for (const LocalMaximum& maximum : maximums)
@@ -59616,201 +60194,131 @@ namespace AudioSpectrum
 				overlay.graphics().drawTextLayout<Direct2D::Alignment{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>({ Math::bezier(x, left, right), base }, layout, c);
 			}
 		}
-
+		template<DisplayMode mode>
+		void render_impl()noexcept
+		{
+			Math::float2* __restrict p{ points.data() };
+			if constexpr (mode == DisplayMode::complex)
+			{
+				for (const auto iBin : iota_up(pSource->binCountDisplay()))
+				{
+					const f32 h{ pSource->frequencyBins[iBin][0] };
+					maxHeight = Algorithm::max(maxHeight, Math::abs(h));
+					*p++ = Math::float2{ Math::bezier(pSource->f2x(pSource->bin2f(iBin)), left, right), h };
+				}
+				for (const auto iBin : reversed(iota_up(pSource->binCountDisplay())))
+				{
+					const f32 h{ pSource->frequencyBins[iBin][1] };
+					maxHeight = Algorithm::max(maxHeight, Math::abs(h));
+					*p++ = Math::float2{ Math::bezier(pSource->f2x(pSource->bin2f(iBin)), left, right), h };
+				}
+			}
+			else for (const auto iBin : iota_up(pSource->binCountDisplay()))
+			{
+				f32 h;
+				if constexpr (mode == DisplayMode::abs)
+					h = pSource->absFrequencyBins[iBin];
+				else if constexpr (is_harmonic(mode))
+				{
+					if constexpr (is_skip_f0(mode))h = 1.f;
+					else h = pSource->absFrequencyBins[iBin];
+					const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, is_odd(mode)) };
+					const HarmonicIndex* pJBinEnd;
+					/* */if constexpr (mode == DisplayMode::harmonic_product || mode == DisplayMode::harmonic_product_normalized)	pJBinEnd = pJBin + nHarmonic - 1;
+					else if constexpr (is_skip_f0(mode))																			pJBinEnd = pJBin + nHarmonic;
+					else if constexpr (is_odd(mode))																				pJBinEnd = pJBin + (nHarmonic - 1) * 2;
+					else STATIC_ERROR();
+					for (; pJBin != pJBinEnd; pJBin += constant<is_odd(mode) ? 2 : 1>)
+						h *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
+					if constexpr (is_normalized(mode))h = Math::pow(h, 1.f / nHarmonic);
+				}
+				else STATIC_ERROR();
+				if (h > maxHeight)maxHeight = h;
+				*p++ = Math::float2{ Math::bezier(pSource->f2x(pSource->bin2f(iBin)), left, right), h };
+			}
+		}
 		void render()noexcept
 		{
 			if (pSource->redraw || (pAutoScaleTarget && pAutoScaleTarget->pSource->redraw))
 			{
 				maximums.clear();
 				maxHeight = {};
-				Math::float2* p{ points.data() };
 				switch (displayMode)
 				{
-					case DisplayMode::complex:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ pSource->frequencyBins[iBin][0] };
-							maxHeight = Algorithm::max(maxHeight, Math::abs(h));
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						for (const auto iBin : reversed(iota_up(pSource->binCountDisplay())))
-						{
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ pSource->frequencyBins[iBin][1] };
-							maxHeight = Algorithm::max(maxHeight, Math::abs(h));
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::abs:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ pSource->absFrequencyBins[iBin] };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_sum:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 sum{ pSource->absFrequencyBins[iBin] };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								sum += Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ sum / nHarmonic };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_product:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 product{ pSource->absFrequencyBins[iBin] };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								product *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ product };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_product_squared:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 product{ pSource->absFrequencyBins[iBin] * pSource->absFrequencyBins[iBin] };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								product *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ product };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_product_skip_f0:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 product{ 1.f };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								product *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ product };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_product_normalized:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 product{ pSource->absFrequencyBins[iBin] };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								product *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							product = Math::pow(product, 1.f / nHarmonic);
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ product };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
-					case DisplayMode::harmonic_product_squared_normalized:
-						for (const auto iBin : iota_up(pSource->binCountDisplay()))
-						{
-							f32 product{ pSource->absFrequencyBins[iBin] * pSource->absFrequencyBins[iBin] };
-							for (const HarmonicIndex* pJBin{ pSource->harmonicIndexes.ptr(iBin, 0) }, * pJBinEnd{ pJBin + nHarmonic - 1 }; pJBin != pJBinEnd; ++pJBin)
-								product *= Math::bezier(pJBin->ratio, pSource->absFrequencyBins[pJBin->prev], pSource->absFrequencyBins[pJBin->next]);
-							product = Math::pow(product, 1.f / (nHarmonic + 1.f));
-							const f32 f{ pSource->bin2f(iBin) };
-							const f32 x{ pSource->f2x(f) };
-							const f32 h{ product };
-							maxHeight = Algorithm::max(maxHeight, h);
-							*p++ = Math::float2{ Math::bezier(x, left, right), h };
-						}
-						break;
+					case DisplayMode::complex:								render_impl<DisplayMode::complex>();							break;
+					case DisplayMode::abs:									render_impl<DisplayMode::abs>();								break;
+					case DisplayMode::harmonic_product:						render_impl<DisplayMode::harmonic_product>();					break;
+					case DisplayMode::harmonic_product_normalized:			render_impl<DisplayMode::harmonic_product_normalized>();		break;
+					case DisplayMode::harmonic_product_skip_f0:				render_impl<DisplayMode::harmonic_product_skip_f0>();			break;
+					case DisplayMode::harmonic_product_skip_f0_normalized:	render_impl<DisplayMode::harmonic_product_skip_f0_normalized>();break;
+					case DisplayMode::harmonic_product_odd:					render_impl<DisplayMode::harmonic_product_odd>();				break;
+					case DisplayMode::harmonic_product_odd_normalized:		render_impl<DisplayMode::harmonic_product_odd_normalized>();	break;
 					default:UNREACHABLE;
 				}
 				if (nMaximums)
-					switch (displayMode)
+				{
+					if (is_harmonic(displayMode))
 					{
-						case DisplayMode::harmonic_sum: [[fallthrough]];
-						case DisplayMode::harmonic_product: [[fallthrough]];
-						case DisplayMode::harmonic_product_squared: [[fallthrough]];
-						case DisplayMode::harmonic_product_skip_f0: [[fallthrough]];
-						case DisplayMode::harmonic_product_normalized: [[fallthrough]];
-						case DisplayMode::harmonic_product_squared_normalized:
+						u32 iFront{};
+						f32 prevH{ points.front()[1] };
+						bool rise{};
+						for (const auto iBin : iota_up(u32{ 1 }, pSource->binCountDisplay()))
 						{
-							u32 iFront{};
-							f32 prevH{ points.front()[1] };
-							bool rise{};
-							for (const auto iBin : iota_up(u32{ 1 }, pSource->binCountDisplay()))
+							const f32 h{ points[iBin][1] };
+							if (h > prevH)
 							{
-								const f32 h{ points[iBin][1] };
-								if (h > prevH)
-								{
-									iFront = iBin;
-									rise = true;
-								}
-								else if (h < prevH && rise)
-								{
-									const f32 hFront{ points[iFront][1] };
-									const f32 iBinMid{ (iFront + iBin - 1) * 0.5f };
-									if (maximums.size() < nMaximums)
-										maximums.emplace(hFront, iBinMid);
-									else if (maximums.root().h < hFront)
-										maximums.replaceRoot(hFront, iBinMid);
-									rise = false;
-								}
-								prevH = h;
+								iFront = iBin;
+								rise = true;
 							}
-							break;
-						}
-						case DisplayMode::complex: [[fallthrough]];
-						case DisplayMode::abs:
-						{
-							u32 iFront{};
-							f32 prevH{ pSource->absFrequencyBins[0] };
-							bool rise{};
-							for (const auto iBin : iota_up(u32{ 1 }, pSource->binCountDisplay()))
+							else if (h < prevH && rise)
 							{
-								const f32 h{ pSource->absFrequencyBins[iBin] };
-								if (h > prevH)
-								{
-									iFront = iBin;
-									rise = true;
-								}
-								else if (h < prevH && rise)
-								{
-									const f32 hFront{ pSource->absFrequencyBins[iFront] };
-									const f32 iBinMid{ (iFront + iBin - 1) * 0.5f };
-									if (maximums.size() < nMaximums)
-										maximums.emplace(hFront, iBinMid);
-									else if (maximums.root().h < hFront)
-										maximums.replaceRoot(hFront, iBinMid);
-									rise = false;
-								}
-								prevH = h;
+								const f32 hFront{ points[iFront][1] };
+								const f32 iBinMid{ (iFront + iBin - 1) * 0.5f };
+								if (maximums.size() < nMaximums)
+									maximums.emplace(hFront, iBinMid);
+								else if (maximums.root().h < hFront)
+									maximums.replaceRoot(hFront, iBinMid);
+								rise = false;
 							}
-							break;
+							prevH = h;
 						}
-						default:UNREACHABLE;
 					}
-
+					else//abs or complex
+					{
+						u32 iFront{};
+						f32 prevH{ pSource->absFrequencyBins[0] };
+						bool rise{};
+						for (const auto iBin : iota_up(u32{ 1 }, pSource->binCountDisplay()))
+						{
+							const f32 h{ pSource->absFrequencyBins[iBin] };
+							if (h > prevH)
+							{
+								iFront = iBin;
+								rise = true;
+							}
+							else if (h < prevH && rise)
+							{
+								const f32 hFront{ pSource->absFrequencyBins[iFront] };
+								const f32 iBinMid{ (iFront + iBin - 1) * 0.5f };
+								if (maximums.size() < nMaximums)
+									maximums.emplace(hFront, iBinMid);
+								else if (maximums.root().h < hFront)
+									maximums.replaceRoot(hFront, iBinMid);
+								rise = false;
+							}
+							prevH = h;
+						}
+					}
+				}
 				const f32 finalScale{ [&] LAMBDA_INLINE
 				{
-					f32 result;
-					if (pAutoScaleTarget)
-						result = (IEEE754{ scale }.sign ? -1.f : 1.f) * pAutoScaleTarget->scale * cfg.globalScale * pAutoScaleTarget->maxHeight / maxHeight;
-					else
-						result = cfg.globalScale * scale;
-					if (!Math::isFinite(result)) [[unlikely]] result = {};
-					return result;
+					const f32 result
+					{
+						pAutoScaleTarget ?
+						(Math::signbit(scale) ? -1.f : 1.f) * Math::abs(pAutoScaleTarget->scale) * cfg.globalScale * pAutoScaleTarget->maxHeight / maxHeight :
+						cfg.globalScale * scale
+					};
+					return Math::isFinite(result) ? result : 0.f;
 				}() };
 				for (Math::float2& point : points)
 					point[1] = base - point[1] * finalScale;
@@ -59831,7 +60339,6 @@ namespace AudioSpectrum
 		DynamicKeybind<"boostDbDec"		,[]static -> auto&{return cfg.keybinds.boostDbDec; }>,
 		DynamicKeybind<"showCursorNote"	,[]static -> auto&{return cfg.keybinds.showCursorNote; }>
 	> keystates;
-
 	inline bool loadCfgImpl()noexcept
 	{
 		const Opt<DynamicArray<u8>> chars{ readFile(Windows::NtPathView{Config::path}) };
@@ -59877,14 +60384,14 @@ namespace AudioSpectrum
 					source.capture.start() &&
 					source.capture.isF32()))
 					return (rollback(), false);
-				// LOG(source.capture);
+				//LOG(source.capture);
 			}
 			const u8 nHarmonicMax{ [&] LAMBDA_INLINE
 			{
-				u8 result{1};
+				u8 result{ 1 };
 				for (const Config::Window& window : cfg.windows)
 					if (window.enable && window.sourceId == i && is_harmonic(window.displayMode))
-						result = Algorithm::max(result, window.nHarmonic);
+						result = Algorithm::max(result, (u8)max_harmonic_multiple(window.displayMode, window.nHarmonic));
 				return result;
 			}() };
 			const bool reallocate
@@ -59903,11 +60410,11 @@ namespace AudioSpectrum
 			{
 				source.nCyclePerWindow = newSourceCfg.nCyclePerWindow;
 				source.nHarmonicMax = nHarmonicMax;
-				source.fMin = newSourceCfg.frequency.min;
+				source.fMin = newSourceCfg.frequency.min.hz;
 				source.nOctavesPerBin = 1.f / newSourceCfg.nBinsPerOctave;
 				source.binRatio = Math::exp2(source.nOctavesPerBin);
 
-				const f32 displayLimit{ Algorithm::min(newSourceCfg.frequency.max, source.nyquist()) };
+				const f32 displayLimit{ Algorithm::min(newSourceCfg.frequency.max.hz, source.nyquist()) };
 				if (displayLimit < source.fMin) [[unlikely]] return (rollback(), false);
 				const u32 lastDisplayBin{ (u32)Math::ceil(source.f2bin(displayLimit)) };
 				source.fMaxDisplay = source.bin2f(lastDisplayBin);
@@ -59934,7 +60441,7 @@ namespace AudioSpectrum
 				for (const auto iBin : iota_up(source.binCountDisplay()))
 				{
 					const f32 f{ source.bin2f(iBin) };
-					for (const auto iHarmonic : iota_up(u8{ 2 }, u8(source.nHarmonicMax + 1)))//todo: implement iota_up_inclusive
+					for (const auto iHarmonic : iota_up(u8{ 2 }, u8(source.nHarmonicMax + 1)))
 					{
 						const f32 fH{ f * iHarmonic };
 						const f32 bin{ source.f2bin(fH) };
@@ -59972,13 +60479,17 @@ namespace AudioSpectrum
 						const f32 sec{ static_cast<f32>(iSample) / source.samplesPerSec() };
 						const Math::Rad<f32> theta{ Math::Rad<f32>::circle<> *f * sec };
 						const SinCos<f32> sc{ Math::sincos(theta) };
+#if 1
+						const f32 fraction{ (iSample + 1) / static_cast<f32>(nSamples + 1) };// [1 / (nSamples + 1), nSamples / (nSamples + 1)]
+#else
 						const f32 fraction{ iSample / static_cast<f32>(nSamples - 1) };
+#endif
 						f32 factor;
 						switch (newSourceCfg.windowFunction)
 						{
 							case WindowFunction::rect:factor = 1.f;break;
 							case WindowFunction::triangle:factor = 1.f - Math::abs(2.f * fraction - 1.f);break;
-							case WindowFunction::hann:factor = Math::pow2(Math::sin(Math::Rad<f32>::circle<0.5f> *fraction));break;
+							case WindowFunction::hann:factor = Math::sqr(Math::sin(Math::Rad<f32>::circle<0.5f> *fraction));break;
 							case WindowFunction::kaiser:factor = Math::kaiser(fraction);break;
 							case WindowFunction::blackman_harris:factor = Math::blackmanHarris(fraction);break;
 							default:UNREACHABLE;
@@ -60078,9 +60589,18 @@ namespace AudioSpectrum
 			{
 				keystates.update();
 				if (keystates.justPressed<"exit">()) [[unlikely]] Windows::exit();
+				bool cfgChangedByHotkey{};
 				if (const bool boostDbInc{ keystates.justPressed<"boostDbInc">() }, boostDbDec{ keystates.justPressed<"boostDbDec">() }; boostDbInc != boostDbDec) [[unlikely]]
+				{
+					cfgChangedByHotkey = true;
 					for (const auto i : iota_up(cfg.sources.size()))
 						sources[i].setBoostDb(cfg.sources[i].boostDb += (boostDbInc ? 1.f : -1.f));
+				}
+				if (cfgChangedByHotkey)
+				{
+					saveConfig();
+					cfgChanged = true;
+				}
 				for (;;)
 				{
 					for (Source& source : sources)
@@ -60118,7 +60638,7 @@ namespace AudioSpectrum
 					{
 						const f32 f{ pWindow->pSource->x2f(Math::invLerp(mousePos[0], pWindow->left, pWindow->right)) };
 						const Direct2D::TextLayout layout{ f2closestNote<c16>(f), pWindow->textFormat };
-						overlay.graphics().drawTextLayout<Direct2D::Alignment{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>(mousePos, layout, pWindow->color);
+						overlay.graphics().drawTextLayout<{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>(mousePos, layout, pWindow->color);
 					}
 				}
 			}
@@ -60128,7 +60648,7 @@ namespace AudioSpectrum
 				const u32 w{ overlay.size()[0] };
 				const u32 h{ overlay.size()[1] };
 				const Direct2D::TextLayout layout{ f2chars<c16>(Math::round(updateRate.smoothFps())), textFormatFps };
-				overlay.graphics().drawTextLayout<Direct2D::Alignment{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>({ w * cfg.fps.position[0], h * cfg.fps.position[1] }, layout, cfgState.initialized ? Rgba<f32>{1, 1, 1, 1} : Rgba<f32>{1,0,0,1});
+				overlay.graphics().drawTextLayout<{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>({ w * cfg.fps.position[0], h * cfg.fps.position[1] }, layout, cfgState.initialized ? Rgba<f32>{1, 1, 1, 1} : Rgba<f32>{1,0,0,1});
 			}
 			overlay.endFrame();
 		}
