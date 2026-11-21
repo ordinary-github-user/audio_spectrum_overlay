@@ -1,0 +1,11 @@
+#pragma once
+#include "MacroEmpty.h"
+#include "StaticAssert.h"
+#define PARENTHESIZED_IMPL(...)
+#define PARENTHESIZED(x) EMPTY(PARENTHESIZED_IMPL x)
+
+STATIC_ASSERT(PARENTHESIZED(a) == 0);
+STATIC_ASSERT(PARENTHESIZED(()) == 1);
+STATIC_ASSERT(PARENTHESIZED((a)) == 1);
+STATIC_ASSERT(PARENTHESIZED((a, a)) == 1);
+STATIC_ASSERT(PARENTHESIZED((a, a, a)) == 1);

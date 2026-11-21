@@ -7,4 +7,3 @@ md llvm-release64
 :onExit
 rmdir /S /Q llvm-release64
 @echo Completed: %date% %time%
-pause

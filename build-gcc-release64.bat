@@ -6,4 +6,3 @@ for %%A in (".\gcc-release64-main.exe") do "c:\gcc\bin\strip.exe" --strip-all "%
 :onExit
 rmdir /S /Q gcc-release64
 @echo Completed: %date% %time%
-pause
