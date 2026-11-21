@@ -3,7 +3,6 @@
 #include "ConceptConstructible.h"
 #include "ConceptSame.h"
 #include "ConceptString.h"
-#include "Identity.h"
 #include "Inline.h"
 #include "MacroMovForward.h"
 #include "ObfuString.h"
@@ -204,23 +203,22 @@ namespace Windows
 			const c16* pEnd{ rhs.data() + rhs.size() };
 			for (;;)
 			{
-				const c16* pNextSlash{ pSegment };
-				while (pNextSlash != pEnd && *pNextSlash != '\\')
-					++pNextSlash;
-				if (pNextSlash == pEnd)[[likely]]
-				{
-					result.m_data.append(pSegment, pEnd);
-					return result;
-				}
-				if (pNextSlash - pSegment == 2 && pSegment[0] == '.' && pSegment[1] == '.')
+				const c16* pSegmentEnd{ pSegment };
+				while (pSegmentEnd != pEnd && *pSegmentEnd != '\\')
+					++pSegmentEnd;
+				const bool last{ pSegmentEnd == pEnd };
+				const usize segmentLength{ static_cast<usize>(pSegmentEnd - pSegment) };
+				/* */if (segmentLength == 1 && pSegment[0] == '.') {}
+				else if (segmentLength == 2 && pSegment[0] == '.' && pSegment[1] == '.')
 				{
 					result.m_data.pop_back();
 					while (result.m_data.size() && result.m_data.back() != '\\')
 						result.m_data.pop_back();
 				}
 				else
-					result.m_data.append(pSegment, pNextSlash + 1);
-				pSegment = pNextSlash + 1;
+					result.m_data.append(pSegment, last ? pEnd : (pSegmentEnd + 1));
+				if (last)return result;
+				pSegment = pSegmentEnd + 1;
 			}
 		}
 		template<$AnyOf<DosPath, NtPath> Path>
@@ -238,6 +236,8 @@ namespace Windows
 			rhs.size() > 0 && 
 			rhs[0] != '\\' &&
 			!rhs.template starts_with<L"..\\">() &&
+			!rhs.template starts_with<L".\\">() &&
+			!rhs.template find<L"\\.\\">() &&
 			!rhs.template find<L"\\..\\">()
 		)
 		{
@@ -275,7 +275,10 @@ STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Dir\Sub\file.txt)" }.parent_path() ==
 STATIC_ASSERT(Windows::NtPathView{ LR"(\Device\HarddiskVolume3\Dir\File.ext)" }.parent_path() == Windows::NtPathView{ LR"(\Device\HarddiskVolume3\Dir\)" });
 STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root)" } / TS(L"Sub") / TS(L"file.txt") == Windows::DosPathView{ LR"(C:\Root\Sub\file.txt)" });
 STATIC_ASSERT(Windows::DosPathView{ LR"(D:\noext)" }.extension().empty());
-
+STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root)" } / StringView16{ LR"(.\Sub\.\file.txt)" } == Windows::DosPathView{ LR"(C:\Root\Sub\file.txt)" });
+STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root\Sub)" } / StringView16{ LR"(..\.\x)" } == Windows::DosPathView{ LR"(C:\Root\x)" });
+STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root\Sub)" } / StringView16{ LR"(.)" } == Windows::DosPathView{ LR"(C:\Root\Sub\)" });
+STATIC_ASSERT(Windows::DosPathView{ LR"(C:\Root\Sub)" } / StringView16{ LR"(..)" } == Windows::DosPathView{ LR"(C:\Root\)" });
 STATIC_ASSERT([] static
 {
 	const Windows::DosPathView p{ LR"(D:\path\thing.data)" };

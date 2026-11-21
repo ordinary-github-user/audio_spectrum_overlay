@@ -151,8 +151,8 @@ namespace AudioSpectrum
 			WindowFunction windowFunction{ WindowFunction::triangle };
 			Frequency frequency
 			{
-				.min{ note2f<"C1"> },
-				.max{ note2f<"C8"> }
+				.min{ note2f<"C3"> },
+				.max{ note2f<"C7"> }
 			};
 			u8 nBinsPerOctave{ 128 };
 			u8 nCyclePerWindow{ 16 };
@@ -202,10 +202,10 @@ namespace AudioSpectrum
 		f32 globalScale{ 1.f };
 		DynamicArray<Window> windows
 		{
-			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.color{0.00f, 1.f,0.85f,.4f}},
-			Window{.base = 0.05f,.displayMode = DisplayMode::abs						,.nHarmonic=0,.scale =-10000		,.color{0.35f, 1.f,0.85f,.4f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=4,.scale = 16000000000	,.color{0.47f, 1.f,0.85f,.4f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=3,.scale = 160000000	,.color{0.85f, 1.f,0.85f,.4f}}
+			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.autoScaleWindowId =      {},.color{0.00f, 1.f,0.85f,.4f}},
+			Window{.base = 0.05f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=5,.scale =-16000000000	,.autoScaleWindowId = usize{},.color{0.47f, 1.f,0.85f,.4f}},
+			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.85f, 1.f,0.85f,.4f}},
+			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_odd		,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.35f, 1.f,0.85f,.4f}}
 		};
 		Fps fps{};
 		bool valid()const noexcept
