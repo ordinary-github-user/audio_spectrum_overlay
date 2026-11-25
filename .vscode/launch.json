@@ -1,0 +1,35 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug app (gdb)",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/main",
+			"args": [],
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"miDebuggerPath": "/usr/bin/gdb",
+			"windows": {
+				"program": "${workspaceFolder}/build/main.exe",
+				"miDebuggerPath": "C:/msys64/ucrt64/bin/gdb.exe",
+				"environment": [
+					{
+						"name": "PATH",
+						"value": "C:\\GCC\\bin;${env:PATH}"
+					}
+				]
+			},
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"preLaunchTask": "CMake: build (g++)"
+		}
+	]
+}

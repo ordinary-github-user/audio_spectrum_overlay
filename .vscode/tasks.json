@@ -1,0 +1,59 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "CMake: configure (g++)",
+			"type": "process",
+			"command": "cmake",
+			"windows": {
+				"args": [
+					"-S", "${workspaceFolder}",
+					"-B", "${workspaceFolder}/build",
+					"-G", "Ninja",
+					"-DCMAKE_BUILD_TYPE=Debug",
+					"-DCMAKE_CXX_COMPILER=C:/GCC/bin/g++.exe",
+					"-DCMAKE_MAKE_PROGRAM=C:/msys64/ucrt64/bin/ninja.exe",
+					"-DCMAKE_CXX_FLAGS=-BC:/GCC/bin/",
+					"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+				]
+			},
+			"linux": {
+				"args": [
+					"-S", "${workspaceFolder}",
+					"-B", "${workspaceFolder}/build",
+					"-DCMAKE_BUILD_TYPE=Debug",
+					"-DCMAKE_CXX_COMPILER=/usr/bin/g++-16",
+					"-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+				]
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "CMake: build (g++)",
+			"type": "process",
+			"command": "cmake",
+			"args": [
+				"--build", "${workspaceFolder}/build"
+			],
+			"dependsOn": "CMake: configure (g++)",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "Configure + build with g++ via CMake"
+		},
+		{
+			"label": "Run app",
+			"type": "process",
+			"command": "${workspaceFolder}/build/app",
+			"windows": {
+				"command": "${workspaceFolder}/build/app.exe"
+			},
+			"dependsOn": "CMake: build (g++)",
+			"problemMatcher": []
+		}
+	]
+}

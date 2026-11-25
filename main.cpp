@@ -1,4 +1,4 @@
-#include "util/AudioSpectrum.h"
+#include "AudioSpectrum.h"
 i32 __stdcall wWinMain(HINSTANCE__*, HINSTANCE__*, c16*, i32)
 {
 	AudioSpectrum::loop();

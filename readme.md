@@ -61,13 +61,11 @@
 
 18. https://github.com/wine-mirror/wine/blob/master/include/ntstatus.h
 
-19. https://github.com/paskalian/WID_LoadLibrary
+19. https://www.foonathan.net/2020/09/move-forward
 
-20. https://www.foonathan.net/2020/09/move-forward
+20. https://stackoverflow.com/a/62984543
 
-21. https://stackoverflow.com/a/62984543
-
-22. https://github.com/winsiderss/phnt
+21. https://github.com/winsiderss/phnt
 
 # how to compile
 
