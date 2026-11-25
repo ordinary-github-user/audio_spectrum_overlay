@@ -150,7 +150,7 @@ namespace Windows
 	private:
 		struct MonitorImpl
 		{
-			StringView16 ancestor;
+			NtPathView ancestor;
 			StringView16 component;
 			Monitor monitor;
 		};
@@ -184,6 +184,7 @@ namespace Windows
 		}
 	public:
 		INLINE DynamicFileMonitor()noexcept = default;
+		INLINE const Path& path()const noexcept{ return m_path; }
 		INLINE bool init(auto&&...args)noexcept requires(requires{Path{ FWD(args)... }; })
 		{
 			DTOR(m_path);

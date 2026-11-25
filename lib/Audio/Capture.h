@@ -5,6 +5,7 @@
 #include <Propvarutil.h>
 #include <SDKDDKVer.h>
 #include "../Util/BasicTypes.h"
+#include "../Util/Compiler.h"
 #include "../Util/Concepts/Sig.h"
 #include "../Util/DataStructures/Optional.h"
 #include "../Util/DataStructures/StringSso.h"
@@ -13,6 +14,9 @@
 #include "../Util/Macro/NoCopyMove.h"
 #include "../Windows/COM.h"
 #include "../Windows/WinAPI/Combase.h"
+#if GCC
+	extern "C" constexpr GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT{ 0x00000003, 0x0000, 0x0010, { 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 } };
+#endif
 DEFINE_ENUM_PRINTABLE(WaveFormat, u16,
 	(unknown, 0x0000),//Microsoft Corporation
 	(adpcm, 0x0002),//Microsoft Corporation

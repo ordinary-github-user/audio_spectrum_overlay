@@ -151,8 +151,13 @@ namespace AudioSpectrum
 			WindowFunction windowFunction{ WindowFunction::triangle };
 			Frequency frequency
 			{
+			#if MSVC//msvc bug
+				.min{ []static consteval {return note2f<"C3">;}() },
+				.max{ []static consteval {return note2f<"C7">;}() }
+			#else
 				.min{ note2f<"C3"> },
 				.max{ note2f<"C7"> }
+			#endif
 			};
 			u8 nBinsPerOctave{ 128 };
 			u8 nCyclePerWindow{ 16 };
@@ -182,7 +187,7 @@ namespace AudioSpectrum
 			u8 nHarmonic;
 			f32 scale;
 			Opt<usize, usize(-1)> autoScaleWindowId{};
-			f32 strokeWidth{ 0.004f };
+			f32 strokeWidth{ 0.003f };
 			Hsla<f32> color;
 			Maximum maximum{};
 			bool valid()const noexcept
@@ -202,10 +207,10 @@ namespace AudioSpectrum
 		f32 globalScale{ 1.f };
 		DynamicArray<Window> windows
 		{
-			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.autoScaleWindowId =      {},.color{0.00f, 1.f,0.85f,.4f}},
-			Window{.base = 0.05f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=5,.scale =-16000000000	,.autoScaleWindowId = usize{},.color{0.47f, 1.f,0.85f,.4f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.85f, 1.f,0.85f,.4f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_odd		,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.35f, 1.f,0.85f,.4f}}
+			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.autoScaleWindowId =      {},.color{0.00f, 1.f,0.85f,.8f}},
+			Window{.base = 0.05f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=5,.scale =-16000000000	,.autoScaleWindowId = usize{},.color{0.47f, 1.f,0.85f,.8f}},
+			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.11f, 1.f,0.85f,.8f}},
+			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_odd		,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.36f, 1.f,0.85f,.8f}}
 		};
 		Fps fps{};
 		bool valid()const noexcept
@@ -227,11 +232,10 @@ namespace AudioSpectrum
 				return false;
 			return true;
 		}
-		static constexpr FixedString path{ LR"(\??\c:\audio spectrum cfg.txt)" };
 	};
 
 	using Input = RawInput<{.keyboard = 1, .mouse = 1, .mouseMove = 0, .lockState = 0, .allowFakeInput = 1 }>;
-	using CfgMonitor = Windows::StaticFileMonitor<Config::path>;
+	using CfgMonitor = Windows::DynamicFileMonitor<Windows::NtPath>;
 	GLOBAL CfgMonitor cfgMonitor{};
 	GLOBAL Overlay<Input, Direct2D::Graphics> overlay;
 	GLOBAL Config cfg;
@@ -563,7 +567,7 @@ namespace AudioSpectrum
 	> keystates;
 	inline bool loadCfgImpl()noexcept
 	{
-		const Opt<DynamicArray<u8>> chars{ readFile(Windows::NtPathView{Config::path}) };
+		const Opt<DynamicArray<u8>> chars{ readFile(cfgMonitor.path()) };
 		if (!chars) [[unlikely]]
 			return false;
 		if (!chars->size()) [[unlikely]]
@@ -760,7 +764,7 @@ namespace AudioSpectrum
 	{
 		StringBuilderImpl<c8, GrowableArray<c8>> sb;
 		Sjn::print<printOpts>(sb, cfg);
-		const bool succeed{ writeFile(Windows::NtPathView{Config::path}, sb.str()) };
+		const bool succeed{ writeFile(cfgMonitor.path(), sb.str()) };
 		if (succeed) [[likely]]
 			cfgMonitor.update();
 		else [[unlikely]] if (cfg.beep)
@@ -796,8 +800,9 @@ namespace AudioSpectrum
 		windows.clear();
 		keystates.reset();
 	}
-	[[noreturn]] INLINE void loop()noexcept
+	INLINE void loop(Windows::DosPathView cfgPath)noexcept
 	{
+		if (!cfgMonitor.init(cfgPath))[[unlikely]]return;
 		for (;;)
 		{
 			updateRate.update();

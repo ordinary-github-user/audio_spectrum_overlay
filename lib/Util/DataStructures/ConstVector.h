@@ -4,9 +4,9 @@
 #include "../BasicTypes.h"
 #include "../Compact.h"
 #include "../Compiler.h"
+#include "../Concepts/Constructible.h"
 #include "../Concepts/NotCvref.h"
 #include "../Concepts/Printable.h"
-#include "../Macro/Consteval.h"
 #include "../Macro/If.h"
 #include "../Macro/MovForward.h"
 #include "../Macro/PlacementNew.h"
@@ -30,7 +30,7 @@ struct ConstVector<T, N>
 	constexpr ConstVector(const std::array<T, N>& vec)noexcept : m_data{ vec }, m_size{ N } {}
 	constexpr Index size()const noexcept { return m_size; }
 	constexpr bool empty()const noexcept { return !m_size; }
-	static CONSTEVAL Index capacity() noexcept { return N; }
+	static consteval Index capacity() noexcept { return N; }
 
 	template<class Self>constexpr Like<Self, T> front(this Self&& self) noexcept { return FWD(self).m_data[0]; }
 	template<class Self>constexpr Like<Self, T> back(this Self&& self) noexcept { return FWD(self).m_data[self.m_size - 1]; }

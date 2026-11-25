@@ -14,10 +14,15 @@
 
     graph type includes:
 
-    - `complex`: `real/imag`
-    - `abs`: `hypot(real, imag)`
-    - `harmonic_product`: `A(f) × A(2f) × ... × A(Nf)`
-    - `harmonic_product_skip_f0`: `A(2f) × ... × A(Nf)`
+    - `complex`: $\operatorname{Real}(f),\ \operatorname{Imag}(f)$
+    - `abs`: $A(f)=\sqrt{\operatorname{Real}(f)^2 + \operatorname{Imag}(f)^2}$
+    - `harmonic_product`: $\prod_{k=1}^{N} A(kf)$
+    - `harmonic_product_normalized`: $\left(\prod_{k=1}^{N} A(kf)\right)^{\frac{1}{N}}$
+    - `harmonic_product_skip_f0`: $\prod_{k=2}^{N+1} A(kf)$
+    - `harmonic_product_skip_f0_normalized`: $\left(\prod_{k=2}^{N+1} A(kf)\right)^{\frac{1}{N}}$
+    - `harmonic_product_odd`: $\prod_{k=1}^{N} A((2k-1)f)$
+    - `harmonic_product_odd_normalized`: $\left(\prod_{k=1}^{N} A((2k-1)f)\right)^{\frac{1}{N}}$
+
 
 4. for each graph, draw `note name` of top `n` local maximum, so you can see which notes are played (`n` is configurable in config file, default value is `4`)
 
@@ -75,11 +80,9 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 
 1. download and install latest [visual studio preview community](https://visualstudio.microsoft.com/insiders/), install desktop c++
 
-2. open `audio_spectrum.vcxproj`
+2. run `build-msvc-release64.bat`
 
-3. select release, then build
-
-    `audio_spectrum.vcxproj` uses `/arch:AVX512`, program will crash if your cpu does not run `avx512` code, in which case you need to change `/arch:AVX512` to something else
+    `build-msvc-release64.bat` uses `/arch:AVX512`, program will crash if your cpu does not run `avx512` code, in which case you need to change `/arch:AVX512` to something else
 
 #### clang-cl:
 
@@ -111,7 +114,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 
 5. set default audio output device frequency to maximum![setting](sound_setting.png)
 
-6. run .exe (make sure program have read/write access to config file, default path is `c:\audio spectrum cfg.txt`)
+6. run `.exe` (make sure program have read/write access to config file, default path is `config.sjn` in same folder as `.exe`. you can also pass custom path via command line, relative to `.exe` folder or absolute)
 
 7. edit config file and see changes right away
 
