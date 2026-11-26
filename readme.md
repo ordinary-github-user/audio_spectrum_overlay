@@ -1,12 +1,16 @@
-# demo
+# demos (videos have sound, click 🔊 to unmute)
 
-[![Demo](https://img.youtube.com/vi/n6MaxclQSSI/maxresdefault.jpg)](https://www.youtube.com/watch?v=n6MaxclQSSI)
+https://github.com/user-attachments/assets/769fb24d-1eaa-4807-b4a0-50c1c5042a9b
+
+https://github.com/user-attachments/assets/f1f29d64-feb8-467d-a72a-45c80188d0d2
+
+https://github.com/user-attachments/assets/ff788098-3fea-46e1-94d1-1a791d8926c2
 
 # what code does
 
 1. listen to some audio endpoints (speaker/headphone/mic) with WASAPI
 
-2. create a overlay window
+2. create a topmost click-through overlay window
 
 3. draw some `frequency`->`amplitude` graphs based on what code hears in audio endpoints(x-axis = `frequency`, y-axis = `amplitude`)
 
@@ -14,8 +18,8 @@
 
     graph type includes:
 
-    - `complex`: $\operatorname{Real}(f),\ \operatorname{Imag}(f)$
-    - `abs`: $A(f)=\sqrt{\operatorname{Real}(f)^2 + \operatorname{Imag}(f)^2}$
+    - `complex`: $\mathrm{Re}(f),\ \mathrm{Im}(f)$
+    - `abs`: $A(f)=\sqrt{\mathrm{Re}(f)^2 + \mathrm{Im}(f)^2}$
     - `harmonic_product`: $\prod_{k=1}^{N} A(kf)$
     - `harmonic_product_normalized`: $\left(\prod_{k=1}^{N} A(kf)\right)^{\frac{1}{N}}$
     - `harmonic_product_skip_f0`: $\prod_{k=2}^{N+1} A(kf)$
@@ -71,6 +75,8 @@
 20. https://stackoverflow.com/a/62984543
 
 21. https://github.com/winsiderss/phnt
+
+22. https://youtu.be/xjSkpY0XzAQ (demo song)
 
 # how to compile
 
