@@ -5,6 +5,7 @@
 #include "../Algorithm/Iequal.h"
 #include "../Concepts/Char.h"
 #include "../Concepts/ForEach.h"
+#include "../Concepts/Function.h"
 #include "../Concepts/Optional.h"
 #include "../Concepts/Same.h"
 #include "../Concepts/Sig.h"
@@ -26,11 +27,65 @@
 #include "../TextEncoding/TextEncodingStringConvertStatic.h"//encode<"asdf",c16> because c16 is wchar_t on windows, char16_t on linux
 namespace Sca//(S)uperior (C)ommandLine (A)rguments
 {
+	template<class T>
+	concept $VarArgHandler = 	$Function<std::remove_cvref_t<T>> && 
+								$RetAnyOf<std::remove_cvref_t<T>, void, IterationControl> &&
+								1 == FunctionTraits<std::remove_cvref_t<T>>::arity &&
+								(
+									$Callable<std::remove_cvref_t<T>, bool>									||
+									$Callable<std::remove_cvref_t<T>, u8>									||
+									$Callable<std::remove_cvref_t<T>, u16>									||
+									$Callable<std::remove_cvref_t<T>, u32>									||
+									$Callable<std::remove_cvref_t<T>, u64>									||
+									$Callable<std::remove_cvref_t<T>, i8>									||
+									$Callable<std::remove_cvref_t<T>, i16>									||
+									$Callable<std::remove_cvref_t<T>, i32>									||
+									$Callable<std::remove_cvref_t<T>, i64>									||
+									$Callable<std::remove_cvref_t<T>, f32>									||
+									$Callable<std::remove_cvref_t<T>, f64>									||
+									$Callable<std::remove_cvref_t<T>, Span<const c16>>						||
+									$Callable<std::remove_cvref_t<T>, Windows::DosPath> 					||
+									$Callable<std::remove_cvref_t<T>, Windows::NtPath> 						||
+									$Enum<typename FunctionTraits<std::remove_cvref_t<T>>::template Arg<0>>	||
+									$Flag<typename FunctionTraits<std::remove_cvref_t<T>>::template Arg<0>>
+								);
+#define SCA_VAR_ARG_HANDLER(action) do{\
+		using Arg0 = std::remove_cvref_t<typename FunctionTraits<decltype(action)>::template Arg<0>>;\
+		static constexpr bool arg_enum{ $Enum<Arg0> };\
+		static constexpr bool arg_flag{ $Flag<Arg0> };\
+		static constexpr bool arg_bool{ $Same<Arg0, bool> };\
+		static constexpr bool arg_uint{ $AnyOf<Arg0, u8, u16, u32, u64> };\
+		static constexpr bool arg_sint{ $AnyOf<Arg0, i8, i16, i32, i64> };\
+		static constexpr bool arg_float{ $AnyOf<Arg0, f32, f64> };\
+		static constexpr bool arg_dospath{ $Same<Arg0, Windows::DosPath> };\
+		static constexpr bool arg_ntpath{ $Same<Arg0, Windows::NtPath> };\
+		static constexpr bool arg_string16{ $Callable<decltype(action), Span<const c16>> && !arg_dospath && !arg_ntpath };\
+		static_assert(arg_enum + arg_flag + arg_bool + arg_uint + arg_sint + arg_float + arg_dospath + arg_ntpath + arg_string16 == 1);\
+		static constexpr bool ret_void{ $Ret<decltype(action), void> };\
+		if constexpr (arg_string16)\
+		{\
+			const c16* pBegin;\
+			const c16* pEnd;\
+			if (!read_string(input, pBegin, pEnd)) [[unlikely]] return false;\
+			if constexpr(ret_void)action(Span<const c16>{ pBegin, pEnd });\
+			else if (action(Span<const c16>{ pBegin, pEnd }) == IterationControl::stop)return true;\
+		}\
+		else if constexpr (arg_dospath || arg_ntpath || arg_enum || arg_flag || arg_bool || arg_uint || arg_sint || arg_float)\
+		{\
+			Arg0 value;\
+			if (!parse_impl<false, opts>(value, input)) [[unlikely]] return false;\
+			if constexpr(ret_void)action(MOV(value));\
+			else if (action(MOV(value)) == IterationControl::stop)return true;\
+		}\
+		else static_assert(0, "not implemented");\
+	}while(0)
+	enum class RelativeDirectory: u8{ exeDir, currDir };
 	struct ParsingOptions//default value = max speed
 	{
 		bool RollBackOnFail{};
 		bool NumberEnums{};
-		bool AllowMissing{true};
+		bool AllowMissing{ true };
+		RelativeDirectory RelativeDirectory{ RelativeDirectory::exeDir };
 	};
 	INLINE constexpr bool is_space(c16 c)noexcept { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
 	INLINE constexpr bool is_quote(c16 c)noexcept { return c == '\'' || c == '"' || c == '`'; }
@@ -305,7 +360,8 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		if (path.size() >= 3 && is_letter(path[0]) && path[1] == ':' && path[2] == '\\')
 			result = Windows::DosPathView{ path };
 		else
-			result = Windows::exeDir() / path;
+			if constexpr (opts.RelativeDirectory == RelativeDirectory::exeDir)result = Windows:: exeDir() / path;
+			else                                                              result = Windows::currDir() / path;
 		return true;
 	}
 	template<bool is_field = false, ParsingOptions opts = {}>
@@ -320,7 +376,8 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		if (path.size() >= 7 && path[0] == '\\' && path[1] == '?' && path[2] == '?' && path[3] == '\\' && is_letter(path[4]) && path[5] == ':' && path[6] == '\\')
 			result = Windows::NtPathView{ path };
 		else
-			result = Windows::exeDir() / path;
+			if constexpr (opts.RelativeDirectory == RelativeDirectory::exeDir)result = Windows:: exeDir() / path;
+			else                                                              result = Windows::currDir() / path;
 		return true;
 	}
 	template<bool is_field = false, ParsingOptions opts = {}>
@@ -344,12 +401,12 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		return(parse_impl<is_field, opts>(*result, input));
 	}
 	template<ParsingOptions opts, auto...I>
-	constexpr bool parse_reflection($Reflection auto& result, Span<const c16>& input, $SigAnyOf<IterationControl(const Span<const c16>), void(const Span<const c16>)> auto&&...action_nameless)noexcept
-	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && !$ForEach<decltype(result)> && !$String<decltype(result)> && sizeof...(action_nameless) <= 1)
+	constexpr bool parse_reflection($Reflection auto& result, Span<const c16>& input, $VarArgHandler auto&&...action)noexcept
+	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && !$ForEach<decltype(result)> && !$String<decltype(result)> && sizeof...(action) <= 1)
 	{
 		using T = std::remove_cvref_t<decltype(result)>;
 		static constexpr auto N{ compact<sizeof...(I)> };
-		static constexpr bool allow_unknowns{ sizeof...(action_nameless) != 0 };
+		static constexpr bool allow_unknowns{ sizeof...(action) != 0 };
 		static_assert(N != 0);
 		Bitset<N> not_seen{ [] static consteval
 		{
@@ -402,16 +459,7 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 					if constexpr (allow_unknowns)
 					{
 						input.m_pBegin = key.begin();
-						const c16* pBegin;
-						const c16* pEnd;
-						if (!read_string(input, pBegin, pEnd))[[unlikely]]return false;
-						if constexpr ($Sig<decltype((..., action_nameless)), IterationControl(const Span<const c16>)>)
-						{
-							if (IterationControl::stop == (..., action_nameless(Span<const c16>{ pBegin, pEnd })))
-								return true;
-						}
-						else
-							(..., action_nameless(Span<const c16>{ pBegin, pEnd }));
+						SCA_VAR_ARG_HANDLER((...,action));
 					}
 					else return false;
 				}
@@ -420,8 +468,8 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		}
 	}
 	template<bool is_field = false, ParsingOptions opts = {}>
-	INLINE constexpr bool parse_impl($Reflection auto& result, Span<const c16>& input, $SigAnyOf<IterationControl(const Span<const c16>), void(const Span<const c16>)> auto&&...action_nameless)noexcept
-	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && !$ForEach<decltype(result)> && !$String<decltype(result)> && sizeof...(action_nameless) <= 1)
+	INLINE constexpr bool parse_impl($Reflection auto& result, Span<const c16>& input, $VarArgHandler auto&&...action)noexcept
+	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && !$ForEach<decltype(result)> && !$String<decltype(result)> && sizeof...(action) <= 1)
 	{
 		return []<usize...I>(std::index_sequence<I...>)static
 		{
@@ -429,11 +477,11 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 			{
 				return parse_reflection<opts, I...>(FWD(args)...);
 			};
-		}(std::make_index_sequence<Reflection::size<std::remove_cvref_t<decltype(result)>>>{})(result, input, FWD(action_nameless)...);
+		}(std::make_index_sequence<Reflection::size<std::remove_cvref_t<decltype(result)>>>{})(result, input, FWD(action)...);
 	}
 	template<ParsingOptions opts = {}>
-	INLINE constexpr bool parse($Reflection auto& result, Span<const c16> input, $SigAnyOf<IterationControl(const Span<const c16>), void(const Span<const c16>)> auto&&...action_nameless)noexcept
-	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && sizeof...(action_nameless) <= 1)
+	INLINE constexpr bool parse($Reflection auto& result, Span<const c16> input, $VarArgHandler auto&&...action)noexcept
+	requires(Reflection::size<std::remove_cvref_t<decltype(result)>> != 0 && sizeof...(action) <= 1)
 	{
 		skip_garbage(input);
 		if (!skip_arg0(input))[[unlikely]]return false;
@@ -441,13 +489,13 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		if constexpr (opts.RollBackOnFail)
 		{
 			std::remove_cvref_t<decltype(result)> old{ result };
-			if (!parse_impl<false, opts>(result, input, FWD(action_nameless)...)) [[unlikely]]
+			if (!parse_impl<false, opts>(result, input, FWD(action)...)) [[unlikely]]
 			{
 				result = MOV(old);
 				return false;
 			}
 		}
-		else if(!parse_impl<false, opts>(result, input, FWD(action_nameless)...))//if return false, result must not be use at all, other than dtor
+		else if(!parse_impl<false, opts>(result, input, FWD(action)...))//if return false, result must not be use at all, other than dtor
 			return false;
 		return true;
 	}
@@ -472,7 +520,7 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		return (skip_garbage(input), input.empty());
 	}
 	template<ParsingOptions opts = {}>
-	constexpr bool parse(Span<const c16> input, $SigAnyOf<IterationControl(const Span<const c16>), void(const Span<const c16>)> auto&& action) noexcept
+	constexpr bool parse(Span<const c16> input, $VarArgHandler auto&& action) noexcept
 	{
 		skip_garbage(input);
 		if (!skip_arg0(input)) [[unlikely]] return false;
@@ -480,17 +528,10 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		{
 			skip_garbage(input);
 			if (input.empty()) return true;
-			const c16* pBegin;
-			const c16* pEnd;
-			if (!read_string(input, pBegin, pEnd)) [[unlikely]] return false;
-			if constexpr ($Sig<decltype(action), IterationControl(const Span<const c16>)>)
-			{
-				if (action(Span<const c16>{ pBegin, pEnd }) == IterationControl::stop)
-					return true;
-			}
-			else action(Span<const c16>{ pBegin, pEnd });
+			SCA_VAR_ARG_HANDLER(action);
 		}
 	}
+#undef SCA_VAR_ARG_HANDLER
 	namespace details::tests
 	{
 		DEFINE_ENUM(LifeState, u8, alive, dying, dead, respawnable, respawning);
@@ -511,139 +552,148 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		struct AstralName{u8 𠀀;};
 
 		//skip_arg0
-		STATIC_ASSERT([]static{U8Field s; return  parse(s, encode<R"(.exe -asdf 123)", c16>) && s.asdf == 123;}());
-		STATIC_ASSERT([]static{U8Field s; return  parse(s, encode<R"(".exe" -asdf 0)", c16>) && s.asdf == 0;}());
-		STATIC_ASSERT([]static{U8Field s; return  parse(s, encode<R"(" .exe"-asdf=255)", c16>) && s.asdf == 255;}());
+		STATIC_ASSERT([]static{U8Field s;   return  parse(s, encode<R"(.exe -asdf 123)",         c16>) && s.asdf == 123;}());
+		STATIC_ASSERT([]static{U8Field s;   return  parse(s, encode<R"(".exe" -asdf 0)",         c16>) && s.asdf == 0;}());
+		STATIC_ASSERT([]static{U8Field s;   return  parse(s, encode<R"(" .exe"-asdf=255)",       c16>) && s.asdf == 255;}());
 		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"('c:\a b\x.exe' -asdf 5)", c16>) && s.asdf == 5;}());
 		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(`c:\a b\x.exe` -asdf 5)", c16>) && s.asdf == 5;}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(".exe -asdf 5)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(  .exe   -asdf   9   )", c16>) && s.asdf == 9;}());
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<".exe\t-asdf\t7", c16>) && s.asdf == 7;}());
+		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(".exe -asdf 5)",          c16>);}());
+		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(  .exe   -asdf   9   )",  c16>) && s.asdf == 9;}());
+		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<".exe\t-asdf\t7",            c16>) && s.asdf == 7;}());
 
 		//u8 fields
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf = 7)", c16>) && s.asdf == 7;}());
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf 0xff)", c16>) && s.asdf == 255;}());
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf 0b101)", c16>) && s.asdf == 5;}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf 256)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf 12abc)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s; return !parse(s, encode<R"("c:\.exe" -asdf -0)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf=)", c16>);}());
+		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf = 7)",     c16>) && s.asdf == 7;}());
+		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf 0xff)",    c16>) && s.asdf == 255;}());
+		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe -asdf 0b101)",   c16>) && s.asdf == 5;}());
+		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf 256)",     c16>);}());
+		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf 12abc)",   c16>);}());
+		STATIC_ASSERT([]static{U8Field s;   return !parse(s, encode<R"("c:\.exe" -asdf -0)", c16>);}());
+		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf)",         c16>);}());
+		STATIC_ASSERT([]static{U8Field s{}; return !parse(s, encode<R"(.exe -asdf=)",        c16>);}());
 		//u8
-		STATIC_ASSERT([]static{u8 v{}; return  parse(v, encode<R"(.exe 42)", c16>) && v == 42;}());
+		STATIC_ASSERT([]static{u8 v{}; return  parse(v, encode<R"(.exe 42)",    c16>) && v == 42;}());
 		STATIC_ASSERT([]static{u8 v{}; return  parse(v, encode<R"(.exe 42   )", c16>) && v == 42;}());
 		STATIC_ASSERT([]static{u8 v{}; return !parse(v, encode<R"(.exe 42 43)", c16>);}());
-		STATIC_ASSERT([]static{u8 v{}; return !parse(v, encode<R"(.exe)", c16>);}());
+		STATIC_ASSERT([]static{u8 v{}; return !parse(v, encode<R"(.exe)",       c16>);}());
 
 		//i16 f32 fields
-		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -d -2.25)", c16>) && s.d == -2.25;}());
-		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -d=2.5e-1)", c16>) && s.d == 0.25;}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -d 1,5)", c16>);}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -d abc)", c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{};       return  parse(s, encode<R"(.exe -d -2.25)",        c16>) && s.d == -2.25;}());
+		STATIC_ASSERT([]static{MixedFields s{};       return  parse(s, encode<R"(.exe -d=2.5e-1)",       c16>) && s.d == 0.25;}());
+		STATIC_ASSERT([]static{MixedFields s{};       return !parse(s, encode<R"(.exe -d 1,5)",          c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{};       return !parse(s, encode<R"(.exe -d abc)",          c16>);}());
 		STATIC_ASSERT([]static{SignedFloatFields s{}; return  parse(s, encode<R"(.exe -i=-123 -f -0.5)", c16>) && s.i == -123 && s.f == -0.5f;}());
-		STATIC_ASSERT([]static{SignedFloatFields s{}; return  parse(s, encode<R"(.exe -i -32768)", c16>) && s.i == -32768;}());
-		STATIC_ASSERT([]static{SignedFloatFields s{}; return !parse(s, encode<R"(.exe -i 32768)", c16>);}());
+		STATIC_ASSERT([]static{SignedFloatFields s{}; return  parse(s, encode<R"(.exe -i -32768)",       c16>) && s.i == -32768;}());
+		STATIC_ASSERT([]static{SignedFloatFields s{}; return !parse(s, encode<R"(.exe -i 32768)",        c16>);}());
 
 		//bool field
-		STATIC_ASSERT([]static{BoolFields s{}; return  parse(s, encode<R"(.exe -v)", c16>) && s.v && !s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{}; return  parse(s, encode<R"(.exe -w -v)", c16>) && s.v && s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{}; s.v = true; return parse(s, encode<R"(.exe -v=0 -w=1)", c16>) && !s.v && s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{}; return !parse(s, encode<R"(.exe -v=2)", c16>);}());
-		STATIC_ASSERT([]static{BoolFields s{}; return !parse(s, encode<R"(.exe -v 1)", c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};      return  parse(s, encode<R"(.exe -v)",       c16>) && s.v && !s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{};      return  parse(s, encode<R"(.exe -w -v)",    c16>) && s.v && s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{.v{1}}; return parse(s, encode<R"(.exe -v=0 -w=1)", c16>) && !s.v && s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{};      return !parse(s, encode<R"(.exe -v=2)",     c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};      return !parse(s, encode<R"(.exe -v 1)",     c16>);}());
 		//bool
-		STATIC_ASSERT([]static{bool b{}; return  parse(b, encode<R"(.exe 1)", c16>) && b;}());
-		STATIC_ASSERT([]static{bool b{true}; return parse(b, encode<R"(.exe 0)", c16>) && !b;}());
-		STATIC_ASSERT([]static{bool b{}; return !parse(b, encode<R"(.exe 2)", c16>);}());
-		STATIC_ASSERT([]static{bool b{}; return !parse(b, encode<R"(.exe 10)", c16>);}());
+		STATIC_ASSERT([]static{bool b{};     return  parse(b, encode<R"(.exe 1)",  c16>) && b;}());
+		STATIC_ASSERT([]static{bool b{true}; return  parse(b, encode<R"(.exe 0)",  c16>) && !b;}());
+		STATIC_ASSERT([]static{bool b{};     return !parse(b, encode<R"(.exe 2)",  c16>);}());
+		STATIC_ASSERT([]static{bool b{};     return !parse(b, encode<R"(.exe 10)", c16>);}());
 
 		//StringView16 field
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s あ)", c16>) && s.s == L"あ";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s a=b)", c16>) && s.s == L"a=b";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(" .exe"-s=ㅏ)", c16>) && s.s == L"ㅏ";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(" .exe"-s= -9 )", c16>) && s.s == L"-9";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s='a b')", c16>) && s.s == L"a b";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"("c:\.exe" -s "' '")", c16>) && s.s == L"' '";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s あ)",          c16>) && s.s == L"あ";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s a=b)",         c16>) && s.s == L"a=b";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(" .exe"-s=ㅏ)",        c16>) && s.s == L"ㅏ";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(" .exe"-s= -9 )",      c16>) && s.s == L"-9";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s='a b')",       c16>) && s.s == L"a b";}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"("c:\.exe" -s "' '")",  c16>) && s.s == L"' '";}());
 		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"("c:\.exe" -s `"😀'`)", c16>) && s.s == L"\"😀'";}());
-		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s "")", c16>) && s.s.empty();}());
-		STATIC_ASSERT([]static{StringField s; return !parse(s, encode<R"(.exe -s "unclosed)", c16>);}());
-		STATIC_ASSERT([]static{StringField s; return !parse(s, encode<R"(.exe -s "a"b)", c16>);}());
+		STATIC_ASSERT([]static{StringField s; return  parse(s, encode<R"(.exe -s "")",          c16>) && s.s.empty();}());
+		STATIC_ASSERT([]static{StringField s; return !parse(s, encode<R"(.exe -s "unclosed)",   c16>);}());
+		STATIC_ASSERT([]static{StringField s; return !parse(s, encode<R"(.exe -s "a"b)",        c16>);}());
 		//StringView16
-		STATIC_ASSERT([]static{StringView16 s; return  parse(s, encode<R"(.exe あ)", c16>) && s == L"あ";}());
-		STATIC_ASSERT([]static{StringView16 s; return  parse(s, encode<R"(" .exe"-s=ㅏ)", c16>) && s == L"-s=ㅏ";}());
+		STATIC_ASSERT([]static{StringView16 s; return  parse(s, encode<R"(.exe あ)",         c16>) && s == L"あ";}());
+		STATIC_ASSERT([]static{StringView16 s; return  parse(s, encode<R"(" .exe"-s=ㅏ)",    c16>) && s == L"-s=ㅏ";}());
 		STATIC_ASSERT([]static{StringView16 s; return  parse(s, encode<R"("c:\.exe" "' '")", c16>) && s == L"' '";}());
 
 		//c16 field
-		STATIC_ASSERT([]static{C16Field s{}; return  parse(s, encode<R"(.exe -c x)", c16>) && s.c == L'x';}());
-		STATIC_ASSERT([]static{C16Field s{}; return  parse(s, encode<R"(.exe -c ' ')", c16>) && s.c == L' ';}());
-		STATIC_ASSERT([]static{C16Field s{}; return !parse(s, encode<R"(.exe -c xy)", c16>);}());
-		STATIC_ASSERT([]static{C16Field s{}; return !parse(s, encode<R"(.exe -c 😀)", c16>);}());
-		STATIC_ASSERT([]static{C32Field s{}; return  parse(s, encode<R"(.exe -c 😀)", c16>) && s.c == U'😀';}());
+		STATIC_ASSERT([]static{C16Field s{}; return  parse(s, encode<R"(.exe -c x)",     c16>) && s.c == L'x';}());
+		STATIC_ASSERT([]static{C16Field s{}; return  parse(s, encode<R"(.exe -c ' ')",   c16>) && s.c == L' ';}());
+		STATIC_ASSERT([]static{C16Field s{}; return !parse(s, encode<R"(.exe -c xy)",    c16>);}());
+		STATIC_ASSERT([]static{C16Field s{}; return !parse(s, encode<R"(.exe -c 😀)",    c16>);}());
+		STATIC_ASSERT([]static{C32Field s{}; return  parse(s, encode<R"(.exe -c 😀)",    c16>) && s.c == U'😀';}());
 		STATIC_ASSERT([]static{C32Field s{}; return !parse(s, encode<R"(.exe -c 😀😀)", c16>);}());
 
 		//enum field
-		STATIC_ASSERT([]static{EnumField s; return  parse(s, encode<R"(.exe -a alive)", c16>) && s.a == LifeState::alive;}());
-		STATIC_ASSERT([]static{EnumField s; return  parse(s, encode<R"(" .exe"-a=respawning)", c16>) && s.a == LifeState::respawning;}());
-		STATIC_ASSERT([]static{EnumField s{}; return  parse(s, encode<R"(.exe -a dead)", c16>) && s.a == LifeState::dead;}());
-		STATIC_ASSERT([]static{EnumField s{}; return !parse(s, encode<R"(.exe -a zombie)", c16>);}());
-		STATIC_ASSERT([]static{EnumField s; return  parse<{.NumberEnums=1}>(s, encode<R"(" .exe"-a= 3 )", c16>) && s.a == LifeState::respawnable;}());
-		STATIC_ASSERT([]static{EnumField s; return !parse(s, encode<R"("c:\.exe" -a 0)", c16>);}());
+		STATIC_ASSERT([]static{EnumField s;   return  parse                  (s, encode<R"(.exe -a alive)",        c16>) && s.a == LifeState::alive;}());
+		STATIC_ASSERT([]static{EnumField s;   return  parse                  (s, encode<R"(" .exe"-a=respawning)", c16>) && s.a == LifeState::respawning;}());
+		STATIC_ASSERT([]static{EnumField s{}; return  parse                  (s, encode<R"(.exe -a dead)",         c16>) && s.a == LifeState::dead;}());
+		STATIC_ASSERT([]static{EnumField s{}; return !parse                  (s, encode<R"(.exe -a zombie)",       c16>);}());
+		STATIC_ASSERT([]static{EnumField s;   return  parse<{.NumberEnums=1}>(s, encode<R"(" .exe"-a= 3 )",        c16>) && s.a == LifeState::respawnable;}());
+		STATIC_ASSERT([]static{EnumField s;   return !parse                  (s, encode<R"("c:\.exe" -a 0)",       c16>);}());
 		//enum
-		STATIC_ASSERT([]static{LifeState e{}; return  parse(e, encode<R"(.exe respawnable)", c16>) && e == LifeState::respawnable;}());
-		STATIC_ASSERT([]static{LifeState e{}; return !parse(e, encode<R"(.exe dead dead)", c16>);}());
-		STATIC_ASSERT([]static{LifeState e{}; return !parse(e, encode<R"(.exe dea)", c16>);}());
-		STATIC_ASSERT([]static{LifeState e{}; return  parse<{.NumberEnums=1}>(e, encode<R"(.exe 4)", c16>) && e == LifeState::respawning;}());
+		STATIC_ASSERT([]static{LifeState e{}; return  parse                  (e, encode<R"(.exe respawnable)", c16>) && e == LifeState::respawnable;}());
+		STATIC_ASSERT([]static{LifeState e{}; return !parse                  (e, encode<R"(.exe dead dead)",   c16>);}());
+		STATIC_ASSERT([]static{LifeState e{}; return !parse                  (e, encode<R"(.exe dea)",         c16>);}());
+		STATIC_ASSERT([]static{LifeState e{}; return  parse<{.NumberEnums=1}>(e, encode<R"(.exe 4)",           c16>) && e == LifeState::respawning;}());
 
 		//flag
-		STATIC_ASSERT([]static{FlagField s; return  parse(s, encode<R"(.exe -旗 あ)", c16>) && s.旗 == TestFlag::あ;}());
-		STATIC_ASSERT([]static{FlagField s{}; return  parse(s, encode<R"(.exe -旗 あ|啊|ㅏ)", c16>) && s.旗 == (TestFlag::あ|TestFlag::啊|TestFlag::ㅏ);}());
-		STATIC_ASSERT([]static{FlagField s; return  parse(s, encode<R"(" .exe"-旗=ㅏ)", c16>) && s.旗 == TestFlag::ㅏ;}());
-		STATIC_ASSERT([]static{FlagField s{}; return !parse(s, encode<R"(.exe -旗 あ|zzz)", c16>);}());
-		STATIC_ASSERT([]static{FlagField s{}; return !parse(s, encode<R"(.exe -旗 あ|)", c16>);}());
-		STATIC_ASSERT([]static{FlagField s; return  parse<{.NumberEnums=1}>(s, encode<R"(" .exe"-旗= 9 )", c16>) && s.旗 == (TestFlag::あ|TestFlag::ㅏ);}());
-		STATIC_ASSERT([]static{FlagField s; return !parse(s, encode<R"("c:\.exe" -旗 0)", c16>);}());
+		STATIC_ASSERT([]static{FlagField s;   return  parse                  (s, encode<R"(.exe -旗 あ)",      c16>) && s.旗 == TestFlag::あ;}());
+		STATIC_ASSERT([]static{FlagField s{}; return  parse                  (s, encode<R"(.exe -旗 あ|啊|ㅏ)", c16>) && s.旗 == (TestFlag::あ|TestFlag::啊|TestFlag::ㅏ);}());
+		STATIC_ASSERT([]static{FlagField s;   return  parse                  (s, encode<R"(" .exe"-旗=ㅏ)",    c16>) && s.旗 == TestFlag::ㅏ;}());
+		STATIC_ASSERT([]static{FlagField s{}; return !parse                  (s, encode<R"(.exe -旗 あ|zzz)",  c16>);}());
+		STATIC_ASSERT([]static{FlagField s{}; return !parse                  (s, encode<R"(.exe -旗 あ|)",     c16>);}());
+		STATIC_ASSERT([]static{FlagField s;   return  parse<{.NumberEnums=1}>(s, encode<R"(" .exe"-旗= 9 )",   c16>) && s.旗 == (TestFlag::あ|TestFlag::ㅏ);}());
+		STATIC_ASSERT([]static{FlagField s;   return !parse                  (s, encode<R"("c:\.exe" -旗 0)",  c16>);}());
 
 		//optional field
-		STATIC_ASSERT([]static{OptionalField s{}; return  parse(s, encode<R"(.exe -o 5)", c16>) && s.o && *s.o == 5;}());
-		STATIC_ASSERT([]static{OptionalField s{}; s.o = u8{9}; return parse(s, encode<R"(.exe -o NuLl)", c16>) && !s.o;}());
-		STATIC_ASSERT([]static{OptionalField s{}; return !parse(s, encode<R"(.exe -o nullx)", c16>);}());
+		STATIC_ASSERT([]static{OptionalField s{};      return  parse(s, encode<R"(.exe -o 5)",     c16>) && s.o && *s.o == 5;}());
+		STATIC_ASSERT([]static{OptionalField s{.o{9}}; return  parse(s, encode<R"(.exe -o NuLl)",  c16>) && !s.o;}());
+		STATIC_ASSERT([]static{OptionalField s{};      return !parse(s, encode<R"(.exe -o nullx)", c16>);}());
 
 		//u8 u8 f64 fields
-		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -x 3 -longer 5)", c16>) && s.x == 3 && s.longer == 5;}());
+		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -x 3 -longer 5)",             c16>) && s.x == 3 && s.longer == 5;}());
 		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -d 2.5 -x 255 -longer 0x10)", c16>) && s.d == 2.5 && s.x == 255 && s.longer == 16;}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -long 5)", c16>);}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -longest 5)", c16>);}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -X 3)", c16>);}());
-		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -x 1 -x 2)", c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -long 5)",                    c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -longest 5)",                 c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -X 3)",                       c16>);}());
+		STATIC_ASSERT([]static{MixedFields s{}; return !parse(s, encode<R"(.exe -x 1 -x 2)",                  c16>);}());
 		//bool bool fields
-		STATIC_ASSERT([]static{BoolFields s{}; return !parse(s, encode<R"(.exe -x)", c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};  return !parse(s, encode<R"(.exe -x)", c16>);}());
 
 		//non-ascii names
 		STATIC_ASSERT([]static{UnicodeNames s{}; return  parse(s, encode<R"(.exe -ü 1 -年 2 -𠀀 3)", c16>) && s.ü == 1 && s.年 == 2 && s.𠀀 == 3;}());
-		STATIC_ASSERT([]static{AstralName s{}; return  parse(s, encode<R"(.exe -𠀀 9)", c16>) && s.𠀀 == 9;}());
-		STATIC_ASSERT([]static{Mood m{}; return  parse(m, encode<R"(.exe 哀)", c16>) && m == Mood::哀;}());
-		STATIC_ASSERT([]static{Mood m{}; return !parse(m, encode<R"(.exe 嬉)", c16>);}());
+		STATIC_ASSERT([]static{AstralName s{};   return  parse(s, encode<R"(.exe -𠀀 9)",            c16>) && s.𠀀 == 9;}());
+		STATIC_ASSERT([]static{Mood m{};         return  parse(m, encode<R"(.exe 哀)",               c16>) && m == Mood::哀;}());
+		STATIC_ASSERT([]static{Mood m{};         return !parse(m, encode<R"(.exe 嬉)",               c16>);}());
 
 		//ParsingOptions
-		STATIC_ASSERT([]static{U8Field s{}; return  parse(s, encode<R"(.exe)", c16>) && s.asdf == 0;}());
-		STATIC_ASSERT([]static{U8Field s{}; return !parse<{.AllowMissing=0}>(s, encode<R"(.exe)", c16>);}());
-		STATIC_ASSERT([]static{U8Field s{}; return  parse<{.AllowMissing=0}>(s, encode<R"(.exe -asdf 1)", c16>) && s.asdf == 1;}());
+		STATIC_ASSERT([]static{U8Field s{};         return  parse                     (s, encode<R"(.exe)",           c16>) && s.asdf == 0;}());
+		STATIC_ASSERT([]static{U8Field s{};         return !parse<{.AllowMissing=0}>  (s, encode<R"(.exe)",           c16>);}());
+		STATIC_ASSERT([]static{U8Field s{};         return  parse<{.AllowMissing=0}>  (s, encode<R"(.exe -asdf 1)",   c16>) && s.asdf == 1;}());
 		STATIC_ASSERT([]static{TwoU8Fields s{9, 9}; return !parse<{.RollBackOnFail=1}>(s, encode<R"(.exe -a 1 -b x)", c16>) && s.a == 9 && s.b == 9;}());
 		STATIC_ASSERT([]static{TwoU8Fields s{9, 9}; return  parse<{.RollBackOnFail=1}>(s, encode<R"(.exe -a 1 -b 2)", c16>) && s.a == 1 && s.b == 2;}());
 
 		//parse($Reflection, input, action)
-		STATIC_ASSERT([]static{BoolFields s{}; usize n{}; return  parse(s, encode<R"(.exe a -v "b c" 'd e')", c16>, [&](const Span<const c16>){++n;}) && s.v && n == 3;}());
-		STATIC_ASSERT([]static{BoolFields s{}; bool ok{}; return  parse(s, encode<R"(.exe -v 123.456)", c16>, [&](const Span<const c16> t){ok = StringView16{t.begin(), t.end()} == L"123.456";}) && s.v && ok;}());
-		STATIC_ASSERT([]static{BoolFields s{}; bool ok{}; return  parse(s, encode<R"(.exe a=b)", c16>, [&](const Span<const c16> t){ok = StringView16{t.begin(), t.end()} == L"a=b";}) && ok;}());
-		STATIC_ASSERT([]static{U8Field s{}; usize n{}; return  parse(s, encode<R"(.exe -asdf 7 8)", c16>, [&](const Span<const c16>){++n;}) && s.asdf == 7 && n == 1;}());
-		STATIC_ASSERT([]static{BoolFields s{}; usize n{}; return  parse(s, encode<R"(.exe a b -v)", c16>, [&](const Span<const c16>){++n; return IterationControl::stop;}) && n == 1 && !s.v;}());
-		STATIC_ASSERT([]static{BoolFields s{}; usize n{}; return !parse(s, encode<R"(.exe a "b)", c16>, [&](const Span<const c16>){++n;});}());
-		STATIC_ASSERT([]static{StringField s; return !parse(s, encode<R"(.exe -s a b)", c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{}; usize n{};   return  parse(s, encode<R"(.exe a -v "b c" 'd e')",   c16>, [&](const Span<const c16>){++n;}) && s.v && n == 3;}());
+		STATIC_ASSERT([]static{BoolFields s{}; bool ok{};   return  parse(s, encode<R"(.exe -v 123.456)",         c16>, [&](const Span<const c16> t){ok = StringView16{t.begin(), t.end()} == L"123.456";}) && s.v && ok;}());
+		STATIC_ASSERT([]static{BoolFields s{}; bool ok{};   return  parse(s, encode<R"(.exe a=b)",                c16>, [&](const Span<const c16> t){ok = StringView16{t.begin(), t.end()} == L"a=b";}) && ok;}());
+		STATIC_ASSERT([]static{BoolFields s{}; usize n{};   return  parse(s, encode<R"(.exe a b -v)",             c16>, [&](const Span<const c16>){++n; return IterationControl::stop;}) && n == 1 && !s.v;}());
+		STATIC_ASSERT([]static{BoolFields s{}; usize n{};   return !parse(s, encode<R"(.exe a "b)",               c16>, [&](const Span<const c16>){++n;});}());
+		STATIC_ASSERT([]static{BoolFields s{}; usize sum{}; return  parse(s, encode<R"(.exe 3 -v 4)",             c16>, [&](u8 v){sum += v;}) && s.v && sum == 7;}());
+		STATIC_ASSERT([]static{U8Field s{};    usize n{};   return  parse(s, encode<R"(.exe -asdf 7 8)",          c16>, [&](const Span<const c16>){++n;}) && s.asdf == 7 && n == 1;}());
+		STATIC_ASSERT([]static{U8Field s{};    bool ok{};   return  parse(s, encode<R"(.exe -asdf 1 respawning)", c16>, [&](LifeState e){ok = e == LifeState::respawning;}) && s.asdf == 1 && ok;}());
+		STATIC_ASSERT([]static{StringField s;               return !parse(s, encode<R"(.exe -s a b)",             c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};              return !parse(s, encode<R"(.exe x -v)",               c16>, [&](u8){});}());
 
 		//parse(input, action)
-		STATIC_ASSERT([]static{usize n{}; bool ok{true}; return parse(encode<R"(.exe a "b c" 'd e' `f g`)", c16>, [&](const Span<const c16> t){const StringView16 v{t.begin(), t.end()}; ok = ok && (n == 0 ? v == L"a" : n == 1 ? v == L"b c" : n == 2 ? v == L"d e" : v == L"f g"); ++n;}) && ok && n == 4;}());
-		STATIC_ASSERT([]static{usize n{}; return  parse(encode<R"(.exe a b c)", c16>, [&](const Span<const c16>){return ++n == 2 ? IterationControl::stop : IterationControl::resume;}) && n == 2;}());
-		STATIC_ASSERT([]static{usize n{}; return  parse(encode<R"(.exe)", c16>, [&](const Span<const c16>){++n;}) && n == 0;}());
-		STATIC_ASSERT([]static{usize n{}; return !parse(encode<R"(.exe a "b c)", c16>, [&](const Span<const c16>){++n;});}());
-		STATIC_ASSERT([]static{usize n{}; return !parse(encode<R"(.exe "a"b)", c16>, [&](const Span<const c16>){++n;});}());
+		STATIC_ASSERT([]static{usize n{}; bool ok{true}; return  parse(encode<R"(.exe a "b c" 'd e' `f g`)", c16>, [&](const Span<const c16> t){const StringView16 v{t.begin(), t.end()}; ok = ok && (n == 0 ? v == L"a" : n == 1 ? v == L"b c" : n == 2 ? v == L"d e" : v == L"f g"); ++n;}) && ok && n == 4;}());
+		STATIC_ASSERT([]static{usize n{};                return  parse(encode<R"(.exe a b c)", c16>, [&](const Span<const c16>){return ++n == 2 ? IterationControl::stop : IterationControl::resume;}) && n == 2;}());
+		STATIC_ASSERT([]static{usize n{};                return  parse(encode<R"(.exe)", c16>, [&](const Span<const c16>){++n;}) && n == 0;}());
+		STATIC_ASSERT([]static{usize n{};                return !parse(encode<R"(.exe a "b c)", c16>, [&](const Span<const c16>){++n;});}());
+		STATIC_ASSERT([]static{usize n{};                return !parse(encode<R"(.exe "a"b)", c16>, [&](const Span<const c16>){++n;});}());
+		STATIC_ASSERT([]static{u32 sum{};                return  parse(encode<R"(.exe 1 0x10 3)", c16>, [&](u32 v){sum += v;}) && sum == 20;}());
+		STATIC_ASSERT([]static{u32 sum{};                return !parse(encode<R"(.exe 1 x 3)", c16>, [&](u32 v){sum += v;}) && sum == 1;}());
+		STATIC_ASSERT([]static{usize n{};                return  parse(encode<R"(.exe 1 2 3)", c16>, [&](i32){return ++n == 2 ? IterationControl::stop : IterationControl::resume;}) && n == 2;}());
+		STATIC_ASSERT([]static{f64 sum{};                return  parse(encode<R"(.exe 1.5 2.5)", c16>, [&](f64 v){sum += v;}) && sum == 4.0;}());
+		STATIC_ASSERT([]static{LifeState last{};         return  parse(encode<R"(.exe alive dead)", c16>, [&](LifeState e){last = e;}) && last == LifeState::dead;}());
+		STATIC_ASSERT([]static{TestFlag f{};             return  parse(encode<R"(.exe あ|ㅏ)", c16>, [&](TestFlag x){f = x;}) && f == (TestFlag::あ|TestFlag::ㅏ);}());
 	}
 }
