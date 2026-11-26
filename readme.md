@@ -82,6 +82,8 @@ https://github.com/user-attachments/assets/ff788098-3fea-46e1-94d1-1a791d8926c2
 
 you only have to compile code with 1 compiler, not all 3. my favorite is clang-cl
 
+(`CMakeLists.txt` is only for producing debug build when pressing `F5` in `vscode`. for optimized build, run 1 of below 3 `.bat` files)
+
 #### msvc:
 
 1. download and install latest [visual studio preview community](https://visualstudio.microsoft.com/insiders/), install desktop c++
@@ -118,12 +120,161 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 
 4. compile code into `.exe`(see `how to compile` section)
 
-5. set default audio output device frequency to maximum![setting](sound_setting.png)
+5. set default audio output device frequency to maximum
 
-6. run `.exe` (make sure program have read/write access to config file, default path is `config.sjn` in same folder as `.exe`. you can also pass custom path via command line, relative to `.exe` folder or absolute)
+![setting](sound_setting.png)
+
+6. run `.exe` (make sure program have read/write access to config file, default path is `config.sjn` in same folder as `.exe`. you can also pass custom config path via command line, relative to `.exe` folder or absolute)
 
 7. edit config file and see changes right away
 
-# config file
+# config file explained
 
-todo
+```
+{
+	beep:false//when config is (re)loaded, make 1000hz beep noise if success, make 500hz beep noise if failure (like bad syntax, or no file read access)
+	wait:0.1//overlay updates when audio end point produce new frame data, or when time since last update is greater than "wait" seconds
+	keybinds
+	{
+		//press "pause_break" to terminate process
+		exit["pause_break"]//a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,mouse_left,mouse_right,mouse_middle,xButton1,xButton2,numpad_0,numpad_1,numpad_2,numpad_3,numpad_4,numpad_5,numpad_6,numpad_7,numpad_8,numpad_9,numpad_mul,numpad_plus,numpad_minus,numpad_dec,numpad_div,numlock,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,win_left,win_right,shift_left,shift_right,control_left,control_right,alt_left,alt_right,esc,back_tick,tab,cap,snapshot,scroll_lock,pause_break,insert,del,home,end,page_up,page_down,left,right,up,down,minus,equal,back_slash,back_space,square_bracket_left,square_bracket_right,enter,semicolon,quote,comma,period,slash,apps,space,shift,control,alt,sleep,select,print,execute,help,separator,numpad_equal,clear,numpad_enter,wheel_up,wheel_down
+		
+		//press ["cap","wheel_up"] together to increase graph amplitude
+		boostDbInc["cap","wheel_up"]//a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,mouse_left,mouse_right,mouse_middle,xButton1,xButton2,numpad_0,numpad_1,numpad_2,numpad_3,numpad_4,numpad_5,numpad_6,numpad_7,numpad_8,numpad_9,numpad_mul,numpad_plus,numpad_minus,numpad_dec,numpad_div,numlock,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,win_left,win_right,shift_left,shift_right,control_left,control_right,alt_left,alt_right,esc,back_tick,tab,cap,snapshot,scroll_lock,pause_break,insert,del,home,end,page_up,page_down,left,right,up,down,minus,equal,back_slash,back_space,square_bracket_left,square_bracket_right,enter,semicolon,quote,comma,period,slash,apps,space,shift,control,alt,sleep,select,print,execute,help,separator,numpad_equal,clear,numpad_enter,wheel_up,wheel_down
+		
+		//press ["cap","wheel_down"] together to decrease graph amplitude
+		boostDbDec["cap","wheel_down"]//a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,mouse_left,mouse_right,mouse_middle,xButton1,xButton2,numpad_0,numpad_1,numpad_2,numpad_3,numpad_4,numpad_5,numpad_6,numpad_7,numpad_8,numpad_9,numpad_mul,numpad_plus,numpad_minus,numpad_dec,numpad_div,numlock,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,win_left,win_right,shift_left,shift_right,control_left,control_right,alt_left,alt_right,esc,back_tick,tab,cap,snapshot,scroll_lock,pause_break,insert,del,home,end,page_up,page_down,left,right,up,down,minus,equal,back_slash,back_space,square_bracket_left,square_bracket_right,enter,semicolon,quote,comma,period,slash,apps,space,shift,control,alt,sleep,select,print,execute,help,separator,numpad_equal,clear,numpad_enter,wheel_up,wheel_down
+		
+		//press "cap" to display note name where cursor is pointing at
+		showCursorNote["cap"]//a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,mouse_left,mouse_right,mouse_middle,xButton1,xButton2,numpad_0,numpad_1,numpad_2,numpad_3,numpad_4,numpad_5,numpad_6,numpad_7,numpad_8,numpad_9,numpad_mul,numpad_plus,numpad_minus,numpad_dec,numpad_div,numlock,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,win_left,win_right,shift_left,shift_right,control_left,control_right,alt_left,alt_right,esc,back_tick,tab,cap,snapshot,scroll_lock,pause_break,insert,del,home,end,page_up,page_down,left,right,up,down,minus,equal,back_slash,back_space,square_bracket_left,square_bracket_right,enter,semicolon,quote,comma,period,slash,apps,space,shift,control,alt,sleep,select,print,execute,help,separator,numpad_equal,clear,numpad_enter,wheel_up,wheel_down
+	}
+	//you can have multiple sources
+	//for example: 1 input(mic), 1 output(speaker), and hum along to yt songs, see how close your notes match, thats my original goal of coding this project
+	//turns out my overlay only visualizes how bad my singing is
+	//it does not improve my singing at all
+	sources
+	[
+		{
+			//output = speaker, headphone; input = mic
+			type:"output"//input,output
+
+			//rect & triangle are the only 2 worth using
+			//the rest makes peaks too wide
+			windowFunction:"triangle"//rect,triangle,hann,kaiser,blackman_harris
+
+			//you can enter frequency number (like 440), or note name (like "F#0", "Ab0")
+			frequency
+			{
+				min:"C3"//left  most frequency, dudes singing can go below C3, but i dont listen to dudes singing often, so "C3" it is
+				max:"C7"//right most frequency
+			}
+			nBinsPerOctave:128//how many frequencies to track per octave
+			nCyclePerWindow:16//constant Q: each real/imag is computed with 16 * wavelen amount of frame data
+			boostDb:12//keybinds.boostDbInc and keybinds.boostDbDec changes this number, you dont need to edit it by hand
+		}
+	]
+	globalScale:1//scale graph height linearly by 1x
+
+	windows//probably should have named it graphs
+	[
+		{
+			enable:true
+			sourceId:0//sources[0] is used for this graph
+			left :0//graph left  border position relative to monitor width
+			right:1//graph right border position relative to monitor width
+			base:0.5//graph height relative to screen height
+			displayMode:"complex"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
+			nHarmonic:0//complex is not harmonic, so this value does not apply (must be set to 0)
+			scale:10000//graph height linear scale
+			autoScaleWindowId:null//no scaling against any other window
+			strokeWidth:0.003//stroke width of the graph lines
+			color[0,1,0.85,0.8]//hsla = [hue, saturation, lightness, alpha]
+			maximum//draw note name at graph local maximums
+			{
+				n:4//draw 4 local maximums
+				font
+				{
+					size:0.05//relative to screen height
+					familyName"consolas"
+				}
+			}
+		}
+		{
+			enable:true
+			sourceId:0
+			left:0
+			right:1
+			base:0.05
+			displayMode:"harmonic_product"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
+			nHarmonic:5//harmonic_product is harmonic, see "what code does" -> "graph type includes", N = nHarmonic, same goes for other harmonic display mode
+			scale:-16000000000
+			autoScaleWindowId:0//max height of this graph is scaled to max height of windows[0] (the first graph)
+			strokeWidth:0.003
+			color[0.47,1,0.85,0.8]
+			maximum
+			{
+				n:4
+				font
+				{
+					size:0.05
+					familyName"consolas"
+				}
+			}
+		}
+		{
+			enable:true
+			sourceId:0
+			left:0
+			right:1
+			base:0.95
+			displayMode:"harmonic_product_skip_f0"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
+			nHarmonic:4
+			scale:160000000
+			autoScaleWindowId:0
+			strokeWidth:0.003
+			color[0.11,1,0.85,0.8]
+			maximum
+			{
+				n:4
+				font
+				{
+					size:0.05
+					familyName"consolas"
+				}
+			}
+		}
+		{
+			enable:true
+			sourceId:0
+			left:0
+			right:1
+			base:0.95
+			displayMode:"harmonic_product_odd"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
+			nHarmonic:4
+			scale:160000000
+			autoScaleWindowId:0
+			strokeWidth:0.003
+			color[0.36,1,0.85,0.8]
+			maximum
+			{
+				n:4
+				font
+				{
+					size:0.05
+					familyName"consolas"
+				}
+			}
+		}
+	]
+	fps
+	{
+		enable:false//draw fps number
+		position[0.045,0.04]//[horizontal, vertical] relative to screen width/height
+		font
+		{
+			size:0.05
+			familyName"consolas"
+		}
+	}
+}
+```
