@@ -89,7 +89,7 @@ namespace Windows
 		constexpr bool isRelative()const noexcept { return m_data.find(':') == nullptr; }
 
 		template<class Stream>
-		constexpr friend Stream& operator<<(Stream& os, const DosPathView& filepath)noexcept { os << filepath.m_data; return os; }
+		constexpr friend Stream& operator<<(Stream& os, DosPathView filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
 	struct DosPath :PathImpl
@@ -105,7 +105,7 @@ namespace Windows
 
 		constexpr DosPath& operator=(DosPath&& rhs)noexcept { m_data = MOV(rhs.m_data); return *this; }
 		constexpr DosPath& operator=(const DosPath& rhs)noexcept { m_data = rhs.m_data; return *this; }
-		constexpr DosPath& operator=(const DosPathView& rhs)noexcept { m_data = rhs.m_data; return *this; }
+		constexpr DosPath& operator=(DosPathView rhs)noexcept { m_data = rhs.m_data; return *this; }
 
 		//explicit constexpr DosPath(StringView8 str)noexcept :m_data{ str.begin(), str.end() } {}
 		explicit constexpr DosPath(DosPathView str)noexcept :m_data{ str.m_data } {}
@@ -121,10 +121,10 @@ namespace Windows
 		constexpr friend Stream& operator<<(Stream& os, const DosPath& filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
-	constexpr bool operator==(const DosPathView& l, const DosPathView& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(DosPathView    l, DosPathView    r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
 	constexpr bool operator==(const DosPath& l, const DosPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
-	constexpr bool operator==(const DosPathView& l, const DosPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
-	constexpr bool operator==(const DosPath& l, const DosPathView& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(DosPathView    l, const DosPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(const DosPath& l, DosPathView    r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
 
 	struct NtPathView :PathImpl
 	{
@@ -141,7 +141,7 @@ namespace Windows
 		//explicit constexpr operator DosPathView()const noexcept { return DosPathView{ m_data.substr(4) }; }
 
 		template<class Stream>
-		constexpr friend Stream& operator<<(Stream& os, const NtPathView& filepath)noexcept { os << filepath.m_data; return os; }
+		constexpr friend Stream& operator<<(Stream& os, NtPathView filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
 	struct NtPath :PathImpl
@@ -166,7 +166,8 @@ namespace Windows
 		constexpr NtPath& operator=(NtPath&& rhs)noexcept { m_data = MOV(rhs.m_data); return *this; }
 		constexpr NtPath& operator=(const NtPath& rhs)noexcept { m_data = rhs.m_data; return *this; }
 
-		constexpr NtPath& operator=(const NtPathView& rhs)noexcept { m_data = rhs.m_data; return *this; }
+		constexpr NtPath& operator=(NtPathView  rhs)noexcept { m_data = rhs.m_data; return *this; }
+		constexpr NtPath& operator=(DosPathView rhs)noexcept { m_data = NtPath{ rhs.m_data }; return *this; }
 
 		explicit constexpr NtPath(NtPathView str)noexcept :m_data{ str.m_data } {}
 
@@ -182,10 +183,10 @@ namespace Windows
 		constexpr friend Stream& operator<<(Stream& os, const NtPath& filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
-	constexpr bool operator==(const NtPathView& l, const NtPathView& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(NtPathView    l, NtPathView    r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
 	constexpr bool operator==(const NtPath& l, const NtPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
-	constexpr bool operator==(const NtPathView& l, const NtPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
-	constexpr bool operator==(const NtPath& l, const NtPathView& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(NtPathView    l, const NtPath& r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
+	constexpr bool operator==(const NtPath& l, NtPathView    r)noexcept { return Wtf16::iequal(l.m_data, r.m_data); }
 
 	namespace details
 	{

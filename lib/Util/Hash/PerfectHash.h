@@ -530,14 +530,14 @@ STATIC_ASSERT([]static
 {
 	using Hasher = PerfectHash<
 		true,				//inputs are assumed to be at least as long as shortest strings
-		"apple",			//which is "apple"
-		"banana",			//which has .size() of 5
-		"bananana"			//input with .size() below 5 is ub
+		L"apple",			//which is "apple"
+		L"banana",			//which has .size() of 5
+		L"bananana"			//input with .size() below 5 is ub
 	>;
 	using Hash = Hasher::Result;
-	constexpr Hash h0{ Hasher{}(StringView{"apple"}) };				//doesn't have to be StringView, std::string/std::string_view works too
-	constexpr Hash h1{ Hasher{}(StringView{"banana"}) };				//or any type that satisfy $StringOfCharSize<sizeof(T)>, sizeof(T) is 1 in this case
-	constexpr Hash h2{ Hasher::operator()(StringView{"bananana"}) };	//operator() is static, you dont have to create a Hasher object
+	constexpr Hash h0{ Hasher{}(StringView{L"apple"}) };				//doesn't have to be StringView, std::string/std::string_view works too
+	constexpr Hash h1{ Hasher{}(StringView{L"banana"}) };				//or any type that satisfy $StringOfCharSize<sizeof(T)>, sizeof(T) is 1 in this case
+	constexpr Hash h2{ Hasher::operator()(StringView{L"bananana"}) };	//operator() is static, you dont have to create a Hasher object
 	if constexpr (h0 == h1)return false;
 	if constexpr (h0 == h2)return false;
 	if constexpr (h1 == h2)return false;

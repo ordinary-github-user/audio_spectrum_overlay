@@ -800,9 +800,9 @@ namespace AudioSpectrum
 		windows.clear();
 		keystates.reset();
 	}
-	INLINE void loop(Windows::DosPathView cfgPath)noexcept
+	INLINE void loop(Windows::$Path auto&& cfgPath)noexcept
 	{
-		if (!cfgMonitor.init(cfgPath))[[unlikely]]return;
+		if (!cfgMonitor.init(FWD(cfgPath)))[[unlikely]]return;
 		for (;;)
 		{
 			updateRate.update();

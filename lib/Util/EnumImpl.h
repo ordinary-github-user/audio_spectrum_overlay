@@ -83,7 +83,7 @@ constexpr void advance_enum_unsafe(T& e)noexcept
 }
 
 template<bool AssumeMinLen, $Enum T, usize...I>
-constexpr bool parse_enum_impl($StringOfCharSize<1> auto&& input, T& result, std::index_sequence<I...>)noexcept
+constexpr bool parse_enum_impl($String auto&& input, T& result, std::index_sequence<I...>)noexcept
 {
 #if !MSVC
 	if constexpr (Enum<T>::count >= 3)
@@ -116,7 +116,7 @@ constexpr bool parse_enum_impl($StringOfCharSize<1> auto&& input, T& result, std
 }
 
 template<bool AssumeMinLen, $Enum T>
-INLINE constexpr bool parse_enum($StringOfCharSize<1> auto&& input, T& result)noexcept
+INLINE constexpr bool parse_enum($String auto&& input, T& result)noexcept
 {
 	return parse_enum_impl<AssumeMinLen>(FWD(input), result, std::make_index_sequence<Enum<T>::count>{});
 }
@@ -179,7 +179,7 @@ constexpr bool has_unnamed_fields($Flag auto flag)noexcept
 }
 
 template<$Flag T, usize...I>
-constexpr bool parse_flag_step_impl($StringOfCharSize<1> auto&& input, T& result, std::index_sequence<I...>)noexcept
+constexpr bool parse_flag_step_impl($String auto&& input, T& result, std::index_sequence<I...>)noexcept
 {
 #if MSVC//msvc bug: failure was caused by control reaching the end of a constexpr function
 	return (... || [&] {
@@ -200,7 +200,7 @@ constexpr bool parse_flag_step_impl($StringOfCharSize<1> auto&& input, T& result
 }
 
 template<$Flag T>
-INLINE constexpr bool parse_flag_step($StringOfCharSize<1> auto&& input, T& result)noexcept
+INLINE constexpr bool parse_flag_step($String auto&& input, T& result)noexcept
 {
 	return parse_flag_step_impl(FWD(input), result, std::make_index_sequence<Flag<T>::named_entries.size()>{});
 }

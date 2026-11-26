@@ -421,7 +421,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 				input += 1;
 			}
 		}
-		else
+		else [[unlikely]] if constexpr (opts.NumberEnums)
 		{
 			using Underlying = std::underlying_type_t<T>;
 			if consteval
@@ -434,6 +434,7 @@ namespace Sjn//(S)uperior (J)son (N)otation
 			}
 			else { SJN_PARSE_RETURN(parse_impl<opts, LogError...>(reinterpret_cast<Underlying&>(result), input)); }
 		}
+		else SJN_PARSE_RETURN_FAIL();
 	}
 	
 	template<ParsingOptions opts, auto...LogError>
