@@ -170,7 +170,7 @@ namespace AudioSpectrum
 					&& Math::isFinite(boostDb);
 			}
 		};
-		struct Window 
+		struct Graph 
 		{
 			struct Maximum
 			{
@@ -186,7 +186,7 @@ namespace AudioSpectrum
 			DisplayMode displayMode;
 			u8 nHarmonic;
 			f32 scale;
-			Opt<usize, usize(-1)> autoScaleWindowId{};
+			Opt<usize, usize(-1)> autoScaleGraphId{};
 			f32 strokeWidth{ 0.003f };
 			Hsla<f32> color;
 			Maximum maximum{};
@@ -205,12 +205,12 @@ namespace AudioSpectrum
 		Keybinds keybinds{};
 		DynamicArray<Source> sources{ Source{} };
 		f32 globalScale{ 1.f };
-		DynamicArray<Window> windows
+		DynamicArray<Graph> graphs
 		{
-			Window{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.autoScaleWindowId =      {},.color{0.00f, 1.f,0.85f,.8f}},
-			Window{.base = 0.05f,.displayMode = DisplayMode::harmonic_product			,.nHarmonic=5,.scale =-16000000000	,.autoScaleWindowId = usize{},.color{0.47f, 1.f,0.85f,.8f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0	,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.11f, 1.f,0.85f,.8f}},
-			Window{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_odd		,.nHarmonic=4,.scale = 160000000	,.autoScaleWindowId = usize{},.color{0.36f, 1.f,0.85f,.8f}}
+			Graph{.base = 0.50f,.displayMode = DisplayMode::complex					,.nHarmonic=0,.scale = 10000		,.autoScaleGraphId =      {},.color{0.00f, 1.f,0.85f,.8f}},
+			Graph{.base = 0.05f,.displayMode = DisplayMode::harmonic_product		,.nHarmonic=5,.scale =-16000000000	,.autoScaleGraphId = usize{},.color{0.47f, 1.f,0.85f,.8f}},
+			Graph{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_skip_f0,.nHarmonic=4,.scale = 160000000	,.autoScaleGraphId = usize{},.color{0.11f, 1.f,0.85f,.8f}},
+			Graph{.base = 0.95f,.displayMode = DisplayMode::harmonic_product_odd	,.nHarmonic=4,.scale = 160000000	,.autoScaleGraphId = usize{},.color{0.36f, 1.f,0.85f,.8f}}
 		};
 		Fps fps{};
 		bool valid()const noexcept
@@ -220,12 +220,12 @@ namespace AudioSpectrum
 			for (const auto& source : sources)
 				if (!source.valid()) [[unlikely]]
 					return false;
-			for (const auto& window : windows)
+			for (const auto& graph : graphs)
 			{
-				if (!window.valid() || window.sourceId >= sources.size()) [[unlikely]]
+				if (!graph.valid() || graph.sourceId >= sources.size()) [[unlikely]]
 					return false;
-				if (window.autoScaleWindowId)
-					if (const auto id{ *window.autoScaleWindowId }; id == windows.index_of(window) || id >= windows.size() || !windows[id].enable || windows[id].autoScaleWindowId) [[unlikely]]
+				if (graph.autoScaleGraphId)
+					if (const auto id{ *graph.autoScaleGraphId }; id == graphs.index_of(graph) || id >= graphs.size() || !graphs[id].enable || graphs[id].autoScaleGraphId) [[unlikely]]
 						return false;
 			}
 			if (!fps.valid()) [[unlikely]]
@@ -378,12 +378,12 @@ namespace AudioSpectrum
 			return true;
 		}
 	};
-	struct Window
+	struct Graph
 	{
 		bool enable;
 		Direct2D::TextFormat textFormat{uninitialized};
 		Source const* pSource;//never null
-		Window const* pAutoScaleTarget;//nullable
+		Graph  const* pAutoScaleTarget;//nullable
 		f32 left;
 		f32 right;
 		f32 base;
@@ -555,7 +555,7 @@ namespace AudioSpectrum
 		}
 	};
 	GLOBAL DynamicArray<Source> sources;
-	GLOBAL DynamicArray<Window> windows;
+	GLOBAL DynamicArray<Graph>  graphs;
 	GLOBAL Windows::Beeper beeper;
 	GLOBAL KeyStates
 	<
@@ -580,7 +580,7 @@ namespace AudioSpectrum
 			DTOR(cfg);
 			CTOR(cfg) { MOV(oldCfg) };
 			sources.clear();
-			windows.clear();
+			graphs.clear();
 		} };
 		if (!Sjn::parse<parseOpts>(cfg, Span{ pBegin, pEnd }) || !cfg.valid()) [[unlikely]]
 			return (rollback(), false);
@@ -592,9 +592,9 @@ namespace AudioSpectrum
 			CTOR(textFormatFps) { fontSize, cfg.fps.font.familyName };
 		}
 		const bool sourcesResized{ sources.size() != cfg.sources.size() };
-		const bool windowsResized{ windows.size() != cfg.windows.size() };
+		const bool graphsResized { graphs .size() != cfg.graphs .size() };
 		if (sourcesResized)sources.resize(cfg.sources.size());
-		if (windowsResized)windows.resize(cfg.windows.size());
+		if (graphsResized )graphs .resize(cfg.graphs .size());
 		for (const auto i : iota_up(sources.size()))
 		{
 			Source& source{ sources[i] };
@@ -615,9 +615,9 @@ namespace AudioSpectrum
 			const u8 nHarmonicMax{ [&] LAMBDA_INLINE
 			{
 				u8 result{ 1 };
-				for (const Config::Window& window : cfg.windows)
-					if (window.enable && window.sourceId == i && is_harmonic(window.displayMode))
-						result = Algorithm::max(result, (u8)max_harmonic_multiple(window.displayMode, window.nHarmonic));
+				for (const Config::Graph& graph : cfg.graphs)
+					if (graph.enable && graph.sourceId == i && is_harmonic(graph.displayMode))
+						result = Algorithm::max(result, (u8)max_harmonic_multiple(graph.displayMode, graph.nHarmonic));
 				return result;
 			}() };
 			const bool reallocate
@@ -733,28 +733,28 @@ namespace AudioSpectrum
 				}
 			}
 		}
-		for (const auto i : iota_up(windows.size()))
+		for (const auto i : iota_up(graphs.size()))
 		{
-			Window& window{ windows[i] };
-			const Config::Window& newWindowCfg{ cfg.windows[i] };
-			window.enable = newWindowCfg.enable;
-			window.pSource = &sources[newWindowCfg.sourceId];
-			window.pAutoScaleTarget = newWindowCfg.autoScaleWindowId ? &windows[*newWindowCfg.autoScaleWindowId] : nullptr;
-			window.left = static_cast<f32>(w) * newWindowCfg.left;
-			window.right = static_cast<f32>(w) * newWindowCfg.right;
-			window.base = static_cast<f32>(h) * newWindowCfg.base;
-			window.strokeWidth = static_cast<f32>(h) * newWindowCfg.strokeWidth;
-			window.color = Rgba<f32>{ newWindowCfg.color };
-			window.displayMode = newWindowCfg.displayMode;
-			window.nHarmonic = newWindowCfg.nHarmonic;
-			window.nMaximums = newWindowCfg.maximum.n;
-			window.scale = newWindowCfg.scale;
-			const u32 nPoints{ window.displayMode == DisplayMode::complex ? window.pSource->binCountDisplay() * 2 : window.pSource->binCountDisplay() };
-			if (window.points.size() != nPoints)window.points.resize_uninitialized(nPoints);
-			if (!window.textFormat || window.textFormat.name() != newWindowCfg.maximum.font.familyName || window.textFormat.size() != newWindowCfg.maximum.font.size * h)
+			Graph& graph{ graphs[i] };
+			const Config::Graph& newGraphCfg{ cfg.graphs[i] };
+			graph.enable = newGraphCfg.enable;
+			graph.pSource = &sources[newGraphCfg.sourceId];
+			graph.pAutoScaleTarget = newGraphCfg.autoScaleGraphId ? &graphs[*newGraphCfg.autoScaleGraphId] : nullptr;
+			graph.left = static_cast<f32>(w) * newGraphCfg.left;
+			graph.right = static_cast<f32>(w) * newGraphCfg.right;
+			graph.base = static_cast<f32>(h) * newGraphCfg.base;
+			graph.strokeWidth = static_cast<f32>(h) * newGraphCfg.strokeWidth;
+			graph.color = Rgba<f32>{ newGraphCfg.color };
+			graph.displayMode = newGraphCfg.displayMode;
+			graph.nHarmonic = newGraphCfg.nHarmonic;
+			graph.nMaximums = newGraphCfg.maximum.n;
+			graph.scale = newGraphCfg.scale;
+			const u32 nPoints{ graph.displayMode == DisplayMode::complex ? graph.pSource->binCountDisplay() * 2 : graph.pSource->binCountDisplay() };
+			if (graph.points.size() != nPoints)graph.points.resize_uninitialized(nPoints);
+			if (!graph.textFormat || graph.textFormat.name() != newGraphCfg.maximum.font.familyName || graph.textFormat.size() != newGraphCfg.maximum.font.size * h)
 			{
-				DTOR(window.textFormat);
-				CTOR(window.textFormat) { newWindowCfg.maximum.font.size* h, newWindowCfg.maximum.font.familyName };
+				DTOR(graph.textFormat);
+				CTOR(graph.textFormat) { newGraphCfg.maximum.font.size* h, newGraphCfg.maximum.font.familyName };
 			}
 		}
 		keystates.reset();
@@ -797,7 +797,7 @@ namespace AudioSpectrum
 	inline void reset()noexcept
 	{
 		sources.clear();
-		windows.clear();
+		graphs.clear();
 		keystates.reset();
 	}
 	INLINE void loop(Windows::$Path auto&& cfgPath)noexcept
@@ -841,31 +841,31 @@ namespace AudioSpectrum
 						[&]LAMBDA_INLINE{ for (Source& source : sources)if (source.redraw)return true; return false; }())
 						break;
 				}
-				for (Window& window : windows)
-					if(window.enable && !window.pAutoScaleTarget)
-						window.render();
-				for (Window& window : windows)
-					if (window.enable && window.pAutoScaleTarget)
-						window.render();
-				for (Window& window : windows)
-					if (window.enable)
-						window.render_maximums();
+				for (Graph& graph : graphs)
+					if(graph.enable && !graph.pAutoScaleTarget)
+						graph.render();
+				for (Graph& graph : graphs)
+					if (graph.enable && graph.pAutoScaleTarget)
+						graph.render();
+				for (Graph& graph : graphs)
+					if (graph.enable)
+						graph.render_maximums();
 				if (keystates.pressed<"showCursorNote">())
 				{
 					const Math::float2 mousePos{ (f32)overlay.msg().pt.x,(f32)overlay.msg().pt.y };
-					Window* pWindow{};
+					Graph* pGraph{};
 					f32 dist;
-					for (Window& window : windows)
-						if (window.enable && window.left <= mousePos[0] && window.right >= mousePos[0] && (!pWindow || Math::abs(window.base - mousePos[1]) < dist))
+					for (Graph& graph : graphs)
+						if (graph.enable && graph.left <= mousePos[0] && graph.right >= mousePos[0] && (!pGraph || Math::abs(graph.base - mousePos[1]) < dist))
 						{
-							dist = Math::abs(window.base - mousePos[1]);
-							pWindow = &window;
+							dist = Math::abs(graph.base - mousePos[1]);
+							pGraph = &graph;
 						}
-					if (pWindow)
+					if (pGraph)
 					{
-						const f32 f{ pWindow->pSource->x2f(Math::invLerp(mousePos[0], pWindow->left, pWindow->right)) };
-						const Direct2D::TextLayout layout{ f2closestNote<c16>(f), pWindow->textFormat };
-						overlay.graphics().drawTextLayout<{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>(mousePos, layout, pWindow->color);
+						const f32 f{ pGraph->pSource->x2f(Math::invLerp(mousePos[0], pGraph->left, pGraph->right)) };
+						const Direct2D::TextLayout layout{ f2closestNote<c16>(f), pGraph->textFormat };
+						overlay.graphics().drawTextLayout<{ Direct2D::Alignment::Horizontal::center, Direct2D::Alignment::Vertical::center }>(mousePos, layout, pGraph->color);
 					}
 				}
 			}

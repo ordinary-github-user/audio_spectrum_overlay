@@ -130,7 +130,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 
 # config file explained
 
-```
+```c++
 {
 	beep:false//when config is (re)loaded, make 1000hz beep noise if success, make 500hz beep noise if failure (like bad syntax, or no file read access)
 	wait:0.1//overlay updates when audio end point produce new frame data, or when time since last update is greater than "wait" seconds
@@ -149,7 +149,9 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 		showCursorNote["cap"]//a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,0,1,2,3,4,5,6,7,8,9,mouse_left,mouse_right,mouse_middle,xButton1,xButton2,numpad_0,numpad_1,numpad_2,numpad_3,numpad_4,numpad_5,numpad_6,numpad_7,numpad_8,numpad_9,numpad_mul,numpad_plus,numpad_minus,numpad_dec,numpad_div,numlock,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22,f23,f24,win_left,win_right,shift_left,shift_right,control_left,control_right,alt_left,alt_right,esc,back_tick,tab,cap,snapshot,scroll_lock,pause_break,insert,del,home,end,page_up,page_down,left,right,up,down,minus,equal,back_slash,back_space,square_bracket_left,square_bracket_right,enter,semicolon,quote,comma,period,slash,apps,space,shift,control,alt,sleep,select,print,execute,help,separator,numpad_equal,clear,numpad_enter,wheel_up,wheel_down
 	}
 	//you can have multiple sources
-	//for example: 1 input(mic), 1 output(speaker), and hum along to yt songs, see how close your notes match, thats my original goal of coding this project
+	//for example: 1 input(mic), 1 output(speaker)
+	//and hum along to yt songs, see how close your notes match
+	//thats my original goal of coding this project
 	//turns out my overlay only visualizes how bad my singing is
 	//it does not improve my singing at all
 	sources
@@ -165,7 +167,9 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 			//you can enter frequency number (like 440), or note name (like "F#0", "Ab0")
 			frequency
 			{
-				min:"C3"//left  most frequency, dudes singing can go below C3, but i dont listen to dudes singing often, so "C3" it is
+				//dudes singing can go below C3
+				//but i dont listen to dudes singing often, so "C3" it is
+				min:"C3"//left  most frequency
 				max:"C7"//right most frequency
 			}
 			nBinsPerOctave:128//how many frequencies to track per octave
@@ -175,7 +179,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 	]
 	globalScale:1//scale graph height linearly by 1x
 
-	windows//probably should have named it graphs
+	graphs
 	[
 		{
 			enable:true
@@ -186,7 +190,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 			displayMode:"complex"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
 			nHarmonic:0//complex is not harmonic, so this value does not apply (must be set to 0)
 			scale:10000//graph height linear scale
-			autoScaleWindowId:null//no scaling against any other window
+			autoScaleGraphId:null//no scaling against any other graph
 			strokeWidth:0.003//stroke width of the graph lines
 			color[0,1,0.85,0.8]//hsla = [hue, saturation, lightness, alpha]
 			maximum//draw note name at graph local maximums
@@ -207,8 +211,8 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 			base:0.05
 			displayMode:"harmonic_product"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
 			nHarmonic:5//harmonic_product is harmonic, see "what code does" -> "graph type includes", N = nHarmonic, same goes for other harmonic display mode
-			scale:-16000000000
-			autoScaleWindowId:0//max height of this graph is scaled to max height of windows[0] (the first graph)
+			scale:-16000000000//when autoScaleGraphId is not null, scale is not used (but whether graph grows up/down depends on scale's signbit)
+			autoScaleGraphId:0//max height of this graph is scaled to max height of graphs[0] (the first graph)
 			strokeWidth:0.003
 			color[0.47,1,0.85,0.8]
 			maximum
@@ -230,7 +234,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 			displayMode:"harmonic_product_skip_f0"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
 			nHarmonic:4
 			scale:160000000
-			autoScaleWindowId:0
+			autoScaleGraphId:0
 			strokeWidth:0.003
 			color[0.11,1,0.85,0.8]
 			maximum
@@ -252,7 +256,7 @@ you only have to compile code with 1 compiler, not all 3. my favorite is clang-c
 			displayMode:"harmonic_product_odd"//complex,abs,harmonic_product,harmonic_product_normalized,harmonic_product_skip_f0,harmonic_product_skip_f0_normalized,harmonic_product_odd,harmonic_product_odd_normalized
 			nHarmonic:4
 			scale:160000000
-			autoScaleWindowId:0
+			autoScaleGraphId:0
 			strokeWidth:0.003
 			color[0.36,1,0.85,0.8]
 			maximum
