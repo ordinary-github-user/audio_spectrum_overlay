@@ -1,5 +1,6 @@
 #pragma once
 #include "../../Util/Concepts/Constructible.h"
+#include "../../Util/Concepts/Printable.h"
 #include "../../Util/Concepts/Same.h"
 #include "../../Util/Concepts/String.h"
 #include "../../Util/DataStructures/OString.h"
@@ -87,7 +88,7 @@ namespace Windows
 		constexpr bool isAbsolute()const noexcept { return m_data.find(':') != nullptr; }
 		constexpr bool isRelative()const noexcept { return m_data.find(':') == nullptr; }
 
-		template<class Stream>
+		template<$Stream<StringView16> Stream>
 		constexpr friend Stream& operator<<(Stream& os, DosPathView filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
@@ -116,7 +117,7 @@ namespace Windows
 
 		constexpr operator DosPathView()const noexcept { return DosPathView{ m_data }; }
 
-		template<class Stream>
+		template<$Stream<StringView16> Stream>
 		constexpr friend Stream& operator<<(Stream& os, const DosPath& filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
@@ -139,7 +140,7 @@ namespace Windows
 		//\Device\HarddiskVolume3\abc.txt
 		//explicit constexpr operator DosPathView()const noexcept { return DosPathView{ m_data.substr(4) }; }
 
-		template<class Stream>
+		template<$Stream<StringView16> Stream>
 		constexpr friend Stream& operator<<(Stream& os, NtPathView filepath)noexcept { os << filepath.m_data; return os; }
 	};
 
@@ -178,7 +179,7 @@ namespace Windows
 		//\Device\HarddiskVolume3\abc.txt
 		//explicit constexpr operator DosPathView()const noexcept { return DosPathView{ m_data.substr(4) }; }
 
-		template<class Stream>
+		template<$Stream<StringView16> Stream>
 		constexpr friend Stream& operator<<(Stream& os, const NtPath& filepath)noexcept { os << filepath.m_data; return os; }
 	};
 

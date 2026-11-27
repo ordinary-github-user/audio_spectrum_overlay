@@ -15,15 +15,9 @@ namespace Math
 	//	else
 	//#endif
 		{
-			if constexpr ($Same<T, f32>)
-				return musl::fmodf(x, y);
-			else if constexpr ($Same<T, f64>)
-				return musl::fmod(x, y);
-			//y = Math::abs(y);
-			//if (x >= 0)
-			//	return x - Math::floor(x / y) * y;
-			//else
-			//	return x + Math::floor(-x / y) * y;
+			/* */if constexpr ($Same<f32, T>)return musl::fmodf(x, y);
+			else if constexpr ($Same<f64, T>)return musl::fmod(x, y);
+			else static_assert(0);
 		}
 	}
 

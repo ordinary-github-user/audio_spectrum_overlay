@@ -24,6 +24,7 @@ namespace Math
 #else
 				/* */if constexpr ($Same<f32, T>)return fabsf(x);
 				else if constexpr ($Same<f64, T>)return fabs(x);
+				else static_assert(0);
 #endif
 			}
 		}

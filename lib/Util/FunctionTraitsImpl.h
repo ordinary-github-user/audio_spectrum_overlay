@@ -2,7 +2,6 @@
 #include "BasicTypes.h"
 #include "Compact.h"
 #include "Compiler.h"
-#include "Compiler.h"
 #include "StaticAssert.h"
 #include "TypeAt.h"
 #include "TypeList.h"

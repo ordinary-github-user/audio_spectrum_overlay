@@ -142,26 +142,6 @@ public:
 	
 	INLINE void setVisible(bool visible)noexcept { m_show = visible; }
 
-	//void setTargetWindow(const Windows::Window& targetWindow) noexcept { m_targetWindow = targetWindow; }
-	//void removeTargetWindow() noexcept { setTargetWindow({}); }
-	//const Windows::Window& targetWindow()const noexcept { return m_targetWindow; }
-	//bool placeAtTop()const noexcept
-	//{
-	//	if constexpr (TrueTopMost)
-	//		return true;
-	//	else
-	//	{
-	//		if (m_targetWindow)
-	//			return m_window.insertAbove(m_targetWindow);
-	//		else
-	//			//return m_window.insertAbove(Windows::Window::foregroundWindow());
-	//			return forcePlaceAtTop();
-	//	}
-	//}
-	//bool forcePlaceAtTop()const noexcept
-	//{
-	//	return 0!=Win32u::NtUserSetWindowPos(m_window.handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-	//}
 	INLINE bool setStyle(Windows::WindowStyle style) noexcept { return style == m_windowStyle || ((m_windowStyle = style), resetStyle()); }
 	INLINE bool setStyleEx(Windows::WindowStyleEx styleEx) noexcept { return styleEx == m_windowStyleEx || ((m_windowStyleEx = styleEx), resetStyleEx()); }
 	INLINE bool resetStyle()const noexcept { return m_window.setStyle(m_windowStyle); }

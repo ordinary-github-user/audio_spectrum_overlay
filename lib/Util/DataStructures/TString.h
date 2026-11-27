@@ -18,8 +18,7 @@ INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 		}
 		else
 		{
-			const OString s{ TString<typename Stream::char_type, Cs...>{} };
-			os.write(s.data(), length);
+			os.write(OString{ TString<typename Stream::char_type, Cs...>{} }.data(), length);
 		}
 	}
 	return os;

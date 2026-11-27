@@ -30,8 +30,8 @@
 		#endif
 	#else
 		#define NO_INLINE __declspec(noinline)
-		#define INLINE inline //__forceinline
-		#define LAMBDA_INLINE //[[msvc::forceinline]]
+		#define INLINE inline __forceinline
+		#define LAMBDA_INLINE [[msvc::forceinline]]
 		#define FLATTEN
 		#define STATIC_LAMBDA_INLINE static
 	#endif

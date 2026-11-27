@@ -2,7 +2,6 @@
 #include <immintrin.h>
 #include "BasicTypes.h"
 #include "Compiler.h"
-#include "Compiler.h"
 #include "Inline.h"
 #if defined(__AVX512F__)
 	#if MSVC && BITNESS == 32//msvc bug

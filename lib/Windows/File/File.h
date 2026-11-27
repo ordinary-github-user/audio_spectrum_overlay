@@ -428,7 +428,7 @@ INLINE bool writeFile(Windows::NtPathView filename, Span<const u8> buffer)noexce
 INLINE bool writeFile(Windows::NtPathView filename, Span<const c8> buffer)noexcept { return details::writeFile(filename, { (const u8*)buffer.data(), (const u8*)buffer.data() + buffer.size() }); }
 
 inline bool renameFile(const auto& filename, $LinearContainerOf<c16> auto const& name, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openFileToDelete(filename) && file.renameFileOrDir(name, flag); }
-inline bool renameDir(const auto& filename, $LinearContainerOf<c16> auto const& name, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete(filename) && file.renameFileOrDir(name, flag); }
+inline bool renameDir (const auto& filename, $LinearContainerOf<c16> auto const& name, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete (filename) && file.renameFileOrDir(name, flag); }
 template<class Char, Char...cs>inline bool renameFile(const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openFileToDelete(filename) && file.renameFileOrDir(OString{ TString<c16, cs...>{} }, flag); }
 template<class Char, Char...cs>inline bool renameDir (const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete (filename) && file.renameFileOrDir(OString{ TString<c16, cs...>{} }, flag); }
 

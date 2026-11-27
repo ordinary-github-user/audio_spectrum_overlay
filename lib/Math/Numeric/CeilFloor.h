@@ -13,18 +13,16 @@ namespace Math
 #if CLANG || GCC
 			MATH_BUILTIN(ceil, T, x);
 #else
-			if constexpr ($Same<f32, T>)
-				return __ceilf(x);
-			else
-				return __ceil(x);
+			/* */if constexpr ($Same<f32, T>)return __ceilf(x);
+			else if constexpr ($Same<f64, T>)return __ceil(x);
+			else static_assert(0);
 #endif
 		}
 		else
 		{
-			if constexpr ($Same<f32, T>)
-				return xceilf(x);
-			else
-				return xceil(x);
+			/* */if constexpr ($Same<f32, T>)return xceilf(x);
+			else if constexpr ($Same<f64, T>)return xceil(x);
+			else static_assert(0);
 		}
 	}
 
@@ -36,18 +34,16 @@ namespace Math
 #if CLANG || GCC
 			MATH_BUILTIN(floor, T, x);
 #else
-			if constexpr ($Same<f32, T>)
-				return __floorf(x);
-			else
-				return __floor(x);
+			/* */if constexpr ($Same<f32, T>)return __floorf(x);
+			else if constexpr ($Same<f64, T>)return __floor(x);
+			else static_assert(0);
 #endif
 		}
 		else
 		{
-			if constexpr ($Same<f32, T>)
-				return xfloorf(x);
-			else
-				return xfloor(x);
+			/* */if constexpr ($Same<f32, T>)return xfloorf(x);
+			else if constexpr ($Same<f64, T>)return xfloor(x);
+			else static_assert(0);
 		}
 	}
 }

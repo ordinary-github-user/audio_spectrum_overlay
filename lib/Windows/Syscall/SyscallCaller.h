@@ -1,6 +1,5 @@
 #pragma once
 #include "../../Util/Compiler.h"
-#include "../../Util/Compiler.h"
 #include "../../Util/DataStructures/FixedStringImpl.h"
 #include "../../Util/Macro/ArgCount.h"
 #include "../../Util/Macro/ForEach.h"
