@@ -14,18 +14,20 @@ https://github.com/user-attachments/assets/ff788098-3fea-46e1-94d1-1a791d8926c2
 
 3. draw some `frequency`->`amplitude` graphs based on what code hears in audio endpoints(x-axis = `frequency`, y-axis = `amplitude`)
 
-    frequency is log-spaced, meaning distance between any piano key to its next is always same
+    frequency is log-spaced (`ConstantQ`), meaning distance between any piano key to its next is always same
 
     graph type includes:
 
-    - `complex`: $\mathrm{Re}(f),\ \mathrm{Im}(f)$
-    - `abs`: $A(f)=\sqrt{\mathrm{Re}(f)^2 + \mathrm{Im}(f)^2}$
-    - `harmonic_product`: $\prod_{k=1}^{N} A(kf)$
-    - `harmonic_product_normalized`: $\left(\prod_{k=1}^{N} A(kf)\right)^{\frac{1}{N}}$
-    - `harmonic_product_skip_f0`: $\prod_{k=2}^{N+1} A(kf)$
-    - `harmonic_product_skip_f0_normalized`: $\left(\prod_{k=2}^{N+1} A(kf)\right)^{\frac{1}{N}}$
-    - `harmonic_product_odd`: $\prod_{k=1}^{N} A((2k-1)f)$
-    - `harmonic_product_odd_normalized`: $\left(\prod_{k=1}^{N} A((2k-1)f)\right)^{\frac{1}{N}}$
+	| graph | math |
+	|---|---|
+	| `complex` | $\left\langle\mathrm{Real}(f),\mathrm{Imag}(f)\right\rangle$ |
+	| `abs` | $A(f)=\sqrt{\mathrm{Real}(f)^2 + \mathrm{Imag}(f)^2}$ |
+	| `harmonic_product` | $\prod_{k=1}^{N} A(kf)$ |
+	| `harmonic_product_normalized` | $\sqrt[N]{\prod_{k=1}^{N} A(kf)}$ |
+	| `harmonic_product_skip_f0` | $\prod_{k=2}^{N+1} A(kf)$ |
+	| `harmonic_product_skip_f0_normalized` | $\sqrt[N]{\prod_{k=2}^{N+1} A(kf)}$ |
+	| `harmonic_product_odd` | $\prod_{k=1}^{N} A((2k-1)f)$ |
+	| `harmonic_product_odd_normalized` | $\sqrt[N]{\prod_{k=1}^{N} A((2k-1)f)}$ |
 
 
 4. for each graph, draw `note name` of top `n` local maximum, so you can see which notes are played (`n` is configurable in config file, default value is `4`)
