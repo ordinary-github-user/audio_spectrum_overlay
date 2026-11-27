@@ -800,4 +800,119 @@ namespace Math
 				++i;
 		}
 	}
+	//template<$Floating T>
+	//struct Vertices2
+	//{
+	//	using base_t = Vertices2<T>;
+	//	using vertex_t = Vector2<T>;
+	//	using container_t = GrowableArray<vertex_t>;
+	//	container_t m_vertices;
+	//	void leftCut(T x, $Sig<void(const float2)> auto&& action)const noexcept
+	//	{
+	//		const usize s{ m_vertices.size() };
+	//		for (usize i{}; i < s; ++i)
+	//		{
+	//			const float2& p0{ m_vertices[i] };
+	//			const float2& p1{ m_vertices[(i + 1) % s] };
+	//			const float2 dist{ p1 - p0 };
+	//			const f32 slope{ dist[1] / dist[0] };
+	//			const bool bothLeft{ p0[0] < x && p1[0] < x };
+	//			const bool bothRight{ p0[0] > x && p1[0] > x };
+	//			const bool passThrough{ (p0[0] - x) * (p1[0] - x) < 0 };
+	//			if (bothLeft)
+	//				action(p1);
+	//			else if (bothRight)
+	//			{
+	//			}
+	//			else if (passThrough)
+	//			{
+	//				const float2 intersectPoint{ x, p0[1] + slope * (x - p0[0]) };
+	//				action(intersectPoint);
+	//				if (p1[0] < x)
+	//					action(p1);
+	//			}
+	//			else
+	//				action(p1);
+	//		}
+	//	}
+	//	void rightCut(T x, $Sig<void(const float2)> auto&& action)const noexcept
+	//	{
+	//		const usize s{ m_vertices.size() };
+	//		for (usize i{}; i < s; ++i)
+	//		{
+	//			const float2& p0{ m_vertices[i] };
+	//			const float2& p1{ m_vertices[(i + 1) % s] };
+	//			const float2 dist{ p1 - p0 };
+	//			const f32 slope{ dist[1] / dist[0] };
+	//			const bool bothLeft{ p0[0] < x && p1[0] < x };
+	//			const bool bothRight{ p0[0] > x && p1[0] > x };
+	//			const bool passThrough{ (p0[0] - x) * (p1[0] - x) < 0 };
+	//			if (bothRight)
+	//				action(p1);
+	//			else if (bothLeft)
+	//			{
+	//			}
+	//			else if (passThrough)
+	//			{
+	//				const float2 intersectPoint{ x, p0[1] + slope * (x - p0[0]) };
+	//				action(intersectPoint);
+	//				if (p1[0] > x)
+	//					action(p1);
+	//			}
+	//			else
+	//				action(p1);
+	//		}
+	//	}
+	//	Vertices2& setPosition(const vertex_t& position)noexcept
+	//	{
+	//		const vertex_t centroid{ getCentroid() };
+	//		for (vertex_t& vertex : m_vertices)
+	//			vertex = vertex - centroid + position;
+	//		return *this;
+	//	}
+	//	T getArea()const noexcept
+	//	{
+	//		T result{ 0 };
+	//		usize n{ m_vertices.size() };
+	//		for (usize i{}; i < n; ++i)
+	//		{
+	//			const vertex_t& lastVertex{ m_vertices[i] };
+	//			const vertex_t& nextVertex{ m_vertices[(i + 1) % n] };
+	//			result += cross(lastVertex, nextVertex);
+	//		}
+	//		return (result * T(0.5));
+	//	}
+	//	vertex_t getCentroid()const noexcept
+	//	{
+	//		vertex_t centroid;
+	//		usize n{ m_vertices.size() };
+	//		for (usize i{}; i < n; ++i)
+	//		{
+	//			const vertex_t& lastVertex{ m_vertices[i] };
+	//			const vertex_t& nextVertex{ m_vertices[(i + 1) % n] };
+	//			centroid += (lastVertex + nextVertex) * cross(lastVertex, nextVertex);
+	//		}
+	//		return centroid / (getArea() * 6);
+	//	}
+	//	vertex_t& operator[](usize index)noexcept { return m_vertices[index]; }
+	//	const vertex_t& operator[](usize index)const noexcept { return m_vertices[index]; }
+	//	const vertex_t* end()const noexcept { return m_vertices.end(); }vertex_t* end() noexcept { return m_vertices.end(); }
+	//	const vertex_t* begin()const noexcept { return m_vertices.begin(); }vertex_t* begin() noexcept { return m_vertices.begin(); }
+	//	const vertex_t* data()const noexcept { return m_vertices.data(); }vertex_t* data()noexcept { return m_vertices.data(); }
+	//	usize size()const noexcept { return m_vertices.size(); }
+	//	void reverse() noexcept { Algorithm::reverse(m_vertices); }
+	//	base_t& rotate(f32 radian, const vertex_t& origin = { 0,0 })noexcept
+	//	{
+	//		for (vertex_t& v : m_vertices)
+	//			v = v.rotatedByRadian(radian, origin);
+	//		return *this;
+	//	}
+	//	constexpr base_t& operator+=(const vertex_t& rhs)noexcept
+	//	{
+	//		for (vertex_t& v : m_vertices)
+	//			v += rhs;
+	//		return *this;
+	//	}
+	//	base_t operator+(const vertex_t& rhs)const noexcept { base_t copy{ *this }; return copy += rhs; }
+	//};
 }

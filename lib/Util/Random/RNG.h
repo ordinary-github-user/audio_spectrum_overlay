@@ -2,7 +2,7 @@
 #include "../ArraySequence.h"
 #include "../BasicTypes.h"
 #include "../DataStructures/FixedStringImpl.h"
-#include "../DataStructures/ObfuString.h"
+#include "../DataStructures/OString.h"
 #include "../DataStructures/StaticStringImpl.h"
 #include "../ElementOf.h"
 #include "../Fold.h"

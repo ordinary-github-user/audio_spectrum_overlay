@@ -20,11 +20,11 @@ namespace Direct2D
 		TextFormat(Uninitialized)noexcept :m_pTextFormat{} {};
 		TextFormat(
 			f32 size = 20.f,
-			const c16* fontFamily = S16(L"consolas\0").data(),
+			const c16* fontFamily = OS(L"consolas\0").data(),
 			DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_EXTRA_LIGHT, 
 			DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL, 
 			DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_ULTRA_CONDENSED,
-			const c16* localName= S16(L"en-us\0").data())noexcept
+			const c16* localName= OS(L"en-us\0").data())noexcept
 		{
 			pDwriteFactory->CreateTextFormat(fontFamily, nullptr, weight, style, stretch, size, localName, m_pTextFormat.GetAddressOf());
 		}
@@ -35,7 +35,7 @@ namespace Direct2D
 			DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
 			DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
 			DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_ULTRA_CONDENSED,
-			const c16* localName = S16(L"en-us\0").data())noexcept:TextFormat{size, nullTerminated(fontFamily).data(), weight, style, stretch, localName}
+			const c16* localName = OS(L"en-us\0").data())noexcept:TextFormat{size, nullTerminated(fontFamily).data(), weight, style, stretch, localName}
 		{}
 
 		explicit operator bool()const noexcept { return ptr(); }

@@ -19,7 +19,7 @@ namespace details
 		CRASH();
 		UNREACHABLE;
 	}
-	#define DLLCALL_GET_ADDRESS(function_name) details::getFunctionAddress(ObfuString{TS(#function_name)})
+	#define DLLCALL_GET_ADDRESS(function_name) details::getFunctionAddress(OString{TS(#function_name)})
 }
 
 #define DLLCALL_ARG(type,name) name

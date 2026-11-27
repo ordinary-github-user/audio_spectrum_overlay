@@ -2,7 +2,7 @@
 #include "../../Util/Concepts/Constructible.h"
 #include "../../Util/Concepts/Same.h"
 #include "../../Util/Concepts/String.h"
-#include "../../Util/DataStructures/ObfuString.h"
+#include "../../Util/DataStructures/OString.h"
 #include "../../Util/DataStructures/StringSso.h"
 #include "../../Util/DataStructures/StringView.h"
 #include "../../Util/DataStructures/TString.h"
@@ -155,7 +155,7 @@ namespace Windows
 
 		constexpr NtPath(DosPathView dospath)noexcept :m_data{ uninitialized, 4 + dospath.m_data.size() }//TODO operator+
 		{
-			Algorithm::copy_assign(S16(LR"(\??\)"), m_data.data());
+			Algorithm::copy_assign(OS(LR"(\??\)"), m_data.data());
 			Algorithm::copy_assign(dospath.m_data, m_data.data() + 4);
 		}
 
@@ -248,7 +248,7 @@ namespace Windows
 			if (!filepath.m_data.empty() && filepath.m_data.back() != '\\')
 				result.m_data.push_back('\\');
 			if consteval { result.m_data.append(encode<rhs, ElementOf<decltype(result.m_data)>>); }
-			else/*    */ { result.m_data.append(ObfuString{ tstring<encode<rhs, ElementOf<decltype(result.m_data)>>> }); }
+			else/*    */ { result.m_data.append(OString{ tstring<encode<rhs, ElementOf<decltype(result.m_data)>>> }); }
 			return result;
 		}
 	}

@@ -1,6 +1,6 @@
 #pragma once
 #include "../Math/Numeric/GcdLcm.h"
-#include "DataStructures/ObfuString.h"
+#include "DataStructures/OString.h"
 #include "EnumImpl.h"
 #include "StringFormat/HexToStream.h"
 #include "StringFormat/ToTString.h"
@@ -20,17 +20,17 @@
 		}
 		else
 		{
-			static constexpr usize max_length{ Algorithm::max(decltype(ObfuString{ enum_name<Enum<T>::entries[I],Char> })::size()...) };
-			static constexpr usize buffer_size{ Algorithm::max(sizeof(decltype(ObfuString{ enum_name<Enum<T>::entries[I],Char> }))...) };
-			static constexpr usize buffer_align{ Math::lcm(alignof(decltype(ObfuString{ enum_name<Enum<T>::entries[I],Char> }))...) };
+			static constexpr usize max_length{ Algorithm::max(decltype(OString{ enum_name<Enum<T>::entries[I],Char> })::size()...) };
+			static constexpr usize buffer_size{ Algorithm::max(sizeof(decltype(OString{ enum_name<Enum<T>::entries[I],Char> }))...) };
+			static constexpr usize buffer_align{ Math::lcm(alignof(decltype(OString{ enum_name<Enum<T>::entries[I],Char> }))...) };
 			alignas(buffer_align) u8 buffer[buffer_size];
 			Compact<max_length> size;
 			if (Switch<Enum<T>::entries>(
 					e,
 					[&](auto E)LAMBDA_INLINE
 					{
-						size = decltype(ObfuString{ enum_name<E(),Char>})::size();
-						new(&buffer[0])ObfuString{ enum_name<E(),Char> };
+						size = decltype(OString{ enum_name<E(),Char>})::size();
+						new(&buffer[0])OString{ enum_name<E(),Char> };
 						return true;
 					},
 					[&]LAMBDA_INLINE{ os << UNDERLYING(e); return false; }

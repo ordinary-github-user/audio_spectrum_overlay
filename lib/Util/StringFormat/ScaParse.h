@@ -586,11 +586,11 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		STATIC_ASSERT([]static{SignedFloatFields s{}; return !parse(s, encode<R"(.exe -i 32768)",        c16>);}());
 
 		//bool field
-		STATIC_ASSERT([]static{BoolFields s{};      return  parse(s, encode<R"(.exe -v)",       c16>) && s.v && !s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{};      return  parse(s, encode<R"(.exe -w -v)",    c16>) && s.v && s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{.v{1}}; return parse(s, encode<R"(.exe -v=0 -w=1)", c16>) && !s.v && s.w;}());
-		STATIC_ASSERT([]static{BoolFields s{};      return !parse(s, encode<R"(.exe -v=2)",     c16>);}());
-		STATIC_ASSERT([]static{BoolFields s{};      return !parse(s, encode<R"(.exe -v 1)",     c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};           return  parse(s, encode<R"(.exe -v)",       c16>) && s.v && !s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{};           return  parse(s, encode<R"(.exe -w -v)",    c16>) && s.v && s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{.v{1},.w{}}; return  parse(s, encode<R"(.exe -v=0 -w=1)", c16>) && !s.v && s.w;}());
+		STATIC_ASSERT([]static{BoolFields s{};           return !parse(s, encode<R"(.exe -v=2)",     c16>);}());
+		STATIC_ASSERT([]static{BoolFields s{};           return !parse(s, encode<R"(.exe -v 1)",     c16>);}());
 		//bool
 		STATIC_ASSERT([]static{bool b{};     return  parse(b, encode<R"(.exe 1)",  c16>) && b;}());
 		STATIC_ASSERT([]static{bool b{true}; return  parse(b, encode<R"(.exe 0)",  c16>) && !b;}());
@@ -644,9 +644,9 @@ namespace Sca//(S)uperior (C)ommandLine (A)rguments
 		STATIC_ASSERT([]static{FlagField s;   return !parse                  (s, encode<R"("c:\.exe" -旗 0)",  c16>);}());
 
 		//optional field
-		STATIC_ASSERT([]static{OptionalField s{};      return  parse(s, encode<R"(.exe -o 5)",     c16>) && s.o && *s.o == 5;}());
-		STATIC_ASSERT([]static{OptionalField s{.o{9}}; return  parse(s, encode<R"(.exe -o NuLl)",  c16>) && !s.o;}());
-		STATIC_ASSERT([]static{OptionalField s{};      return !parse(s, encode<R"(.exe -o nullx)", c16>);}());
+		STATIC_ASSERT([]static{OptionalField s{};          return  parse(s, encode<R"(.exe -o 5)",     c16>) && s.o && *s.o == 5;}());
+		STATIC_ASSERT([]static{OptionalField s{.o{u8{9}}}; return  parse(s, encode<R"(.exe -o NuLl)",  c16>) && !s.o;}());
+		STATIC_ASSERT([]static{OptionalField s{};          return !parse(s, encode<R"(.exe -o nullx)", c16>);}());
 
 		//u8 u8 f64 fields
 		STATIC_ASSERT([]static{MixedFields s{}; return  parse(s, encode<R"(.exe -x 3 -longer 5)",             c16>) && s.x == 3 && s.longer == 5;}());

@@ -267,7 +267,7 @@ namespace Windows
 		requires(sizeof(Path[0]) == 2)
 		bool createDevice(ACCESS_MASK desiredAccess = FILE_READ_DATA | FILE_WRITE_DATA, u32 fileAttributes = 0, u32 shareAccess = FILE_SHARE_READ | FILE_SHARE_WRITE, u32 createDisposition = FILE_OPEN | FILE_CREATE, u32 createOptions = 0)noexcept
 		{
-			const ObfuString path{ tstring<Path> };
+			const OString path{ tstring<Path> };
 			return createDevice(NtPathView{path}, desiredAccess, fileAttributes, shareAccess, createDisposition, createOptions);
 		}
 
@@ -429,8 +429,8 @@ INLINE bool writeFile(Windows::NtPathView filename, Span<const c8> buffer)noexce
 
 inline bool renameFile(const auto& filename, $LinearContainerOf<c16> auto const& name, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openFileToDelete(filename) && file.renameFileOrDir(name, flag); }
 inline bool renameDir(const auto& filename, $LinearContainerOf<c16> auto const& name, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete(filename) && file.renameFileOrDir(name, flag); }
-template<class Char, Char...cs>inline bool renameFile(const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openFileToDelete(filename) && file.renameFileOrDir(ObfuString{ TString<c16, cs...>{} }, flag); }
-template<class Char, Char...cs>inline bool renameDir(const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete(filename) && file.renameFileOrDir(ObfuString{ TString<c16, cs...>{} }, flag); }
+template<class Char, Char...cs>inline bool renameFile(const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openFileToDelete(filename) && file.renameFileOrDir(OString{ TString<c16, cs...>{} }, flag); }
+template<class Char, Char...cs>inline bool renameDir (const auto& filename, TString<Char, cs...>, Windows::FileRenameFlag flag = Windows::FileRenameFlag::replace_if_exists)noexcept { Windows::File file; return file.openDirToDelete (filename) && file.renameFileOrDir(OString{ TString<c16, cs...>{} }, flag); }
 
 inline bool deleteSymlinkFile(const auto& filename)noexcept
 {

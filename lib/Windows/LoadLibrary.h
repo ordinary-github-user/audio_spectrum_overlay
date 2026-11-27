@@ -2,7 +2,7 @@
 #include <atomic>
 #include "../Util/Compiler.h"
 #include "../Util/DataStructures/FixedString.h"
-#include "../Util/DataStructures/ObfuString.h"
+#include "../Util/DataStructures/OString.h"
 #include "../Util/Inline.h"
 #include "WinAPI/NTDLL.h"
 namespace Windows
@@ -10,7 +10,7 @@ namespace Windows
 	template<FixedString path>
 	INLINE void* loadLibrary()noexcept
 	{
-		const ObfuString oPath{ tstring<path> };
+		const OString oPath{ tstring<path> };
 		UnicodeString uPath{ oPath };
 		void* pBase{};
 		NTDLL::LdrLoadDll(nullptr, nullptr, &uPath, &pBase);

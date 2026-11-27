@@ -1,7 +1,7 @@
 #pragma once
 #include "../Constant.h"
 #include "../TextEncoding/TextEncodingStringConvertStatic.h"
-#include "ObfuString.h"
+#include "OString.h"
 #include "TStringImpl.h"
 template<class Stream, class T, T...Cs>
 requires(sizeof(typename Stream::char_type) == sizeof(T))
@@ -18,8 +18,8 @@ INLINE constexpr Stream& operator<<(Stream& os, TString<T, Cs...>)noexcept
 		}
 		else
 		{
-			const ObfuString obfuString{ TString<typename Stream::char_type, Cs...>{} };
-			os.write(obfuString.data(), length);
+			const OString s{ TString<typename Stream::char_type, Cs...>{} };
+			os.write(s.data(), length);
 		}
 	}
 	return os;
